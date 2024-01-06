@@ -1,0 +1,28 @@
+# Local configuration and secrets
+.env
+.env.*
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+
+# Local application data (uploads, extracted text, sessions, mastery data)
+data/
+storage/
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
