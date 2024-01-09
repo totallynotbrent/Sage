@@ -103,13 +103,14 @@ def _snap_end(text: str, start: int, end: int, size: int) -> int:
     for marker in ("\n\n", "\n"):
         best = -1
         best_distance = float("inf")
-        position = text.find(marker, lo)
-        while position != -1 and position <= hi:
+        bound = hi + len(marker)
+        position = text.find(marker, lo, bound)
+        while position != -1:
             distance = abs(position - end)
             if distance < best_distance:
                 best_distance = distance
                 best = position
-            position = text.find(marker, position + 1)
+            position = text.find(marker, position + 1, bound)
         if best != -1:
             return best
     return end

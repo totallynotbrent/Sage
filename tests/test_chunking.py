@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from app.services.chunking import chunk_units
+import time
+
+from app.services.chunking import _split_text, chunk_units
 from app.services.extraction.base import ExtractedUnit, LocationInfo
 
 
@@ -78,3 +80,22 @@ def test_location_preserved():
     chunks = chunk_units([unit], file_id="f", chunk_chars=50, overlap=10)
     assert chunks[0].location.slide == 3
     assert chunks[0].location.kind == "slide"
+
+
+def test_large_newline_free_text_splits_in_linear_time():
+    size = 100
+    overlap = 20
+    length = 4 * 1024 * 1024
+    text = "x" * length
+    start = time.perf_counter()
+    windows = _split_text(text, size, overlap)
+    elapsed = time.perf_counter() - start
+
+    step = size - overlap
+    expected_count = (length - size + step - 1) // step + 1
+    assert len(windows) == expected_count
+    assert windows[0] == (0, size)
+    assert windows[-1][1] == length
+    for win_start, win_end in windows[:-1]:
+        assert win_end - win_start == size
+    assert elapsed < 5.0, f"4MB single-line split took {elapsed:.1f}s (O(n^2) regression?)"

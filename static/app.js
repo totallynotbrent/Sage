@@ -331,6 +331,7 @@ function renderSessionView() {
   }
 
   renderTranscript(full.messages || []);
+  if (window.Study) window.Study.render_study_area(full);
 }
 
 function renderTranscript(messages) {
@@ -707,3 +708,8 @@ async function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+/* Exported surface for the study-loop modules (plan.js, quiz.js, data.js,
+   study.js). Kept minimal: shared fetch/toast/state plus the session refresh
+   and list-reload entry points those modules need. */
+window.Sage = { state, api, toast, openSession, loadSessions };

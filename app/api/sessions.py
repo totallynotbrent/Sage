@@ -5,10 +5,12 @@ from __future__ import annotations
 import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.config import Settings, get_app_settings
 from app.db import get_conn
+from app.llm.client import LLMClient, get_llm_client
 from app.models import GroundingMode, Session, SessionCreate
 from app.services.sessions import GROUNDING_MODES, SessionService
 
@@ -71,3 +73,15 @@ async def patch_session(
     if body.grounding_mode not in GROUNDING_MODES:
         raise HTTPException(status_code=400, detail=f"invalid grounding_mode: {body.grounding_mode}")
     return SessionService(conn, settings).update_grounding(session_id, body.grounding_mode)
+
+
+@router.delete("/api/sessions/{session_id}", status_code=204)
+async def delete_session(
+    session_id: str,
+    llm: LLMClient = Depends(get_llm_client),
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> JSONResponse:
+    llm.cancel_inflight(session_id)
+    SessionService(conn, settings).delete(session_id)
+    return JSONResponse(status_code=204, content=None)

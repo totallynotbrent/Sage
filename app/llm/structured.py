@@ -11,7 +11,7 @@ import json
 import re
 from typing import Any
 
-from app.errors import ModelOutputError
+from app.errors import ModelOutputError, ProviderError, PROVIDER_STATUS
 from app.models import Plan, PlanNode, QuizQuestionInput
 
 #: User-role message appended after a malformed first attempt.
@@ -26,6 +26,16 @@ QUESTIONS_RETRY_NOTE = (
     '2-6 strings), "correct_index" (integer index of the correct option), '
     '"explanation" (string), "topic" (string), and "difficulty" (integer 1-5).'
 )
+
+
+def provider_error_from_text(error_text: str | None) -> ProviderError:
+    """Rebuild a ``ProviderError`` from the client's normalized error string."""
+    if not error_text:
+        return ProviderError("upstream", detail="The model endpoint returned no response.")
+    code, sep, rest = error_text.partition(": ")
+    if not sep or code not in PROVIDER_STATUS:
+        return ProviderError("upstream", detail=error_text)
+    return ProviderError(code, detail=rest or None)
 
 
 def parse_json(text: str) -> Any:
@@ -230,6 +240,7 @@ async def request_plan(
     chunks: list[dict[str, Any]],
     mastery_summary: str,
     mode: str,
+    focus: str | None = None,
 ) -> Plan | None:
     """Ask the model for a dependency-aware plan with one corrective retry.
 
@@ -247,6 +258,8 @@ async def request_plan(
         "depends_on must reference node_keys that exist in the same plan.\n\n"
         f"{_context_block(chunks)}"
     )
+    if focus:
+        user += f"\n\nFocus on: {focus}"
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
@@ -254,7 +267,7 @@ async def request_plan(
 
     full_text, error_text = await llm.complete_json(messages)
     if full_text is None:
-        return None
+        raise provider_error_from_text(error_text)
 
     raw = _try_parse(full_text)
     plan = validate_plan(raw)
@@ -265,7 +278,9 @@ async def request_plan(
                 {"role": "user", "content": PLAN_RETRY_NOTE},
             ]
         )
-        retry_text, _ = await llm.complete_json(messages)
+        retry_text, retry_error = await llm.complete_json(messages)
+        if retry_text is None:
+            raise provider_error_from_text(retry_error)
         if retry_text:
             retry_raw = _try_parse(retry_text)
             plan = validate_plan(retry_raw) or _plan_from_fragments(retry_raw)
@@ -282,6 +297,7 @@ async def request_questions(
     mastery_summary: str,
     mode: str,
     count: int = 3,
+    focus: str | None = None,
 ) -> list[QuizQuestionInput]:
     """Ask the model for ``count`` multiple-choice questions with one retry.
 
@@ -300,6 +316,8 @@ async def request_questions(
         '"I don\'t know" option; the server adds it.\n\n'
         f"{_context_block(chunks)}"
     )
+    if focus:
+        user += f"\n\nFocus on: {focus}"
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
@@ -307,7 +325,7 @@ async def request_questions(
 
     full_text, error_text = await llm.complete_json(messages)
     if full_text is None:
-        return []
+        raise provider_error_from_text(error_text)
 
     raw = _try_parse(full_text)
     questions = validate_questions(raw)
@@ -318,7 +336,9 @@ async def request_questions(
                 {"role": "user", "content": QUESTIONS_RETRY_NOTE},
             ]
         )
-        retry_text, _ = await llm.complete_json(messages)
+        retry_text, retry_error = await llm.complete_json(messages)
+        if retry_text is None:
+            raise provider_error_from_text(retry_error)
         if retry_text:
             questions = validate_questions(_try_parse(retry_text))
     if questions is None:

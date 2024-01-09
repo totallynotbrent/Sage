@@ -52,6 +52,7 @@ class Session(BaseModel):
     phase: str = "setup"
     grounding_mode: GroundingMode = "grounded"
     current_node_id: str | None = None
+    nodes_since_check: int = 0
     file_ids: list[str] = Field(default_factory=list)
     created_at: str
     updated_at: str
@@ -169,3 +170,54 @@ class RetryBody(BaseModel):
     """Body for POST /api/sessions/{id}/retry."""
 
     client_msg_id: str = Field(min_length=1, max_length=200)
+
+
+class ProbeBody(BaseModel):
+    pass
+
+
+class CheckBody(BaseModel):
+    pass
+
+
+class QuizAnswerBody(BaseModel):
+    choice_index: int | None = None
+    idk: bool = False
+
+
+class ReorderPlanBody(BaseModel):
+    """Body for POST /api/sessions/{id}/plan/reorder."""
+
+    node_keys: list[str] = Field(min_length=1)
+
+
+class PlanNodeActionBody(BaseModel):
+    """Body for plan skip/select by node_key."""
+
+    node_key: str = Field(min_length=1)
+
+
+class ExpandPlanBody(BaseModel):
+    """Body for POST /api/sessions/{id}/plan/expand."""
+
+    node_key: str = Field(min_length=1)
+    detail: str | None = None
+
+
+class PreferencesBody(BaseModel):
+    """Partial update for learner teaching preferences."""
+
+    depth: Literal["brief", "standard", "deep"] | None = None
+    pacing: Literal["slow", "normal", "fast"] | None = None
+    style: Literal["analogy-first", "examples-first", "formal-first"] | None = None
+    notes: str | None = None
+
+
+class Preferences(BaseModel):
+    """Stored learner teaching preferences (single row, id=1)."""
+
+    depth: Literal["brief", "standard", "deep"]
+    pacing: Literal["slow", "normal", "fast"]
+    style: Literal["analogy-first", "examples-first", "formal-first"]
+    notes: str | None = None
+    updated_at: str

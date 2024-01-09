@@ -50,12 +50,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     register_exception_handlers(app, secret=settings.freebuff_api_key)
 
-    from app.api import chat, files, sessions, system
+    from app.api import chat, files, learning, plans, preferences, sessions, system, teach
 
     app.include_router(system.router)
     app.include_router(files.router)
     app.include_router(sessions.router)
     app.include_router(chat.router)
+    app.include_router(learning.router)
+    app.include_router(plans.router)
+    app.include_router(teach.router)
+    app.include_router(preferences.router)
 
     # Static frontend (mounted last so API routes win).
     app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

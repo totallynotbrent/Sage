@@ -1,12 +1,3 @@
-"""Session service: create/load/update sessions and the grounded chat turn.
-
-The session state machine (setup -> probe -> plan -> teach -> check -> ...) is
-deterministic server logic handled in later phases (T5/T6). This module owns
-the grounded-chat path used in the setup phase: retrieve chunks, stream the
-model's answer, persist it with validated citations, and emit a well-ordered
-sequence of SSE events.
-"""
-
 from __future__ import annotations
 
 import json
@@ -33,7 +24,6 @@ from app.services.files import FileService
 from app.services.retrieval import Retriever
 from app.util import new_id, utc_now
 
-#: Phases the state machine will use (later phases implement the transitions).
 PHASES = ("setup", "probe", "plan", "teach", "check", "remediate", "complete")
 
 GROUNDING_MODES: set[str] = {"strict", "grounded"}
@@ -44,6 +34,30 @@ SUFFICIENCY_NOTICE = (
     "more study files, switch to grounded-plus-knowledge mode, or ask me to "
     "explain based on general knowledge."
 )
+
+
+def plan_node_dict(row: dict) -> dict:
+    """A plan_nodes row with ``depends_on_json``/``children_json`` parsed to lists."""
+    out = dict(row)
+    try:
+        out["depends_on"] = json.loads(out.pop("depends_on_json") or "[]")
+    except (json.JSONDecodeError, TypeError):
+        out["depends_on"] = []
+    try:
+        out["children"] = json.loads(out.pop("children_json") or "[]")
+    except (json.JSONDecodeError, TypeError):
+        out["children"] = []
+    return out
+
+
+def question_dict(row: dict) -> dict:
+    """A quiz_questions row with ``options_json`` parsed to a list."""
+    out = dict(row)
+    try:
+        out["options"] = json.loads(out.pop("options_json") or "[]")
+    except (json.JSONDecodeError, TypeError):
+        out["options"] = []
+    return out
 
 
 class SessionService:
@@ -111,23 +125,35 @@ class SessionService:
                 (session_id,),
             )
         )
-        plan_nodes = rows_to_dicts(
-            self.conn.execute(
-                "SELECT * FROM plan_nodes WHERE session_id = ? ORDER BY position",
-                (session_id,),
+        plan = [
+            plan_node_dict(row)
+            for row in rows_to_dicts(
+                self.conn.execute(
+                    "SELECT * FROM plan_nodes WHERE session_id = ? ORDER BY position, rowid",
+                    (session_id,),
+                )
             )
-        )
-        quiz = rows_to_dicts(
-            self.conn.execute(
-                "SELECT * FROM quiz_questions WHERE session_id = ? ORDER BY created_at",
-                (session_id,),
+        ]
+        quiz = [
+            question_dict(row)
+            for row in rows_to_dicts(
+                self.conn.execute(
+                    "SELECT * FROM quiz_questions WHERE session_id = ? "
+                    "ORDER BY created_at, rowid",
+                    (session_id,),
+                )
             )
-        )
+        ]
         mastery = rows_to_dicts(
             self.conn.execute(
                 "SELECT * FROM mastery_topics ORDER BY label"
             )
         )
+        preferences = row_to_dict(
+            self.conn.execute(
+                "SELECT depth, pacing, style, notes, updated_at FROM preferences WHERE id = 1"
+            ).fetchone()
+        ) or {}
         selected_files = []
         for file_id in session.file_ids:
             try:
@@ -141,11 +167,29 @@ class SessionService:
         return {
             "session": session.model_dump(),
             "messages": [self._message_dict(m) for m in messages],
-            "plan": plan_nodes,
+            "plan": plan,
             "quiz": quiz,
             "mastery": mastery,
+            "preferences": preferences,
             "selected_files": selected_files,
         }
+
+    def delete(self, session_id: str) -> None:
+        """Delete a session and everything cascaded with it."""
+        self.get(session_id)
+        self.conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+        self.conn.commit()
+
+    def set_phase(self, session_id: str, phase: str) -> None:
+        """Transition the session to ``phase`` (validated against PHASES)."""
+        if phase not in PHASES:
+            raise ValueError(f"unknown phase: {phase!r}")
+        now = utc_now()
+        self.conn.execute(
+            "UPDATE sessions SET phase = ?, updated_at = ? WHERE id = ?",
+            (phase, now, session_id),
+        )
+        self.conn.commit()
 
     def select_files(self, session_id: str, file_ids: list[str]) -> Session:
         self.get(session_id)
@@ -181,6 +225,7 @@ class SessionService:
             phase=row.get("phase", "setup"),
             grounding_mode=row.get("grounding_mode", "grounded"),
             current_node_id=row.get("current_node_id"),
+            nodes_since_check=row.get("nodes_since_check", 0),
             file_ids=file_ids,
             created_at=row["created_at"],
             updated_at=row["updated_at"],
@@ -219,17 +264,9 @@ class SessionService:
         )
 
     def _mastery_summary(self) -> str:
-        rows = rows_to_dicts(
-            self.conn.execute(
-                "SELECT topic, label, confidence FROM mastery_topics "
-                "WHERE confidence > 0 ORDER BY label"
-            )
-        )
-        if not rows:
-            return "No prior mastery data."
-        return "; ".join(
-            f"{r['label']} ({r['confidence']:.0%})" for r in rows
-        )
+        from app.services.mastery import summarize_mastery
+
+        return summarize_mastery(self.conn)
 
     # ------------------------------------------------------------------ #
     # Message persistence
