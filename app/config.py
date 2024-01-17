@@ -53,7 +53,7 @@ class Settings(BaseSettings):
 
     @property
     def uploads_dir(self) -> Path:
-        """Uploaded-blob directory, always outside the static tree."""
+        """Uploaded-blob directory — never served by the API, always under the data directory."""
         return self.data_dir / "uploads"
 
 

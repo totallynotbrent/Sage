@@ -4,13 +4,12 @@ A local-first web application that acts as a personalized AI tutor. Attach
 study files (PDF, DOCX, PPTX, Markdown, text), and interact with a grounded,
 streaming chat tutor that cites the exact excerpts it used.
 
-- **Backend:** Python 3.11, FastAPI, uvicorn — a single process serves the API
-  and the static frontend (same origin, no proxy, no build step).
-- **Frontend:** vanilla HTML/CSS/JS, no CDN at runtime, no bundler.
+- **Backend:** Python 3.11, FastAPI, uvicorn — Sage currently ships as an
+  API-only service (JSON/SSE endpoints; no web UI for now).
 - **Model:** any OpenAI-compatible endpoint (default: local Freebuff at
   `http://127.0.0.1:8877/v1`).
 - **Storage:** SQLite + files in `DATA_DIR` (default `~/.local/share/sage`),
-  uploads kept outside the static tree.
+  uploads kept outside any served path.
 
 ## Setup
 
@@ -55,7 +54,7 @@ and port; the defaults remain LAN-reachable.
 ## Security warning
 
 **Trusted-network-only service.** Sage ships with no authentication. Anyone
-who can reach the Pi's IP on your local network can open the UI and use the
+who can reach the Pi's IP on your local network can call the API and use the
 configured model endpoint. Only run it on a network you trust. The API key
 stays server-side and is never delivered to the browser, and usage is bounded
 by the single local endpoint. A shared access token is a planned follow-up.
