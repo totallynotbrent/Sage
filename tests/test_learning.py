@@ -7,7 +7,9 @@ import pytest
 
 from app.errors import ModelOutputError, NotFoundError, ProviderError
 from app.services.learning import LearningService
+from app.services.plans import PlansService
 from app.services.sessions import SessionService
+from app.services.teach import TeachService
 from tests.fakes.fake_llm import FakeLLM
 
 
@@ -360,3 +362,100 @@ def test_answer_corrupt_options_json_raises_clean_value_error(conn, settings, fa
     with pytest.raises(ValueError) as excinfo:
         LearningService(conn, settings).answer_quiz(session.id, "q-broken", 0)
     assert "corrupted" in str(excinfo.value)
+
+
+def _planned_checked_session(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            {
+                "nodes": [
+                    {"node_key": "k1", "title": "Basics", "depends_on": []},
+                    {"node_key": "k2", "title": "Advanced", "depends_on": ["k1"]},
+                ]
+            }
+        )
+    ]
+    asyncio.run(PlansService(conn, settings).generate_plan(session.id, fake_llm))
+    PlansService(conn, settings).approve(session.id)
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            [
+                {
+                    "question": "Check Q?",
+                    "options": ["x", "y"],
+                    "correct_index": 0,
+                    "explanation": "e",
+                    "topic": None,
+                    "difficulty": 3,
+                }
+            ]
+        )
+    ]
+    result = asyncio.run(LearningService(conn, settings).generate_check(session.id, fake_llm))
+    return session, result["questions"][0]
+
+
+def test_regrade_correct_when_phase_plan_keeps_plan(conn, settings, fake_llm):
+    session, question = _planned_checked_session(conn, settings, fake_llm)
+    service = LearningService(conn, settings)
+    service.answer_quiz(session.id, question["id"], 1)
+    SessionService(conn, settings).set_phase(session.id, "plan")
+    node_before = conn.execute(
+        "SELECT current_node_id FROM sessions WHERE id = ?", (session.id,)
+    ).fetchone()[0]
+    result = service.answer_quiz(session.id, question["id"], 0)
+    assert result["result"]["outcome"] == "correct"
+    assert result["result"]["next_node"] is None
+    assert result["result"]["check_due"] is False
+    assert result["session"]["phase"] == "plan"
+    node_after = conn.execute(
+        "SELECT current_node_id FROM sessions WHERE id = ?", (session.id,)
+    ).fetchone()[0]
+    assert node_after == node_before
+    k2 = conn.execute(
+        "SELECT status FROM plan_nodes WHERE session_id = ? AND node_key = 'k2'",
+        (session.id,),
+    ).fetchone()
+    assert k2["status"] == "pending"
+
+
+def test_regrade_correct_when_phase_complete_stays_complete(conn, settings, fake_llm):
+    session, question = _planned_checked_session(conn, settings, fake_llm)
+    service = LearningService(conn, settings)
+    service.answer_quiz(session.id, question["id"], 1)
+    SessionService(conn, settings).set_phase(session.id, "complete")
+    result = service.answer_quiz(session.id, question["id"], 0)
+    assert result["result"]["outcome"] == "correct"
+    assert result["result"]["next_node"] is None
+    assert result["session"]["phase"] == "complete"
+
+
+def test_regrade_correct_from_remediate_advances(conn, settings, fake_llm):
+    session, question = _planned_checked_session(conn, settings, fake_llm)
+    service = LearningService(conn, settings)
+    first = service.answer_quiz(session.id, question["id"], 1)
+    assert first["session"]["phase"] == "remediate"
+    result = service.answer_quiz(session.id, question["id"], 0)
+    assert result["result"]["outcome"] == "correct"
+    assert result["session"]["phase"] == "teach"
+    assert result["result"]["next_node"] is not None
+    k2 = conn.execute(
+        "SELECT id, status FROM plan_nodes WHERE session_id = ? AND node_key = 'k2'",
+        (session.id,),
+    ).fetchone()
+    assert k2["status"] == "current"
+    assert result["session"]["current_node_id"] == k2["id"]
+
+
+def test_answer_skipped_question_rejected(conn, settings, fake_llm):
+    session, question = _planned_checked_session(conn, settings, fake_llm)
+    TeachService(conn, settings).skip_quiz(session.id, question["id"])
+    with pytest.raises(ValueError) as excinfo:
+        LearningService(conn, settings).answer_quiz(session.id, question["id"], 0)
+    assert "skipped" in str(excinfo.value)
+    stored = conn.execute(
+        "SELECT status FROM quiz_questions WHERE id = ?", (question["id"],)
+    ).fetchone()
+    assert stored["status"] == "skipped"
+    assert SessionService(conn, settings).get(session.id).phase == "plan"

@@ -91,10 +91,18 @@ class PlansService:
             (node["id"], session_id),
         )
         self.conn.commit()
-        if node["status"] == "current" and session.phase == "teach":
-            from app.services.teach import TeachService
+        if node["status"] == "current":
+            if session.phase == "teach":
+                from app.services.teach import TeachService
 
-            TeachService(self.conn, self.settings).advance(session_id)
+                TeachService(self.conn, self.settings).advance(session_id)
+            else:
+                now = utc_now()
+                self.conn.execute(
+                    "UPDATE sessions SET current_node_id = NULL, updated_at = ? WHERE id = ?",
+                    (now, session_id),
+                )
+                self.conn.commit()
         return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
 
     async def expand(self, session_id: str, node_key: str, detail: str | None, llm) -> dict:

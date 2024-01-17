@@ -98,6 +98,24 @@ def test_plan_empty_model_output_422(client, override_llm):
     assert body["retryable"] is True
 
 
+def test_plan_duplicate_node_key_422(client, override_llm):
+    session = _create_session(client)
+    dup = json.dumps(
+        {
+            "nodes": [
+                {"node_key": "k1", "title": "A", "depends_on": []},
+                {"node_key": "k1", "title": "B", "depends_on": []},
+            ]
+        }
+    )
+    override_llm.complete_json_responses = [dup, dup]
+    response = client.post(f"/api/sessions/{session['id']}/plan", json={})
+    assert response.status_code == 422
+    body = response.json()["error"]
+    assert body["code"] == "model_output"
+    assert body["retryable"] is True
+
+
 def test_plan_config_missing_400(tmp_path):
     from fastapi.testclient import TestClient
 

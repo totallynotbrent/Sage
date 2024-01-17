@@ -100,6 +100,8 @@ class LearningService:
         question = dict(row)
         if question["kind"] not in ("probe", "check"):
             raise ValueError(f"question kind {question['kind']!r} cannot be answered")
+        if question["status"] == "skipped":
+            raise ValueError("this question was skipped and cannot be answered")
         try:
             options = json.loads(question["options_json"] or "[]")
         except (json.JSONDecodeError, TypeError) as exc:
@@ -155,8 +157,12 @@ class LearningService:
             self.conn, question["topic"], source, outcome, question_id=question_id
         )
         if question["kind"] == "check":
+            phase = self.sessions.get(session_id).phase
             if outcome in ("incorrect", "idk"):
-                self.sessions.set_phase(session_id, "remediate")
+                if phase == "check":
+                    self.sessions.set_phase(session_id, "remediate")
+                return self._answer_response(session_id, question, outcome)
+            if phase not in ("check", "remediate"):
                 return self._answer_response(session_id, question, outcome)
             self.sessions.set_phase(session_id, "teach")
             advanced = self.teach.advance(session_id, reset_check=True)
