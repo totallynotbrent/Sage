@@ -21,14 +21,14 @@ The tutor should combine:
 The model backend is a locally configured OpenAI-compatible endpoint:
 
 ```env
-FREEBUFF_BASE_URL=http://127.0.0.1:8877/v1
-FREEBUFF_API_KEY=<local Freebuff API key>
-FREEBUFF_MODEL=deepseek/deepseek-v4-pro
+BROT_BASE_URL=http://127.0.0.1:8877/v1
+BROT_API_KEY=<local BROT API key>
+BROT_MODEL=deepseek/deepseek-v4-pro
 ```
 
 The application should not hard-code the API key or require a cloud account of its own.
 
-**Target platform (decided):** a single Raspberry Pi (64-bit ARM64/aarch64, 4–8 GB RAM class) running Raspberry Pi OS. The backend is **Python 3.11** built with **FastAPI** and served by **uvicorn**; the same process also serves the frontend. The app binds to `0.0.0.0` so it is reachable from a laptop or phone on the local network rather than only from the Pi itself. The Freebuff model endpoint runs on the same Pi by default, so `FREEBUFF_BASE_URL=http://127.0.0.1:8877/v1` remains the default and stays overridable.
+**Target platform (decided):** a single Raspberry Pi (64-bit ARM64/aarch64, 4–8 GB RAM class) running Raspberry Pi OS. The backend is **Python 3.11** built with **FastAPI** and served by **uvicorn**; the same process also serves the frontend. The app binds to `0.0.0.0` so it is reachable from a laptop or phone on the local network rather than only from the Pi itself. The BROT model endpoint runs on the same Pi by default, so `BROT_BASE_URL=http://127.0.0.1:8877/v1` remains the default and stays overridable.
 
 ## 2. Product inspiration and intended learning philosophy
 
@@ -55,15 +55,15 @@ The repository contained no files or established conventions at the time of spec
 
 ### API and file-handling findings
 
-- The user has specified an OpenAI-compatible Freebuff endpoint and model.
+- The user has specified an OpenAI-compatible BROT endpoint and model.
 - OpenAI-compatible chat-completions interfaces generally accept conversational messages, but generic file upload and retrieval behavior cannot be assumed from completions compatibility alone.
 - The application should therefore own local file ingestion, text extraction, chunking, source metadata, and context selection. It should pass selected excerpts as message context to the configured endpoint rather than depending on provider-specific file-search APIs.
-- The exact Freebuff route, streaming behavior, supported request fields, context limit, and error format must be verified during implementation against the running local endpoint.
+- The exact BROT route, streaming behavior, supported request fields, context limit, and error format must be verified during implementation against the running local endpoint.
 - Research references consulted:
   - [OpenAI Chat Completions overview](https://developers.openai.com/api/reference/chat-completions/overview)
   - [OpenAI file inputs guide](https://developers.openai.com/api/docs/guides/file-inputs)
   - [DeepSeek API documentation](https://api-docs.deepseek.com/)
-  - [Freebuff-compatible proxy search result](https://github.com/notBlubbll/free-buff-lol)
+  - [BROT-compatible proxy search result](https://github.com/notBlubbll/free-buff-lol)
 
 ## 4. Goals
 
@@ -132,9 +132,9 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 Binding to `0.0.0.0` makes the app reachable on the LAN, e.g. `http://<pi-ip>:8000` from a laptop or phone. The exact interpreter name on the chosen Raspberry Pi OS release and the documented way to discover the Pi's LAN address (`hostname -I`, mDNS hostname, or router DHCP list) must be confirmed during implementation. Optional `HOST` and `PORT` environment variables may override the bind address and port, but the defaults (`0.0.0.0`, `8000`) must remain LAN-reachable. The app should read these variables from a local `.env` file:
 
 ```env
-FREEBUFF_BASE_URL=http://127.0.0.1:8877/v1
-FREEBUFF_API_KEY=<required secret>
-FREEBUFF_MODEL=deepseek/deepseek-v4-pro
+BROT_BASE_URL=http://127.0.0.1:8877/v1
+BROT_API_KEY=<required secret>
+BROT_MODEL=deepseek/deepseek-v4-pro
 ```
 
 The `.env` file must be excluded from version control. The API key must remain server-side and must not be exposed to browser JavaScript.
@@ -380,9 +380,9 @@ The local backend should provide a small application API for:
 - Plan approval and edits.
 - Citation/excerpt retrieval.
 - Learner profile and mastery retrieval/update.
-- Freebuff connection status.
+- BROT connection status.
 
-The backend should call the OpenAI-compatible Freebuff endpoint using the configured base URL, API key, and model. It should normalize provider errors into useful UI errors and avoid returning the secret key to the client.
+The backend should call the OpenAI-compatible BROT endpoint using the configured base URL, API key, and model. It should normalize provider errors into useful UI errors and avoid returning the secret key to the client.
 
 The implementation must verify the endpoint's actual behavior before relying on:
 
@@ -400,13 +400,13 @@ The initial design should not require tool calling. The server can orchestrate i
 The app should handle gracefully:
 
 - Missing or invalid environment configuration.
-- Freebuff unavailable or returning authentication/rate-limit errors.
+- BROT unavailable or returning authentication/rate-limit errors.
 - A dropped streaming connection.
 - Model output that is malformed or missing expected quiz/plan structure.
 - File type or extraction errors.
 - Duplicate files.
 - Large files or context exceeding model limits.
-- **Slow local model inference:** the Freebuff endpoint runs on the same Pi and may respond slowly, especially for long generations; use generous client/server timeouts, stream responses, and keep loading/stop controls prominent in the UI.
+- **Slow local model inference:** the BROT endpoint runs on the same Pi and may respond slowly, especially for long generations; use generous client/server timeouts, stream responses, and keep loading/stop controls prominent in the UI.
 - A runtime or extraction dependency without an ARM64/aarch64 Python 3.11 wheel must fail fast at setup with a clear, actionable message — not surface as a mid-session runtime traceback.
 - Mermaid rendering errors.
 - Interrupted sessions and browser refreshes.
@@ -431,7 +431,7 @@ LAN exposure is an intentional v1 trade-off. The app ships with no authenticatio
 ### Setup
 
 - [ ] A fresh checkout can be started on a Raspberry Pi (64-bit ARM64) with Python 3.11 using one documented local command.
-- [ ] The app reads the three `FREEBUFF_*` environment variables.
+- [ ] The app reads the three `BROT_*` environment variables.
 - [ ] Missing configuration and unreachable endpoint states are visible and actionable.
 - [ ] The API key never appears in browser-delivered source or normal UI responses.
 - [ ] After starting, the app is reachable from another device on the LAN at `http://<pi-ip>:8000`.
@@ -474,7 +474,7 @@ LAN exposure is an intentional v1 trade-off. The app ships with no authenticatio
 
 ## 16. Suggested implementation phases
 
-### Phase 1 — Local shell and Freebuff connectivity
+### Phase 1 — Local shell and BROT connectivity
 
 - Create the Python 3.11 virtual environment and install FastAPI, uvicorn, and project dependencies.
 - Establish the one-command start command (`uvicorn app.main:app --host 0.0.0.0 --port 8000`).
@@ -517,7 +517,7 @@ These items were not specified by the user and should be resolved during impleme
 2. The local database/storage technology and application-data directory convention. Pi default: application data in `~/.local/share/sage` (XDG convention on Raspberry Pi OS), with uploads in a non-public subdirectory; a single local SQLite database is presumed unless a later phase requires more.
 3. Exact default upload size, per-file chunk size, total storage limit, and context-budget policy.
 4. The extraction libraries for PDF, DOCX, PPTX, and optional OCR — restricted to libraries with ARM64/aarch64 Python 3.11 wheels. Candidate set: `pymupdf` (PDF), `python-docx` (DOCX), `python-pptx` (PPTX). ARM64 Python 3.11 wheel availability for the final set (including any OCR choice) must be verified during implementation.
-5. Whether the running Freebuff endpoint supports streaming and image input.
+5. Whether the running BROT endpoint supports streaming and image input.
 6. The exact structured format used for model-generated plans and quiz questions, plus validation/recovery behavior.
 7. Whether citations are generated by the model, derived from retrieved chunk IDs, or both. Retrieved chunk IDs should be authoritative for inspectability.
 8. Whether a basic mastery-map view is included in the initial UI or only used internally until a later phase.
@@ -526,7 +526,7 @@ These items were not specified by the user and should be resolved during impleme
 11. Default bind port (recommended `8000`) and whether `HOST`/`PORT` environment overrides ship in v1 (proposed: yes, with `0.0.0.0`/`8000` as defaults).
 12. Whether v1 adds an optional shared access token given LAN exposure, or ships trusted-network-only with README documentation of the risk (§14).
 13. Confirm the application-data directory — default `~/.local/share/sage` versus a system-level location — tied to whether the app runs as a normal user or as a systemd service.
-14. How the Freebuff model endpoint is started on the Pi (manual command vs. a systemd service alongside the app) and how users discover the Pi's address (`hostname -I`, mDNS hostname, or router DHCP list).
+14. How the BROT model endpoint is started on the Pi (manual command vs. a systemd service alongside the app) and how users discover the Pi's address (`hostname -I`, mDNS hostname, or router DHCP list).
 
 ## 18. Explicitly deferred future enhancements
 

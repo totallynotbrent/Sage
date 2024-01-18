@@ -10,8 +10,8 @@ Operational facts for Sage (a local AI tutor): where development happens, where 
 
 ## Model endpoint reachability (loopback on-Pi vs LAN URL)
 
-- All model APIs — including the local Freebuff OpenAI-compatible endpoint — are hosted **on the Pi**.
-- The project's `.env` sets `FREEBUFF_BASE_URL=http://127.0.0.1:8877/v1`. That loopback address only works when the app runs **on the Pi itself**.
+- All model APIs — including the local BROT OpenAI-compatible endpoint — are hosted **on the Pi**.
+- The project's `.env` sets `BROT_BASE_URL=http://127.0.0.1:8877/v1`. That loopback address only works when the app runs **on the Pi itself**.
 - From the Windows workspace or any other LAN device, the reachable URL is `http://192.168.1.57:8877/v1` — the same endpoint, using the Pi's LAN address instead of loopback.
 
 ## Secrets and configuration (.env, gitignored; key never committed/echoed)
@@ -31,12 +31,12 @@ Operational facts for Sage (a local AI tutor): where development happens, where 
 - Live/endpoint-touching tooling **does** need the real key and a reachable endpoint:
   - `tools/smoke_chat.py` — minimal chat against the configured endpoint.
   - `tools/check_wheels.py` — downloads requirements to verify ARM64 wheels; best run on the Pi where the target platform lives.
-- On the Pi the `.env` loopback URL works as-is; from Windows, point `FREEBUFF_BASE_URL` at `http://192.168.1.57:8877/v1`.
+- On the Pi the `.env` loopback URL works as-is; from Windows, point `BROT_BASE_URL` at `http://192.168.1.57:8877/v1`.
 
 ## Notes / current .env values (model override to -flash)
 
 - Current `.env` values (non-secret):
-  - `FREEBUFF_BASE_URL=http://127.0.0.1:8877/v1` (loopback; correct only when running on the Pi)
-  - `FREEBUFF_MODEL=deepseek/deepseek-v4-flash`
-  - `FREEBUFF_API_KEY=<key in .env>` (do not copy the value into docs or logs)
-- Note: `.env.example` and the app default say `deepseek/deepseek-v4-pro`, but the actual `.env` overrides `FREEBUFF_MODEL` to `deepseek/deepseek-v4-flash`.
+  - `BROT_BASE_URL=http://127.0.0.1:8877/v1` (loopback; correct only when running on the Pi)
+  - `BROT_MODEL=deepseek/deepseek-v4-flash`
+  - `BROT_API_KEY=<key in .env>` (do not copy the value into docs or logs)
+- Note: `.env.example` and the app default say `deepseek/deepseek-v4-pro`, but the actual `.env` overrides `BROT_MODEL` to `deepseek/deepseek-v4-flash`.

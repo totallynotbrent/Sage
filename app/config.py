@@ -28,9 +28,9 @@ class Settings(BaseSettings):
     )
 
     # Model endpoint (OpenAI-compatible).
-    freebuff_base_url: str = "http://127.0.0.1:8877/v1"
-    freebuff_api_key: str = ""
-    freebuff_model: str = "deepseek/deepseek-v4-pro"
+    BROT_base_url: str = "http://127.0.0.1:8877/v1"
+    BROT_api_key: str = ""
+    BROT_model: str = "deepseek/deepseek-v4-pro"
 
     # Network bind. Defaults keep the app LAN-reachable.
     host: str = "0.0.0.0"
@@ -80,24 +80,24 @@ def validation_problems(settings: Settings) -> list[str]:
     """
     problems: list[str] = []
 
-    key = (settings.freebuff_api_key or "").strip()
+    key = (settings.BROT_api_key or "").strip()
     if not key:
         problems.append(
-            "FREEBUFF_API_KEY is not set. Copy .env.example to .env and fill it in."
+            "BROT_API_KEY is not set. Copy .env.example to .env and fill it in."
         )
     elif key == PLACEHOLDER_KEY:
         problems.append(
-            "FREEBUFF_API_KEY still has the placeholder value; replace it with "
-            "your local Freebuff key."
+            "BROT_API_KEY still has the placeholder value; replace it with "
+            "your local BROT key."
         )
 
-    url = settings.freebuff_base_url.strip()
+    url = settings.BROT_base_url.strip()
     parsed = urlparse(url)
     if not url:
-        problems.append("FREEBUFF_BASE_URL is empty.")
+        problems.append("BROT_BASE_URL is empty.")
     elif parsed.scheme not in ("http", "https") or not parsed.netloc:
         problems.append(
-            f"FREEBUFF_BASE_URL is not a valid http(s) URL: {url!r}"
+            f"BROT_BASE_URL is not a valid http(s) URL: {url!r}"
         )
 
     return problems

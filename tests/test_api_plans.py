@@ -124,8 +124,8 @@ def test_plan_config_missing_400(tmp_path):
 
     settings = Settings(
         data_dir=tmp_path / "data",
-        freebuff_api_key="",
-        freebuff_base_url="http://127.0.0.1:9/v1",
+        BROT_api_key="",
+        BROT_base_url="http://127.0.0.1:9/v1",
     )
     app = create_app(settings)
     with TestClient(app) as client:

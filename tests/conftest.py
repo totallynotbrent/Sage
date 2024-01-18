@@ -24,9 +24,9 @@ def settings(tmp_path) -> Settings:
     """Isolated settings pointing at a throwaway data directory."""
     return Settings(
         data_dir=tmp_path / "data",
-        freebuff_api_key="test-key",
-        freebuff_base_url="http://127.0.0.1:9/v1",
-        freebuff_model="test-model",
+        BROT_api_key="test-key",
+        BROT_base_url="http://127.0.0.1:9/v1",
+        BROT_model="test-model",
         max_upload_mb=30,
         max_total_mb=500,
         chunk_chars=100,
