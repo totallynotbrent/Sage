@@ -1,5 +1,3 @@
-"""PDF extraction via pymupdf (``fitz``)."""
-
 from __future__ import annotations
 
 from app.services.extraction.base import (
@@ -11,11 +9,11 @@ from app.services.extraction.base import (
 )
 
 try:
-    import pymupdf as fitz  # pymupdf >= 1.24 exposes ``pymupdf`` directly
+    import pymupdf as fitz
     EXTRACTION_AVAILABLE = True
 except ImportError:
     try:
-        import fitz  # older pymupdf versions only expose ``fitz``
+        import fitz
 
         EXTRACTION_AVAILABLE = True
     except ImportError:
@@ -27,7 +25,6 @@ else:
 
     @register("pdf")
     class PDFExtractor:
-        """Extract text per page; flag image-only pages with a warning."""
 
         def extract(self, data: bytes, *, filename: str) -> ExtractionResult:
             warnings: list[str] = []

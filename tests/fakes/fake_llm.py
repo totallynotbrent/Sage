@@ -1,10 +1,3 @@
-"""Fake LLM client implementing the LLMClient public surface.
-
-Responses are scripted by substring matching against the concatenated message
-content. A stream can be told to raise after N deltas to simulate mid-stream
-failures, which the server must persist as partial=1.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -14,37 +7,28 @@ from app.errors import GenerationCancelled, ProviderError
 
 
 class FakeLLM:
-    """Deterministic stand-in for LLMClient (no network involved)."""
 
     def __init__(self) -> None:
         self._scripted: list[tuple[str, str]] = []
         self.complete_json_responses: list[str] = []
         self.probe_result: tuple[bool, str] = (True, "ok")
-        self.fail_after: int | None = None  # raise after this many stream deltas
+        self.fail_after: int | None = None
         self.failure: Exception = ProviderError("upstream", "fake mid-stream failure")
         self.calls: list[dict] = []
         self._inflight: dict[str, asyncio.Event] = {}
 
-    # ---------------------------------------------------------------- #
-    # Scripting
-    # ---------------------------------------------------------------- #
     def script(self, substring: str, text: str) -> None:
-        """Stream the given text when the joined message contains ``substring``."""
         self._scripted.append((substring, text))
 
     def _match(self, messages: list[dict]) -> str:
         joined = "\n".join(
             (str(m.get("content") or "")) for m in messages if m.get("role") in ("user", "system")
         )
-        # Most recently scripted match wins (reverse search).
         for substring, text in reversed(self._scripted):
             if substring in joined:
                 return text
         return "A default fake answer."
 
-    # ---------------------------------------------------------------- #
-    # LLMClient surface
-    # ---------------------------------------------------------------- #
     async def stream_chat(
         self,
         messages: list[dict],
@@ -86,9 +70,6 @@ class FakeLLM:
         self.calls.append({"kind": "probe"})
         return self.probe_result
 
-    # ---------------------------------------------------------------- #
-    # In-flight tracking
-    # ---------------------------------------------------------------- #
     def begin_inflight(self, session_id: str) -> asyncio.Event:
         if session_id not in self._inflight:
             self._inflight[session_id] = asyncio.Event()
@@ -110,7 +91,6 @@ class FakeLLM:
 
 
 class RaisingFakeLLM(FakeLLM):
-    """A fake whose stream_chat always raises immediately."""
 
     def __init__(self, error: Exception | None = None) -> None:
         super().__init__()

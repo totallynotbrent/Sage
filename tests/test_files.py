@@ -1,5 +1,3 @@
-"""FileService unit tests: limits, dedupe, whitelist, storage-name safety."""
-
 from __future__ import annotations
 
 import sqlite3
@@ -88,12 +86,10 @@ def test_storage_name_is_safe(conn, settings):
     record = service.save_upload(
         filename="../../evil/..\\name.txt", content=b"safe", content_type="text/plain"
     )
-    # Basename sanitized, blob stored under the uploads dir with the record id.
     assert record.display_name == "name.txt"
     blob = settings.uploads_dir / f"{record.id}.txt"
     assert blob.exists()
     assert blob.read_bytes() == b"safe"
-    # No files escaped the uploads directory.
     assert list(settings.data_dir.glob("..*")) == []
     assert not (settings.data_dir / "evil").exists()
 

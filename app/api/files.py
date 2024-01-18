@@ -1,5 +1,3 @@
-"""File library endpoints."""
-
 from __future__ import annotations
 
 import sqlite3
@@ -23,7 +21,6 @@ async def upload_files(
     conn: sqlite3.Connection = Depends(get_conn),
     settings: Settings = Depends(get_app_settings),
 ) -> list[FileRecord]:
-    """Upload one or more study files; each is validated, stored, and ingested."""
     service = FileService(conn, settings)
     results: list[FileRecord] = []
     for upload in files:
@@ -61,7 +58,6 @@ async def get_excerpts(
     chunk: str | None = None,
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> dict:
-    """Return one chunk's exact text plus surrounding context for citation panels."""
     row = conn.execute(
         """
         SELECT c.*, f.display_name AS file_name

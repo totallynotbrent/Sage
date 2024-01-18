@@ -1,5 +1,3 @@
-"""Session endpoints."""
-
 from __future__ import annotations
 
 import sqlite3

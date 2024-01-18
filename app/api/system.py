@@ -1,5 +1,3 @@
-"""System endpoints: health and configuration status."""
-
 from __future__ import annotations
 
 import importlib
@@ -12,18 +10,15 @@ from app.util import utc_now
 
 router = APIRouter()
 
-#: Runtime dependencies that /api/health audits at import level.
 AUDIT_LIBS = {"pymupdf": "pymupdf", "docx": "python-docx", "pptx": "python-pptx"}
 
 
 def audit_dependencies() -> list[str]:
-    """Return a list of missing/import-erroring extraction libraries."""
     errors: list[str] = []
     for module_name, label in AUDIT_LIBS.items():
         try:
             importlib.import_module(module_name)
         except Exception as exc:  # noqa: BLE001 - report anything that fails
-            # Older pymupdf only ships ``fitz``.
             if module_name == "pymupdf":
                 try:
                     importlib.import_module("fitz")
@@ -39,7 +34,6 @@ async def health(
     llm: LLMClient = Depends(get_llm_client),
     settings: Settings = Depends(get_app_settings),
 ) -> HealthReport:
-    """Report configuration and endpoint reachability (cached probe)."""
     problems = validation_problems(settings)
 
     endpoint_reachable: bool | None = None

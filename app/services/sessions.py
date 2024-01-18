@@ -37,7 +37,6 @@ SUFFICIENCY_NOTICE = (
 
 
 def plan_node_dict(row: dict) -> dict:
-    """A plan_nodes row with ``depends_on_json``/``children_json`` parsed to lists."""
     out = dict(row)
     try:
         out["depends_on"] = json.loads(out.pop("depends_on_json") or "[]")
@@ -51,7 +50,6 @@ def plan_node_dict(row: dict) -> dict:
 
 
 def question_dict(row: dict) -> dict:
-    """A quiz_questions row with ``options_json`` parsed to a list."""
     out = dict(row)
     try:
         out["options"] = json.loads(out.pop("options_json") or "[]")
@@ -61,7 +59,6 @@ def question_dict(row: dict) -> dict:
 
 
 class SessionService:
-    """Persistence and turn logic for learning sessions."""
 
     def __init__(self, conn: sqlite3.Connection, settings: Settings) -> None:
         self.conn = conn
@@ -69,20 +66,12 @@ class SessionService:
         self.files = FileService(conn, settings)
         self.retriever = Retriever()
 
-    # ------------------------------------------------------------------ #
-    # CRUD
-    # ------------------------------------------------------------------ #
     def create(
         self,
         goal: str,
         file_ids: list[str],
         grounding_mode: str = "grounded",
     ) -> Session:
-        """Create a session in the setup phase.
-
-        Non-ready files stay in the selection (visible to the user) but do not
-        contribute context until they are successfully ingested.
-        """
         if grounding_mode not in GROUNDING_MODES:
             raise ValueError(f"grounding_mode must be one of {GROUNDING_MODES}")
         session_id = new_id()
@@ -115,7 +104,6 @@ class SessionService:
         return [self._to_session(dict(r)) for r in rows]
 
     def load_full(self, session_id: str) -> dict[str, Any]:
-        """The complete resumable state for a session."""
         session = self.get(session_id)
 
         messages = rows_to_dicts(
@@ -175,13 +163,11 @@ class SessionService:
         }
 
     def delete(self, session_id: str) -> None:
-        """Delete a session and everything cascaded with it."""
         self.get(session_id)
         self.conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
         self.conn.commit()
 
     def set_phase(self, session_id: str, phase: str) -> None:
-        """Transition the session to ``phase`` (validated against PHASES)."""
         if phase not in PHASES:
             raise ValueError(f"unknown phase: {phase!r}")
         now = utc_now()
@@ -249,9 +235,6 @@ class SessionService:
             created_at=row["created_at"],
         )
 
-    # ------------------------------------------------------------------ #
-    # Retrieval helpers
-    # ------------------------------------------------------------------ #
     def _select_chunks(self, session: Session, user_text: str) -> list[dict]:
         ready_ids = self.files.get_ready_file_ids(session.file_ids)
         all_chunks = self.files.get_chunks_for_files(ready_ids)
@@ -268,16 +251,9 @@ class SessionService:
 
         return summarize_mastery(self.conn)
 
-    # ------------------------------------------------------------------ #
-    # Message persistence
-    # ------------------------------------------------------------------ #
     def save_partial_marker(
         self, session_id: str, client_msg_id: str
     ) -> tuple[dict | None, bool]:
-        """Create an in-progress assistant message; return (row, created).
-
-        Idempotent: returns the existing partial marker when one already exists.
-        """
         existing = self.conn.execute(
             "SELECT * FROM messages WHERE session_id = ? AND client_msg_id = ?",
             (session_id, client_msg_id),
@@ -308,7 +284,6 @@ class SessionService:
         content: str,
         citations: list[str],
     ) -> Message:
-        """Mark the partial message complete with final content and citations."""
         now = utc_now()
         self.conn.execute(
             """
@@ -335,9 +310,6 @@ class SessionService:
         ).fetchone()
         return row_to_dict(row)
 
-    # ------------------------------------------------------------------ #
-    # Turn generation (SSE event source)
-    # ------------------------------------------------------------------ #
     async def turn(
         self,
         session_id: str,
@@ -347,14 +319,6 @@ class SessionService:
         llm: LLMClient,
         is_disconnected: Callable[[], Awaitable[bool]],
     ) -> AsyncIterator[dict]:
-        """Stream one assistant turn as a sequence of event dicts.
-
-        Event types: ``meta``, ``delta``, ``citation``, ``notice``, ``done``,
-        ``error``. A completed message is persisted exactly once; duplicates of
-        an already-completed ``client_msg_id`` replay only a ``done`` event.
-
-        Owns and closes ``self.conn`` (streaming routes hand it over).
-        """
         try:
             problems = _config_problems(self.settings)
             if problems:
@@ -363,7 +327,6 @@ class SessionService:
 
             session = self.get(session_id)
 
-            # Duplicate handling: completed -> replay done; in-flight -> reject.
             existing = self.find_message(session_id, client_msg_id)
             if existing is not None:
                 if existing["partial"] == 0:
@@ -382,7 +345,6 @@ class SessionService:
                         )
                     )
                     return
-                # Leftover partial marker: treat as retry and regenerate.
 
             cancel_event = llm.begin_inflight(session_id)
             try:
@@ -472,7 +434,6 @@ class SessionService:
         cancel_event,
         is_disconnected: Callable[[], Awaitable[bool]],
     ) -> AsyncIterator[dict]:
-        """Persist the strict-mode insufficiency notice and emit its events."""
         if await is_disconnected():
             llm.cancel_inflight(session.id)
             raise GenerationCancelled("The client disconnected during generation.")
@@ -487,9 +448,6 @@ class SessionService:
             "replayed": False,
         }
 
-    # ------------------------------------------------------------------ #
-    # Retry
-    # ------------------------------------------------------------------ #
     async def retry_last_turn(
         self,
         session_id: str,
@@ -498,12 +456,6 @@ class SessionService:
         llm: LLMClient,
         is_disconnected: Callable[[], Awaitable[bool]],
     ) -> AsyncIterator[dict]:
-        """Idempotent retry of a turn identified by ``client_msg_id``.
-
-        - completed message  -> replay a ``done`` event only,
-        - in-flight partial  -> reject with an error event,
-        - leftover partial   -> regenerate via ``turn`` (which reuses the marker).
-        """
         try:
             self.get(session_id)
             existing = self.find_message(session_id, client_msg_id)
@@ -520,7 +472,6 @@ class SessionService:
                     "replayed": True,
                 }
                 return
-            # Leftover partial: turn() regenerates, rejecting only if truly in-flight.
             last_user_text = self._last_user_message(session_id) or ""
             async for event in self.turn(
                 session_id,

@@ -1,5 +1,3 @@
-"""Plain-text extraction: a single unit with line ranges."""
-
 from __future__ import annotations
 
 from app.services.extraction.base import (
@@ -12,7 +10,6 @@ from app.services.extraction.base import (
 
 @register("txt")
 class TextExtractor:
-    """Extract plain text as one unit with its full line range."""
 
     def extract(self, data: bytes, *, filename: str) -> ExtractionResult:
         text = data.decode("utf-8", errors="replace")

@@ -19,13 +19,6 @@ class TeachService:
         self.sessions = SessionService(conn, settings)
 
     def advance(self, session_id: str, reset_check: bool = False) -> dict:
-        """Mark the current node done and move to the next pending node.
-
-        Requires the teach phase. ``reset_check`` zeroes the check cadence
-        counter (used after a check or remediation); otherwise it is
-        incremented. Returns session, the new current node (or None when the
-        plan is finished), and whether a check is now due.
-        """
         session = self.sessions.get(session_id)
         if session.phase != "teach":
             raise ValueError(f"advance requires phase 'teach', got {session.phase!r}")
@@ -74,7 +67,6 @@ class TeachService:
         }
 
     def continue_after_remediate(self, session_id: str) -> dict:
-        """Leave remediation and resume teaching (resets the check counter)."""
         session = self.sessions.get(session_id)
         if session.phase != "remediate":
             raise ValueError(f"continue requires phase 'remediate', got {session.phase!r}")
@@ -82,13 +74,11 @@ class TeachService:
         return self.advance(session_id, reset_check=True)
 
     def complete(self, session_id: str) -> dict:
-        """Manually end the session."""
         self.sessions.get(session_id)
         self.sessions.set_phase(session_id, "complete")
         return {"session": self.sessions.get(session_id).model_dump()}
 
     async def hint(self, session_id: str, question_id: str, llm) -> dict:
-        """Ask the model for a short hint for an answered question."""
         session = self.sessions.get(session_id)
         row = self._fetch_question(session_id, question_id)
         question = dict(row)
@@ -135,7 +125,6 @@ class TeachService:
         return {"hint": hint_text}
 
     def reveal(self, session_id: str, question_id: str) -> dict:
-        """Return the correct option and explanation for an answered question."""
         self.sessions.get(session_id)
         row = self._fetch_question(session_id, question_id)
         question = dict(row)
@@ -159,7 +148,6 @@ class TeachService:
         }
 
     def skip_quiz(self, session_id: str, question_id: str) -> dict:
-        """Skip a check question and return to the plan phase."""
         self.sessions.get(session_id)
         row = self._fetch_question(session_id, question_id)
         question = dict(row)

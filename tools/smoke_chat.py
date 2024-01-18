@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""Manual live-endpoint smoke check for Sage.
-
-Sends a "ping" to the configured BROT endpoint and prints the result.
-Not part of the pytest suite — requires a running local model endpoint and a
-configured API key (`.env` in the working directory or environment variables).
-
-Usage:
-    python tools/smoke_chat.py
-"""
 
 from __future__ import annotations
 

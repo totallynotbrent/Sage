@@ -1,5 +1,3 @@
-"""Chunking: determinism, unit boundaries, overlap behavior, id format."""
-
 from __future__ import annotations
 
 import time
@@ -47,16 +45,14 @@ def test_exact_overlap_without_breaks():
     chunks = chunk_units([ExtractedUnit(text)], file_id="f", chunk_chars=100, overlap=20)
     assert chunks[0].char_start == 0
     assert chunks[0].char_end == 100
-    assert chunks[1].char_start == 80  # 100 - 20
+    assert chunks[1].char_start == 80
     assert chunks[2].char_start == 160
     assert chunks[0].char_end - chunks[1].char_start == 20
     assert chunks[1].char_end - chunks[2].char_start == 20
-    # Windows are contiguous end-to-end through the final chunk.
     assert chunks[-1].char_end == 300
 
 
 def test_snaps_to_paragraph_break():
-    # A break near the window end should pull the boundary onto the break.
     text = "y" * 90 + "\n\n" + "z" * 200
     chunks = chunk_units([ExtractedUnit(text)], file_id="f", chunk_chars=100, overlap=20)
     assert any(c.char_end == 90 for c in chunks), [c.char_end for c in chunks]

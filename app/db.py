@@ -1,10 +1,3 @@
-"""SQLite persistence: idempotent schema, connection management, helpers.
-
-A single SQLite database lives at ``DATA_DIR/sage.db`` in WAL mode. One
-connection is created per request (via the ``get_conn`` dependency) and closed
-when the request finishes.
-"""
-
 from __future__ import annotations
 
 import sqlite3
@@ -149,7 +142,6 @@ CREATE TABLE IF NOT EXISTS schema_version (
 
 
 def init_db(db_path: Path) -> None:
-    """Create the schema and set persistent pragmas. Idempotent."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     try:
@@ -171,10 +163,6 @@ def init_db(db_path: Path) -> None:
 
 
 def open_db(db_path: Path) -> sqlite3.Connection:
-    """Open a configured connection (WAL, FK enforcement, busy timeout).
-
-    Callers own the returned connection and must close it.
-    """
     conn = sqlite3.connect(str(db_path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
@@ -183,17 +171,6 @@ def open_db(db_path: Path) -> sqlite3.Connection:
 
 
 def get_conn(request: Request) -> Iterator[sqlite3.Connection]:
-    """FastAPI dependency: one connection per request, closed on completion.
-
-    ``check_same_thread=False`` allows the connection to be used by the request's
-    threadpool thread (sync dependency) and the event loop (async streaming
-    generators); each connection belongs to exactly one request, so there is no
-    concurrent use.
-
-    Note: for SSE streaming routes the connection is opened by the route itself
-    (see ``app/api/chat.py``) because yield-dependencies are torn down before a
-    StreamingResponse body is sent.
-    """
     conn = open_db(request.app.state.settings.db_path)
     try:
         yield conn
@@ -202,10 +179,8 @@ def get_conn(request: Request) -> Iterator[sqlite3.Connection]:
 
 
 def rows_to_dicts(cursor: sqlite3.Cursor) -> list[dict]:
-    """Convert a cursor's rows to a list of plain dicts."""
     return [dict(row) for row in cursor.fetchall()]
 
 
 def row_to_dict(row: sqlite3.Row | None) -> dict | None:
-    """Convert a single row to a dict, or None."""
     return dict(row) if row is not None else None

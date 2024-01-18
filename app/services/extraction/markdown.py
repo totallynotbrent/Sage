@@ -1,5 +1,3 @@
-"""Markdown extraction: split on #/##/### headings into section units."""
-
 from __future__ import annotations
 
 import re
@@ -17,7 +15,6 @@ _HEADING_RE = re.compile(r"^(#{1,3})\s+(.*)$")
 @register("md")
 @register("markdown")
 class MarkdownExtractor:
-    """Split markdown into section units at level-1/2/3 headings."""
 
     def extract(self, data: bytes, *, filename: str) -> ExtractionResult:
         text = data.decode("utf-8", errors="replace")

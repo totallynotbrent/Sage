@@ -1,5 +1,3 @@
-"""File API integration tests: upload, list, detail, retry, delete, excerpts."""
-
 from __future__ import annotations
 
 import sqlite3
@@ -93,7 +91,7 @@ def test_retry_failed_file(client):
     assert record["status"] == "failed"
     response = client.post(f"/api/files/{record['id']}/retry")
     assert response.status_code == 200
-    assert response.json()["status"] == "failed"  # same blob, still fails
+    assert response.json()["status"] == "failed"
 
 
 def test_retry_missing_404(client):
@@ -113,7 +111,7 @@ def test_excerpts_roundtrip(client, settings):
     body = response.json()
     assert body["chunk_id"] == chunk_ids[0]
     assert body["file_name"] == "bio.md"
-    assert body["location"]  # e.g. section "Reading"
+    assert body["location"]
     assert "mitochondria" in body["text"]
     assert "context_around" in body
 

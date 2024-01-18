@@ -1,9 +1,3 @@
-"""DOCX extraction via python-docx: paragraphs grouped into sections.
-
-Heading 1/2 paragraphs start a new section unit; every paragraph contributes a
-line to the document line numbering used for line-range metadata.
-"""
-
 from __future__ import annotations
 
 from io import BytesIO
@@ -30,7 +24,6 @@ else:
 
     @register("docx")
     class DocxExtractor:
-        """Group non-empty paragraphs into section units under headings."""
 
         def extract(self, data: bytes, *, filename: str) -> ExtractionResult:
             try:

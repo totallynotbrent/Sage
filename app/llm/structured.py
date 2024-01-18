@@ -1,10 +1,3 @@
-"""Structured model outputs: plan and quiz-question parsing/validation.
-
-Both ``request_plan`` and ``request_questions`` follow the same strategy:
-parse + validate, one corrective retry when the output is malformed, then
-graceful degradation (linear outline / keep the valid questions).
-"""
-
 from __future__ import annotations
 
 import json
@@ -14,7 +7,6 @@ from typing import Any
 from app.errors import ModelOutputError, ProviderError, PROVIDER_STATUS
 from app.models import Plan, PlanNode, QuizQuestionInput
 
-#: User-role message appended after a malformed first attempt.
 PLAN_RETRY_NOTE = (
     "Your previous answer could not be parsed. Return ONLY a JSON object with a "
     '"nodes" array; each node must have "node_key", "title", "description", and '
@@ -29,7 +21,6 @@ QUESTIONS_RETRY_NOTE = (
 
 
 def provider_error_from_text(error_text: str | None) -> ProviderError:
-    """Rebuild a ``ProviderError`` from the client's normalized error string."""
     if not error_text:
         return ProviderError("upstream", detail="The model endpoint returned no response.")
     code, sep, rest = error_text.partition(": ")
@@ -39,11 +30,6 @@ def provider_error_from_text(error_text: str | None) -> ProviderError:
 
 
 def parse_json(text: str) -> Any:
-    """Parse ``text`` as JSON, tolerating markdown fences and surrounding prose.
-
-    Finds the first balanced ``{...}`` or ``[...]`` in the text. Raises
-    ``ModelOutputError`` when nothing parseable is found.
-    """
     if not text:
         raise ModelOutputError("Empty model output; expected JSON.")
     cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.IGNORECASE)
@@ -97,11 +83,6 @@ def _try_parse(text: str) -> Any | None:
 
 
 def validate_plan(raw: Any) -> Plan | None:
-    """Validate raw parsed JSON into a ``Plan``, or return None.
-
-    A plan is valid when it has a non-empty ``nodes`` list, every node has a
-    ``node_key`` and ``title``, and no ``depends_on`` reference dangles.
-    """
     if not isinstance(raw, dict):
         return None
     raw_nodes = raw.get("nodes")
@@ -143,7 +124,6 @@ def validate_plan(raw: Any) -> Plan | None:
 
 
 def _valid_question(item: Any) -> QuizQuestionInput | None:
-    """Validate a single raw question; return None when malformed."""
     if not isinstance(item, dict):
         return None
     options = item.get("options")
@@ -171,12 +151,6 @@ def _valid_question(item: Any) -> QuizQuestionInput | None:
 
 
 def validate_questions(raw: Any) -> list[QuizQuestionInput] | None:
-    """Validate raw parsed JSON into a list of questions, or None.
-
-    Strict: every item must be a valid question (2-6 options, correct index in
-    range, unique ids). The "I don't know" option is appended by the server
-    later, not expected from the model.
-    """
     if isinstance(raw, dict):
         raw = raw.get("questions")
     if not isinstance(raw, list) or not raw:
@@ -188,7 +162,6 @@ def validate_questions(raw: Any) -> list[QuizQuestionInput] | None:
 
 
 def _questions_from_fragments(raw: Any) -> list[QuizQuestionInput]:
-    """Graceful degradation: keep every individually valid question."""
     if isinstance(raw, dict):
         raw = raw.get("questions")
     if not isinstance(raw, list):
@@ -202,7 +175,6 @@ def _questions_from_fragments(raw: Any) -> list[QuizQuestionInput]:
 
 
 def _plan_from_fragments(raw: Any) -> Plan | None:
-    """Graceful degradation: a linear outline from any parseable nodes."""
     if isinstance(raw, dict):
         raw = raw.get("nodes")
     if not isinstance(raw, list) or not raw:
@@ -236,7 +208,6 @@ def _plan_from_fragments(raw: Any) -> Plan | None:
 
 
 def _context_block(chunks: list[dict[str, Any]]) -> str:
-    """Compact excerpt block for plan/quiz generation prompts."""
     from app.llm.messages import chunk_block
 
     if not chunks:
@@ -253,11 +224,6 @@ async def request_plan(
     mode: str,
     focus: str | None = None,
 ) -> Plan | None:
-    """Ask the model for a dependency-aware plan with one corrective retry.
-
-    Returns a validated ``Plan`` or, as graceful degradation, a linear outline
-    from any parseable fragments; None when nothing usable came back.
-    """
     from app.llm.messages import make_system_prompt
 
     system = make_system_prompt(session, mode, mastery_summary)
@@ -310,11 +276,6 @@ async def request_questions(
     count: int = 3,
     focus: str | None = None,
 ) -> list[QuizQuestionInput]:
-    """Ask the model for ``count`` multiple-choice questions with one retry.
-
-    Returns the validated questions, degrading gracefully to the individually
-    valid subset; an empty list when nothing usable came back.
-    """
     from app.llm.messages import make_system_prompt
 
     system = make_system_prompt(session, mode, mastery_summary)

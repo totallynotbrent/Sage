@@ -1,5 +1,3 @@
-"""Database schema: idempotency, WAL, cascade deletes, schema version."""
-
 from __future__ import annotations
 
 import sqlite3
@@ -32,7 +30,7 @@ def test_schema_creates_all_tables(settings):
 
 def test_init_is_idempotent(settings):
     init_db(settings.db_path)
-    init_db(settings.db_path)  # second run must not raise
+    init_db(settings.db_path)
     conn = sqlite3.connect(str(settings.db_path))
     conn.row_factory = sqlite3.Row
     try:

@@ -1,5 +1,3 @@
-"""Extraction handlers against tiny fixtures generated on the fly."""
-
 from __future__ import annotations
 
 from io import BytesIO
@@ -78,13 +76,13 @@ def test_pdf_image_only_warns():
     from app.services.extraction.pdf import PDFExtractor
 
     document = pymupdf.open()
-    document.new_page()  # blank page -> no extractable text
+    document.new_page()
     document.new_page()
     document.new_page()
     data = document.tobytes()
 
     result = PDFExtractor().extract(data, filename="scanned.pdf")
-    assert not result.ok  # zero-text whole doc -> failed
+    assert not result.ok
     assert any("image-only" in w for w in result.warnings)
     assert "OCR" in (result.error or "")
 

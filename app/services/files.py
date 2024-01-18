@@ -1,11 +1,3 @@
-"""File library: upload, dedupe, storage, extraction, delete, retry.
-
-Uploaded blobs are written under ``DATA_DIR/uploads`` with random storage
-names; the user-supplied filename only ever appears in the database as the
-display name. Extraction runs synchronously after each upload/retry and its
-outcome is recorded as ready|partial|failed.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -29,7 +21,6 @@ from app.services.chunking import chunk_units
 from app.services.extraction.base import ExtractionResult, get_extractor
 from app.util import new_id, utc_now
 
-#: Allowed file extensions (lowercase, with leading dot).
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".md", ".txt", ".markdown"}
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
@@ -45,14 +36,12 @@ _MIME_BY_EXT = {
 
 
 def sanitize_display_name(filename: str) -> str:
-    """Return a safe display name (basename only, control chars stripped)."""
     name = Path(filename or "").name
     name = _CONTROL_CHARS.sub("", name).strip()
     return name or "untitled"
 
 
 class FileService:
-    """Operations over the file library, backed by a SQLite connection."""
 
     def __init__(self, conn: sqlite3.Connection, settings: Settings) -> None:
         self.conn = conn
@@ -60,17 +49,9 @@ class FileService:
         self.uploads_dir: Path = settings.uploads_dir
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
-    # ------------------------------------------------------------------ #
-    # Upload path
-    # ------------------------------------------------------------------ #
     def save_upload(
         self, *, filename: str, content: bytes, content_type: str | None = None
     ) -> FileRecord:
-        """Validate, store, and ingest one uploaded file.
-
-        Raises UnsupportedFormatError (415), FileTooLargeError (413),
-        StorageFullError (507), or ConflictError (409, duplicate content).
-        """
         display_name = sanitize_display_name(filename)
         extension = Path(display_name).suffix.lower()
         if extension not in ALLOWED_EXTENSIONS:
@@ -122,21 +103,12 @@ class FileService:
         self.conn.commit()
         return self._ingest(file_id)
 
-    # ------------------------------------------------------------------ #
-    # Extraction
-    # ------------------------------------------------------------------ #
     def _ingest(self, file_id: str) -> FileRecord:
-        """Run extraction + chunking for a file; never raises.
-
-        Failed files keep status ``failed`` and never contribute chunks to
-        retrieval. Partial success keeps extracted chunks with warnings.
-        """
         row = self.conn.execute("SELECT * FROM files WHERE id = ?", (file_id,)).fetchone()
         record = row_to_dict(row)
         if record is None:
             raise NotFoundError("file", file_id)
 
-        # Reset state so retries are clean.
         self.conn.execute(
             "UPDATE files SET status='pending', warnings='[]', error=NULL, "
             "num_chunks=0, updated_at=? WHERE id=?",
@@ -211,9 +183,6 @@ class FileService:
         self.conn.commit()
         return self.get(file_id)
 
-    # ------------------------------------------------------------------ #
-    # CRUD
-    # ------------------------------------------------------------------ #
     def list(self) -> list[FileRecord]:
         rows = self.conn.execute(
             "SELECT * FROM files ORDER BY created_at DESC"
@@ -240,11 +209,10 @@ class FileService:
         self.conn.commit()
 
     def retry(self, file_id: str) -> FileRecord:
-        self.get(file_id)  # raises NotFoundError when absent
+        self.get(file_id)
         return self._ingest(file_id)
 
     def get_ready_file_ids(self, file_ids: list[str]) -> list[str]:
-        """Return the subset of ``file_ids`` whose files are ready for use."""
         if not file_ids:
             return []
         placeholders = ",".join("?" * len(file_ids))
@@ -255,7 +223,6 @@ class FileService:
         return [r["id"] for r in rows]
 
     def get_chunks_for_files(self, file_ids: list[str]) -> list[dict]:
-        """All chunks for the given files, in insertion order."""
         if not file_ids:
             return []
         placeholders = ",".join("?" * len(file_ids))
@@ -270,9 +237,6 @@ class FileService:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    # ------------------------------------------------------------------ #
-    # Helpers
-    # ------------------------------------------------------------------ #
     @staticmethod
     def _to_record(record: dict) -> FileRecord:
         warnings = record.get("warnings") or "[]"
