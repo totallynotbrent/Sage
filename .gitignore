@@ -1,6 +1,7 @@
 # Local configuration and secrets
 .env
 .env.*
+!.env.example
 
 # Dependencies
 node_modules/
@@ -32,3 +33,10 @@ Thumbs.db
 # Editors
 .idea/
 .vscode/
+
+# Project harness state (never committed)
+oc-issues.txt
+oc-wants.txt
+.pytest_cache/
+.agents/shared/
+docs/.agents/
