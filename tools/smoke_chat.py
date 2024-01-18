@@ -19,8 +19,8 @@ async def main() -> int:
         print("Fix your .env file first.")
         return 2
 
-    print(f"Endpoint: {settings.BROT_base_url}")
-    print(f"Model:    {settings.BROT_model}")
+    print(f"Endpoint: {settings.brot_base_url}")
+    print(f"Model:    {settings.brot_model}")
 
     client = LLMClient(settings)
     print("Sending ping …")

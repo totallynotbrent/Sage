@@ -46,7 +46,10 @@ def _create_session(client, file_ids=None, goal="learn group theory"):
 
 
 def _ready_session(client, settings, text=None):
-    text = text or "# Algebra\n\nA group is a set with a binary operation and an identity element."
+    text = (
+        text
+        or "# Algebra\n\nA group is a set with a binary operation and an identity element."
+    )
     record = upload_txt(client, "notes.md", text, "text/markdown")
     session = _create_session(client, [record["id"]])
     return session, _first_chunk_id(settings, record["id"])
@@ -54,7 +57,9 @@ def _ready_session(client, settings, text=None):
 
 def test_turn_event_sequence(client, override_llm, settings):
     session, chunk_id = _ready_session(client, settings)
-    override_llm.script("group", f"A group is a set with an operation. [cit:{chunk_id}]")
+    override_llm.script(
+        "group", f"A group is a set with an operation. [cit:{chunk_id}]"
+    )
 
     with client.stream(
         "POST",
@@ -141,7 +146,9 @@ def test_retry_regenerates_partial(client, override_llm, settings):
 
     override_llm.fail_after = None
     override_llm.failure = ProviderError("upstream", "unused")
-    override_llm.script("group", "A group has an identity element. [cit:" + chunk_id + "]")
+    override_llm.script(
+        "group", "A group has an identity element. [cit:" + chunk_id + "]"
+    )
 
     with client.stream(
         "POST",
@@ -264,7 +271,7 @@ def test_turn_missing_session_404(client, override_llm):
 def test_turn_rejects_missing_config(tmp_path):
     from fastapi.testclient import TestClient
 
-    settings = Settings(data_dir=tmp_path / "data", BROT_api_key="")
+    settings = Settings(data_dir=tmp_path / "data", brot_api_key="")
     app = create_app(settings)
     with TestClient(app) as test_client:
         response = test_client.post(

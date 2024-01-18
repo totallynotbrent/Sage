@@ -59,7 +59,9 @@ def test_probe_empty_model_output_422(client, override_llm):
 
 
 def test_probe_provider_failure_502(client, override_llm):
-    async def failing_complete_json(self, messages, *, max_tokens=1200, temperature=0.1):
+    async def failing_complete_json(
+        self, messages, *, max_tokens=1200, temperature=0.1
+    ):
         return (None, "connection: Could not connect to the model endpoint.")
 
     override_llm.complete_json = failing_complete_json.__get__(override_llm)
@@ -173,7 +175,9 @@ def test_check_endpoint_idempotent(client, override_llm):
     ]
     first = client.post(f"/api/sessions/{session['id']}/check", json={}).json()
     second = client.post(f"/api/sessions/{session['id']}/check", json={}).json()
-    assert [q["id"] for q in second["questions"]] == [q["id"] for q in first["questions"]]
+    assert [q["id"] for q in second["questions"]] == [
+        q["id"] for q in first["questions"]
+    ]
     assert len(override_llm.calls) == 1
 
 
@@ -200,7 +204,9 @@ def test_wrong_check_answer_transitions_to_remediate(client, override_llm):
             ]
         )
     ]
-    questions = client.post(f"/api/sessions/{session['id']}/check", json={}).json()["questions"]
+    questions = client.post(f"/api/sessions/{session['id']}/check", json={}).json()[
+        "questions"
+    ]
     response = client.post(
         f"/api/sessions/{session['id']}/quiz/{questions[0]['id']}/answer",
         json={"choice_index": 1},
@@ -226,8 +232,8 @@ def test_probe_config_missing_400(tmp_path):
 
     settings = Settings(
         data_dir=tmp_path / "data",
-        BROT_api_key="",
-        BROT_base_url="http://127.0.0.1:9/v1",
+        brot_api_key="",
+        brot_base_url="http://127.0.0.1:9/v1",
     )
     app = create_app(settings)
     with TestClient(app) as client:
