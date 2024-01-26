@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -21,7 +22,6 @@ RETRYABLE_CODES = {"rate_limit", "timeout", "connection", "upstream"}
 
 
 class SageError(Exception):
-
     status_code = 500
     code = "internal_error"
     retryable = False
@@ -33,7 +33,6 @@ class SageError(Exception):
 
 
 class ConfigError(SageError):
-
     status_code = 400
     code = "config_error"
 
@@ -47,7 +46,6 @@ class ConfigError(SageError):
 
 
 class ProviderError(SageError):
-
     def __init__(
         self,
         code: str,
@@ -114,7 +112,6 @@ class ContextTooLongError(SageError):
 
 
 class GenerationCancelled(SageError):
-
     status_code = 499
     code = "cancelled"
     retryable = True
@@ -165,8 +162,6 @@ def register_exception_handlers(app: FastAPI, secret: str = "") -> None:
 
     @app.exception_handler(Exception)
     async def on_unhandled(request: Request, exc: Exception) -> JSONResponse:
-        import logging
-
         logging.getLogger("app").exception("Unhandled error on %s", request.url.path)
         return JSONResponse(
             status_code=500,

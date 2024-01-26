@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -10,7 +10,7 @@ from app.config import Settings, get_app_settings
 from app.db import get_conn
 from app.llm.client import LLMClient, get_llm_client
 from app.models import GroundingMode, Session, SessionCreate
-from app.services.sessions import GROUNDING_MODES, SessionService
+from app.services.sessions import SessionService
 
 router = APIRouter()
 
@@ -68,9 +68,9 @@ async def patch_session(
     conn: sqlite3.Connection = Depends(get_conn),
     settings: Settings = Depends(get_app_settings),
 ) -> Session:
-    if body.grounding_mode not in GROUNDING_MODES:
-        raise HTTPException(status_code=400, detail=f"invalid grounding_mode: {body.grounding_mode}")
-    return SessionService(conn, settings).update_grounding(session_id, body.grounding_mode)
+    return SessionService(conn, settings).update_grounding(
+        session_id, body.grounding_mode
+    )
 
 
 @router.delete("/api/sessions/{session_id}", status_code=204)

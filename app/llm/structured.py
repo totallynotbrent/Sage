@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from app.errors import ModelOutputError, ProviderError, PROVIDER_STATUS
+from app.llm.messages import chunk_block, make_system_prompt
 from app.models import Plan, PlanNode, QuizQuestionInput
 
 PLAN_RETRY_NOTE = (
@@ -13,7 +14,7 @@ PLAN_RETRY_NOTE = (
     '"depends_on" (an array of node_key strings that exist in the same plan).'
 )
 QUESTIONS_RETRY_NOTE = (
-    'Your previous answer could not be parsed. Return ONLY a JSON array of '
+    "Your previous answer could not be parsed. Return ONLY a JSON array of "
     'question objects; each must have "question" (string), "options" (array of '
     '2-6 strings), "correct_index" (integer index of the correct option), '
     '"explanation" (string), "topic" (string), and "difficulty" (integer 1-5).'
@@ -22,7 +23,9 @@ QUESTIONS_RETRY_NOTE = (
 
 def provider_error_from_text(error_text: str | None) -> ProviderError:
     if not error_text:
-        return ProviderError("upstream", detail="The model endpoint returned no response.")
+        return ProviderError(
+            "upstream", detail="The model endpoint returned no response."
+        )
     code, sep, rest = error_text.partition(": ")
     if not sep or code not in PROVIDER_STATUS:
         return ProviderError("upstream", detail=error_text)
@@ -199,7 +202,9 @@ def _plan_from_fragments(raw: Any) -> Plan | None:
                 PlanNode(
                     node_key=node_key,
                     title=title.strip(),
-                    description=item.get("description") if isinstance(item.get("description"), str) else None,
+                    description=item.get("description")
+                    if isinstance(item.get("description"), str)
+                    else None,
                     depends_on=[],
                     position=index,
                 )
@@ -208,8 +213,6 @@ def _plan_from_fragments(raw: Any) -> Plan | None:
 
 
 def _context_block(chunks: list[dict[str, Any]]) -> str:
-    from app.llm.messages import chunk_block
-
     if not chunks:
         return "No source excerpts are available for this request."
     return "\n\n".join(chunk_block(c) for c in chunks)
@@ -224,8 +227,6 @@ async def request_plan(
     mode: str,
     focus: str | None = None,
 ) -> Plan | None:
-    from app.llm.messages import make_system_prompt
-
     system = make_system_prompt(session, mode, mastery_summary)
     user = (
         "Based on the learner goal and the source excerpts, propose a "
@@ -276,15 +277,13 @@ async def request_questions(
     count: int = 3,
     focus: str | None = None,
 ) -> list[QuizQuestionInput]:
-    from app.llm.messages import make_system_prompt
-
     system = make_system_prompt(session, mode, mastery_summary)
     user = (
         f"Write {count} multiple-choice questions relevant to the learner goal "
         "and the source excerpts. Vary difficulty. Return ONLY a JSON array of "
         "question objects, each with: question (string), options (array of 2-6 "
         "strings), correct_index (integer index into options), explanation "
-        '(string), topic (string), difficulty (integer 1-5). Do not include an '
+        "(string), topic (string), difficulty (integer 1-5). Do not include an "
         '"I don\'t know" option; the server adds it.\n\n'
         f"{_context_block(chunks)}"
     )

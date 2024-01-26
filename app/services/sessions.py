@@ -4,7 +4,7 @@ import json
 import sqlite3
 from typing import Any, AsyncIterator, Callable, Awaitable
 
-from app.config import Settings
+from app.config import Settings, validation_problems
 from app.db import row_to_dict, rows_to_dicts
 from app.errors import (
     ConfigError,
@@ -21,6 +21,7 @@ from app.llm.messages import (
 )
 from app.models import GroundingMode, Message, Session
 from app.services.files import FileService
+from app.services.mastery import summarize_mastery
 from app.services.retrieval import Retriever
 from app.util import new_id, utc_now
 
@@ -59,7 +60,6 @@ def question_dict(row: dict) -> dict:
 
 
 class SessionService:
-
     def __init__(self, conn: sqlite3.Connection, settings: Settings) -> None:
         self.conn = conn
         self.settings = settings
@@ -82,8 +82,15 @@ class SessionService:
                                   file_ids_json, created_at, updated_at)
             VALUES (?, ?, ?, 'setup', ?, ?, ?, ?)
             """,
-            (session_id, goal[:80], goal, grounding_mode,
-             json.dumps(file_ids), now, now),
+            (
+                session_id,
+                goal[:80],
+                goal,
+                grounding_mode,
+                json.dumps(file_ids),
+                now,
+                now,
+            ),
         )
         self.conn.commit()
         return self.get(session_id)
@@ -133,15 +140,16 @@ class SessionService:
             )
         ]
         mastery = rows_to_dicts(
-            self.conn.execute(
-                "SELECT * FROM mastery_topics ORDER BY label"
-            )
+            self.conn.execute("SELECT * FROM mastery_topics ORDER BY label")
         )
-        preferences = row_to_dict(
-            self.conn.execute(
-                "SELECT depth, pacing, style, notes, updated_at FROM preferences WHERE id = 1"
-            ).fetchone()
-        ) or {}
+        preferences = (
+            row_to_dict(
+                self.conn.execute(
+                    "SELECT depth, pacing, style, notes, updated_at FROM preferences WHERE id = 1"
+                ).fetchone()
+            )
+            or {}
+        )
         selected_files = []
         for file_id in session.file_ids:
             try:
@@ -247,8 +255,6 @@ class SessionService:
         )
 
     def _mastery_summary(self) -> str:
-        from app.services.mastery import summarize_mastery
-
         return summarize_mastery(self.conn)
 
     def save_partial_marker(
@@ -320,7 +326,7 @@ class SessionService:
         is_disconnected: Callable[[], Awaitable[bool]],
     ) -> AsyncIterator[dict]:
         try:
-            problems = _config_problems(self.settings)
+            problems = validation_problems(self.settings)
             if problems:
                 yield _error_event(ConfigError(problems))
                 return
@@ -363,7 +369,11 @@ class SessionService:
                     }
                     for c in chunks
                 ]
-                yield {"type": "meta", "chunks": meta_chunks, "insufficient": strict_mode}
+                yield {
+                    "type": "meta",
+                    "chunks": meta_chunks,
+                    "insufficient": strict_mode,
+                }
 
                 if strict_mode:
                     async for event in self._emit_sufficiency_notice(
@@ -418,7 +428,8 @@ class SessionService:
             except Exception as exc:  # noqa: BLE001 - never crash the SSE stream
                 yield _error_event(
                     ProviderError(
-                        "upstream", f"Unexpected error during generation: {type(exc).__name__}"
+                        "upstream",
+                        f"Unexpected error during generation: {type(exc).__name__}",
                     )
                 )
             finally:
@@ -491,12 +502,6 @@ class SessionService:
             (session_id,),
         ).fetchone()
         return row["content"] if row else None
-
-
-def _config_problems(settings: Settings) -> list[str]:
-    from app.config import validation_problems
-
-    return validation_problems(settings)
 
 
 def _error_event(exc: Exception) -> dict:

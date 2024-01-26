@@ -4,21 +4,15 @@ import sqlite3
 
 from fastapi import APIRouter, Depends, Request
 
-from app.config import Settings, get_app_settings, validation_problems
+from app.api.deps import require_configured
+from app.config import Settings, get_app_settings
 from app.db import open_db
-from app.errors import ConfigError
 from app.llm.client import LLMClient, get_llm_client
 from app.models import RetryBody, TurnBody
 from app.services.sessions import SessionService
 from app.sse import sse_response
 
 router = APIRouter()
-
-
-def _require_configured(settings: Settings) -> None:
-    problems = validation_problems(settings)
-    if problems:
-        raise ConfigError(problems)
 
 
 @router.post("/api/sessions/{session_id}/turns")
@@ -29,7 +23,7 @@ async def stream_turn(
     llm: LLMClient = Depends(get_llm_client),
     settings: Settings = Depends(get_app_settings),
 ):
-    _require_configured(settings)
+    require_configured(settings)
     conn = open_db(settings.db_path)
     service = SessionService(conn, settings)
     try:
@@ -65,7 +59,7 @@ async def retry_turn(
     llm: LLMClient = Depends(get_llm_client),
     settings: Settings = Depends(get_app_settings),
 ):
-    _require_configured(settings)
+    require_configured(settings)
     conn = open_db(settings.db_path)
     service = SessionService(conn, settings)
     try:
