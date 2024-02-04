@@ -19,8 +19,9 @@ be re-grounded in code.
   `StreamingResponse` body is sent (`app/api/chat.py`). The turn generators own
   and close that connection (`SessionService.turn` / `retry_last_turn` close it
   in a `finally`).
-- Event types emitted by a turn: `meta`, `delta`, `citation`, `notice`, `done`,
-  `error`. A completed message is persisted exactly once; a duplicate
+- Event types emitted by a turn: `meta`, `delta`, `citation`, `done`, `error`;
+  the strict-mode sufficiency notice is sent as a `delta` event, not a separate
+  `notice` type. A completed message is persisted exactly once; a duplicate
   `client_msg_id` replays only a `done` event, and an in-flight duplicate is
   rejected with a conflict error. A leftover partial marker is treated as a
   retry and regenerated (`app/services/sessions.py`).

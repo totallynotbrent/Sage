@@ -1,4 +1,6 @@
-# Sage UI — Mermaid Diagrams
+# Sage — Documentation Index
+
+## Mermaid diagrams
 
 Diagrams generated from `ui.txt` (the Sage web UI notes). Preview any `.mmd`
 file on [mermaid.live](https://mermaid.live), with a VS Code Mermaid extension,
@@ -16,3 +18,12 @@ or directly on GitHub (which renders `.mmd` natively).
 
 Common cross-cutting details (error envelope, status codes, data consistency
 rules for the frontend) are kept out of the diagrams; see `ui.txt` for those.
+
+## Operational docs
+
+| Doc | Covers |
+| --- | ------ |
+| [setup.md](setup.md) | Python 3.11 setup (Bookworm vs Trixie), `.env`, run.sh / run.bat, uvicorn, LAN access |
+| [security.md](security.md) | Trusted-network-only warning |
+| [environment.md](environment.md) | Environment variable reference (BROT_* / HOST / PORT / limits) |
+| [testing.md](testing.md) | pytest suite, wheel preflight, live endpoint smoke test |
