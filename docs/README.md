@@ -15,6 +15,7 @@ or directly on GitHub (which renders `.mmd` natively).
 | [05-streaming-chat-sse.mmd](05-streaming-chat-sse.mmd) | Sequence — SSE chat events | Streaming chat (`/turns`, `/retry`, `/stop`, citations, heartbeats) |
 | [06-data-model-er.mmd](06-data-model-er.mmd) | ER diagram — SQLite data model | Files, chunks, sessions, plan nodes, quiz, messages, mastery, preferences, feedback |
 | [07-ui-screens.mmd](07-ui-screens.mmd) | Flowchart — screen navigation | Suggested screens 1–9 |
+| [08-latex-notes.mmd](08-latex-notes.mmd) | Flowchart + sequence — LaTeX-notes integration | Folder watch, same-stem pairing, notes quiz (grounded MCQ) |
 
 Common cross-cutting details (error envelope, status codes, data consistency
 rules for the frontend) are kept out of the diagrams; see `ui.txt` for those.

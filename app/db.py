@@ -6,7 +6,7 @@ from typing import Iterator
 
 from fastapi import Request
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # fmt: off
 _DDL = """
@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS files (
     warnings      TEXT NOT NULL DEFAULT '[]',
     error         TEXT,
     num_chunks    INTEGER NOT NULL DEFAULT 0,
+    paired_file_id TEXT,
+    subject       TEXT,
+    source_path   TEXT,
     created_at    TEXT NOT NULL,
     updated_at    TEXT NOT NULL
 );
@@ -31,6 +34,9 @@ CREATE TABLE IF NOT EXISTS chunks (
     file_id       TEXT NOT NULL REFERENCES files(id) ON DELETE CASCADE,
     chunk_index   INTEGER NOT NULL,
     text          TEXT NOT NULL,
+    unicode_text  TEXT,
+    environment   TEXT,
+    label         TEXT,
     location_kind TEXT,
     page          INTEGER,
     slide         INTEGER,
@@ -81,6 +87,7 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
     options_json   TEXT NOT NULL,
     correct_index  INTEGER NOT NULL,
     explanation    TEXT,
+    source_ref     TEXT,
     status         TEXT NOT NULL DEFAULT 'pending',
     user_choice    INTEGER,
     outcome        TEXT,
@@ -134,11 +141,37 @@ CREATE TABLE IF NOT EXISTS preferences (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS watch_sources (
+    id            TEXT PRIMARY KEY,
+    path          TEXT UNIQUE NOT NULL,
+    enabled       INTEGER NOT NULL DEFAULT 1,
+    last_scan_at  TEXT,
+    last_error    TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
 );
 """
 # fmt: on
+
+_V2_COLUMNS = (
+    ("files", "paired_file_id", "paired_file_id TEXT"),
+    ("files", "subject", "subject TEXT"),
+    ("files", "source_path", "source_path TEXT"),
+    ("chunks", "unicode_text", "unicode_text TEXT"),
+    ("chunks", "environment", "environment TEXT"),
+    ("chunks", "label", "label TEXT"),
+    ("quiz_questions", "source_ref", "source_ref TEXT"),
+)
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, name: str, ddl: str) -> None:
+    cols = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+    if name not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
 
 
 def init_db(db_path: Path) -> None:
@@ -152,8 +185,16 @@ def init_db(db_path: Path) -> None:
             conn.execute(
                 "ALTER TABLE sessions ADD COLUMN nodes_since_check INTEGER NOT NULL DEFAULT 0"
             )
+        for table, name, ddl in _V2_COLUMNS:
+            _ensure_column(conn, table, name, ddl)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_files_subject ON files (subject)")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_files_source_path ON files (source_path)"
+        )
         conn.execute("DELETE FROM schema_version")
-        conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
+        conn.execute(
+            "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
+        )
         conn.execute(
             "INSERT OR IGNORE INTO preferences (id, updated_at) VALUES (1, '')"
         )

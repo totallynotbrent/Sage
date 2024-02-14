@@ -1,0 +1,51 @@
+{
+  "task_id": "T4-recheck",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "merlin-t4-recheck-timeout",
+  "declared_at": "2026-08-20T16:45:00Z",
+  "finalized_by": "Merlin",
+  "summary": "Re-verified T3-Fix subprocess timeout mapping, structured-output API schema, and SSE regressions.",
+  "files": {
+    "modified": [".agents/jobs/T4-recheck.json"],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "committed_at": "",
+  "line_counts": {
+    "before": {".agents/jobs/T4-recheck.json": 0},
+    "after": {".agents/jobs/T4-recheck.json": 51}
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "merlin",
+  "findings": [
+    {
+      "check": "T3-Fix timeout regression",
+      "result": "PASS",
+      "evidence": "python -m pytest tests/test_mermaid.py::test_mermaid_timeout_is_unavailable_error -q -> 1 passed in 1.24s; the test raises subprocess.TimeoutExpired from _run_adapter and asserts validate_mermaid raises ModelOutputError with issue_codes=[mermaid_validator_unavailable]."
+    },
+    {
+      "check": "focused structured-output/API/SSE/Mermaid suite",
+      "result": "PASS",
+      "evidence": "python -m pytest tests/test_mermaid.py tests/test_structured_outputs.py tests/test_api_outputs.py tests/test_api_chat_sse.py -q -> 26 passed in 3.44s."
+    },
+    {
+      "check": "full pytest suite",
+      "result": "PASS",
+      "evidence": "python -m pytest tests -q -> 310 passed in 42.38s."
+    },
+    {
+      "check": "OpenAPI response schema",
+      "result": "PASS",
+      "evidence": "Generated app.openapi() and inspected POST /api/sessions/{session_id}/outputs: response schema has oneOf for chat, mermaid, todo, and quiz envelopes; discriminator propertyName is kind and mapping contains all four values."
+    },
+    {
+      "check": "existing SSE regression checks",
+      "result": "PASS",
+      "evidence": "python -m pytest tests/test_api_chat_sse.py -q -> 14 passed in 3.70s, including event sequencing, citations, partial persistence, retry, duplicate replay, strict insufficiency, missing config/session, CRUD, and stop checks."
+    }
+  ],
+  "notes": "Read T4.json and T3-Fix.json before verification. Re-anchored the fix in app/services/mermaid.py and tests/test_mermaid.py; no production or test source files were modified. The previously failing subprocess.TimeoutExpired path is now covered and passes. The full suite is green. T5c provenance correction: before count for .agents/jobs/T4-recheck.json is 0 (not present at base_commit 1b1a231); this records the writer-overlap reconciliation where the file was created in the same uncommitted wave."
+}

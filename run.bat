@@ -17,6 +17,9 @@ call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip >nul
 python -m pip install -r requirements.txt
 
+where npm >nul 2>nul
+if %errorlevel%==0 if not exist "node_modules\mermaid" npm ci --ignore-scripts --no-audit --no-fund
+
 if "%HOST%"=="" set HOST=0.0.0.0
 if "%PORT%"=="" set PORT=8000
 

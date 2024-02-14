@@ -261,3 +261,43 @@ def test_answer_corrupt_options_400(client, conn, override_llm):
         json={"choice_index": 0},
     )
     assert response.status_code == 400
+
+
+def test_notes_answer_endpoint_no_phase_change(client, conn, override_llm):
+    now = "2026-01-01T00:00:00Z"
+    conn.execute(
+        "INSERT INTO files (id, display_name, storage_name, mime_type, size_bytes, sha256, status, warnings, error, num_chunks, paired_file_id, subject, source_path, created_at, updated_at) "
+        "VALUES ('f1', 'calc.tex', 'f1.tex', 'text/x-tex', 10, 'sha-f1', 'ready', '[]', NULL, 1, NULL, 'calculus', NULL, ?, ?)",
+        (now, now),
+    )
+    conn.execute(
+        "INSERT INTO chunks (id, file_id, chunk_index, text, unicode_text, environment, label, location_kind, page, slide, section, start_line, end_line, char_start, char_end) "
+        "VALUES ('c0', 'f1', 0, 'the theorem text', 'the theorem text', 'theorem', 'thm:rolle', 'lines', NULL, NULL, 'Rolle', 1, 1, 0, 10)",
+    )
+    conn.commit()
+    session = client.post(
+        "/api/sessions", json={"goal": "learn calculus", "file_ids": ["f1"]}
+    ).json()
+    override_llm.complete_json_responses = [
+        json.dumps(
+            {
+                "question": "Notes Q?",
+                "options": ["x", "y", "z"],
+                "correct_index": 1,
+                "explanation": "e",
+                "topic": "calculus",
+                "difficulty": 3,
+            }
+        ),
+        json.dumps({"supported": True}),
+    ]
+    question = client.post(
+        f"/api/sessions/{session['id']}/notes-quiz", json={"count": 1}
+    ).json()["questions"][0]
+    response = client.post(
+        f"/api/sessions/{session['id']}/quiz/{question['id']}/answer",
+        json={"choice_index": 1},
+    )
+    assert response.status_code == 200
+    assert response.json()["result"]["outcome"] == "correct"
+    assert response.json()["session"]["phase"] == "setup"

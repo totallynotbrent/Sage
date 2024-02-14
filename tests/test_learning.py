@@ -34,7 +34,9 @@ def _good_questions():
 def _probed_session(conn, settings, fake_llm):
     session = _create_session(conn, settings)
     fake_llm.complete_json_responses = [json.dumps(_good_questions())]
-    result = asyncio.run(LearningService(conn, settings).generate_probe(session.id, fake_llm))
+    result = asyncio.run(
+        LearningService(conn, settings).generate_probe(session.id, fake_llm)
+    )
     return session, result["questions"]
 
 
@@ -53,7 +55,9 @@ def test_generate_probe_sets_phase(conn, settings, fake_llm):
     session = _create_session(conn, settings)
     assert session.phase == "setup"
     fake_llm.complete_json_responses = [json.dumps(_good_questions())]
-    result = asyncio.run(LearningService(conn, settings).generate_probe(session.id, fake_llm))
+    result = asyncio.run(
+        LearningService(conn, settings).generate_probe(session.id, fake_llm)
+    )
     assert result["session"]["phase"] == "probe"
 
 
@@ -82,7 +86,9 @@ def test_generate_probe_no_usable_questions_raises(conn, settings, fake_llm):
     session = _create_session(conn, settings)
     fake_llm.complete_json_responses = ["garbage", "garbage"]
     with pytest.raises(ModelOutputError) as excinfo:
-        asyncio.run(LearningService(conn, settings).generate_probe(session.id, fake_llm))
+        asyncio.run(
+            LearningService(conn, settings).generate_probe(session.id, fake_llm)
+        )
     assert excinfo.value.status_code == 422
     assert excinfo.value.retryable is True
 
@@ -100,7 +106,9 @@ def test_generate_probe_provider_failure_raises_502(conn, settings):
             return (None, "connection: Could not connect to the model endpoint.")
 
     with pytest.raises(ProviderError) as excinfo:
-        asyncio.run(LearningService(conn, settings).generate_probe(session.id, FailingFakeLLM()))
+        asyncio.run(
+            LearningService(conn, settings).generate_probe(session.id, FailingFakeLLM())
+        )
     assert excinfo.value.code == "connection"
     assert excinfo.value.status_code == 502
 
@@ -116,7 +124,9 @@ def test_answer_correct_grades_and_records_mastery(conn, settings, fake_llm):
     assert result["result"]["probe_complete"] is False
     assert result["result"]["retry_allowed"] is False
 
-    row = conn.execute("SELECT * FROM mastery_topics WHERE topic = 'topic-0'").fetchone()
+    row = conn.execute(
+        "SELECT * FROM mastery_topics WHERE topic = 'topic-0'"
+    ).fetchone()
     assert row["observed_count"] == 1
     assert row["correct_count"] == 1
     stored = conn.execute(
@@ -146,7 +156,9 @@ def test_answer_idk_stores_minus_one(conn, settings, fake_llm):
     ).fetchone()
     assert stored["user_choice"] == -1
     assert stored["outcome"] == "idk"
-    row = conn.execute("SELECT * FROM mastery_topics WHERE topic = 'topic-0'").fetchone()
+    row = conn.execute(
+        "SELECT * FROM mastery_topics WHERE topic = 'topic-0'"
+    ).fetchone()
     assert row["idk_count"] == 1
 
 
@@ -165,7 +177,9 @@ def test_answer_replay_does_not_double_count(conn, settings, fake_llm):
     second = service.answer_quiz(session.id, questions[0]["id"], 1)
     assert second["result"]["outcome"] == "correct"
     assert second["result"]["question_id"] == first["result"]["question_id"]
-    row = conn.execute("SELECT * FROM mastery_topics WHERE topic = 'topic-0'").fetchone()
+    row = conn.execute(
+        "SELECT * FROM mastery_topics WHERE topic = 'topic-0'"
+    ).fetchone()
     assert row["observed_count"] == 1
     assert row["correct_count"] == 1
     evidence = json.loads(row["evidence_json"])
@@ -179,7 +193,9 @@ def test_answer_correct_then_different_choice_rejected(conn, settings, fake_llm)
     with pytest.raises(ValueError) as excinfo:
         service.answer_quiz(session.id, questions[0]["id"], 0)
     assert "already answered correctly" in str(excinfo.value)
-    row = conn.execute("SELECT * FROM mastery_topics WHERE topic = 'topic-0'").fetchone()
+    row = conn.execute(
+        "SELECT * FROM mastery_topics WHERE topic = 'topic-0'"
+    ).fetchone()
     assert row["observed_count"] == 1
     assert row["correct_count"] == 1
 
@@ -191,7 +207,9 @@ def test_answer_incorrect_then_correct_retry_regrades(conn, settings, fake_llm):
     result = service.answer_quiz(session.id, questions[0]["id"], 1)
     assert result["result"]["outcome"] == "correct"
     assert result["result"]["retry_allowed"] is False
-    row = conn.execute("SELECT * FROM mastery_topics WHERE topic = 'topic-0'").fetchone()
+    row = conn.execute(
+        "SELECT * FROM mastery_topics WHERE topic = 'topic-0'"
+    ).fetchone()
     assert row["observed_count"] == 2
     assert row["correct_count"] == 1
     evidence = json.loads(row["evidence_json"])
@@ -225,7 +243,9 @@ def test_generate_check_uses_node_topic(conn, settings, fake_llm):
         "INSERT INTO plan_nodes (id, session_id, node_key, title, description, depends_on_json, status, position) VALUES (?, ?, 'n1', 'Group Theory', NULL, '[]', 'current', 0)",
         ("node1", session.id),
     )
-    conn.execute("UPDATE sessions SET current_node_id = 'node1' WHERE id = ?", (session.id,))
+    conn.execute(
+        "UPDATE sessions SET current_node_id = 'node1' WHERE id = ?", (session.id,)
+    )
     conn.commit()
     fake_llm.complete_json_responses = [
         json.dumps(
@@ -347,7 +367,9 @@ def test_check_generation_idempotent(conn, settings, fake_llm):
     service = LearningService(conn, settings)
     first = asyncio.run(service.generate_check(session.id, fake_llm))
     second = asyncio.run(service.generate_check(session.id, fake_llm))
-    assert [q["id"] for q in second["questions"]] == [q["id"] for q in first["questions"]]
+    assert [q["id"] for q in second["questions"]] == [
+        q["id"] for q in first["questions"]
+    ]
     assert len(fake_llm.calls) == 1
 
 
@@ -392,7 +414,9 @@ def _planned_checked_session(conn, settings, fake_llm):
             ]
         )
     ]
-    result = asyncio.run(LearningService(conn, settings).generate_check(session.id, fake_llm))
+    result = asyncio.run(
+        LearningService(conn, settings).generate_check(session.id, fake_llm)
+    )
     return session, result["questions"][0]
 
 
@@ -459,3 +483,53 @@ def test_answer_skipped_question_rejected(conn, settings, fake_llm):
     ).fetchone()
     assert stored["status"] == "skipped"
     assert SessionService(conn, settings).get(session.id).phase == "plan"
+
+
+def _ready_env_file(conn, file_id="f1"):
+    now = "2026-01-01T00:00:00Z"
+    conn.execute(
+        "INSERT INTO files (id, display_name, storage_name, mime_type, size_bytes, sha256, status, warnings, error, num_chunks, paired_file_id, subject, source_path, created_at, updated_at) "
+        "VALUES (?, 'calc.tex', 'f1.tex', 'text/x-tex', 10, 'sha-f1', 'ready', '[]', NULL, 1, NULL, 'calculus', NULL, ?, ?)",
+        (file_id, now, now),
+    )
+    conn.execute(
+        "INSERT INTO chunks (id, file_id, chunk_index, text, unicode_text, environment, label, location_kind, page, slide, section, start_line, end_line, char_start, char_end) "
+        "VALUES ('c0', ?, 0, 'the theorem text', 'the theorem text', 'theorem', 'thm:rolle', 'lines', NULL, NULL, 'Rolle', 1, 1, 0, 10)",
+        (file_id,),
+    )
+    conn.commit()
+
+
+def test_answer_notes_question_records_mastery_no_phase_change(
+    conn, settings, fake_llm
+):
+    _ready_env_file(conn)
+    session = SessionService(conn, settings).create("learn calculus", ["f1"])
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            {
+                "question": "Notes Q?",
+                "options": ["x", "y", "z"],
+                "correct_index": 1,
+                "explanation": "e",
+                "topic": "calculus",
+                "difficulty": 3,
+            }
+        ),
+        json.dumps({"supported": True}),
+    ]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_notes_quiz(session.id, fake_llm, count=1))
+    question = result["questions"][0]
+    assert session.phase == "setup"
+    answer = service.answer_quiz(session.id, question["id"], 1)
+    assert answer["result"]["outcome"] == "correct"
+    assert answer["result"]["next_node"] is None
+    assert answer["result"]["check_due"] is False
+    assert answer["session"]["phase"] == "setup"
+    row = conn.execute(
+        "SELECT evidence_json FROM mastery_topics WHERE topic = 'calculus'"
+    ).fetchone()
+    evidence = json.loads(row[0])
+    assert evidence[0]["source"] == "notes"
+    assert evidence[0]["question_id"] == question["id"]

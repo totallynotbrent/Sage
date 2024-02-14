@@ -8,7 +8,9 @@ import pytest
 def test_text_extractor():
     from app.services.extraction.text import TextExtractor
 
-    result = TextExtractor().extract(b"line one\nline two\nline three", filename="notes.txt")
+    result = TextExtractor().extract(
+        b"line one\nline two\nline three", filename="notes.txt"
+    )
     assert result.ok
     assert len(result.units) == 1
     assert result.units[0].text == "line one\nline two\nline three"
@@ -142,4 +144,4 @@ def test_dispatch_unknown_extension():
 def test_registry_has_all_supported():
     from app.services.extraction.base import EXTRACTORS
 
-    assert {"pdf", "docx", "pptx", "md", "markdown", "txt"} <= set(EXTRACTORS)
+    assert {"pdf", "docx", "pptx", "md", "markdown", "txt", "tex"} <= set(EXTRACTORS)

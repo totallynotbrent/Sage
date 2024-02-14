@@ -15,6 +15,17 @@ HISTORY_LIMIT = 8
 
 _CITATION_RE = re.compile(r"\[cit:([^\]\s]+)\]")
 
+_ENV_DISPLAY_NAMES = {
+    "theorem",
+    "definition",
+    "example",
+    "lemma",
+    "proposition",
+    "corollary",
+    "proof",
+    "remark",
+}
+
 
 def make_system_prompt(
     session: dict[str, Any],
@@ -70,13 +81,21 @@ def make_system_prompt(
     return "\n".join(blocks)
 
 
+def _escape_doc_text(text: str) -> str:
+    return text.replace("[", "\uff3b").replace("]", "\uff3d")
+
+
 def chunk_block(chunk: dict[str, Any]) -> str:
-    file_name = chunk.get("file_name") or chunk.get("display_name") or chunk.get("file_id", "?")
+    file_name = (
+        chunk.get("file_name") or chunk.get("display_name") or chunk.get("file_id", "?")
+    )
     location = _format_location(chunk)
     id_value = chunk.get("id", "?")
-    text = chunk.get("text", "")
+    text = _escape_doc_text(chunk.get("text", ""))
+    pair_name = chunk.get("pair_display_name")
+    pair_attr = f' pair="{pair_name}"' if pair_name else ""
     return (
-        f'[DOC id="{id_value}" location="{location}" file="{file_name}"]\n'
+        f'[DOC id="{id_value}" location="{location}" file="{file_name}"{pair_attr}]\n'
         f"{text}\n"
         "[/DOC]"
     )
@@ -89,10 +108,20 @@ def _format_location(chunk: dict[str, Any]) -> str:
     if kind == "slide" and chunk.get("slide"):
         return f"slide {chunk['slide']}"
     parts: list[str] = []
-    if kind == "section" and chunk.get("section"):
+    if chunk.get("section") and (kind == "section" or chunk.get("environment")):
         parts.append(f'section "{chunk["section"]}"')
     if chunk.get("start_line") is not None:
-        parts.append(f"lines {chunk['start_line']}-{chunk.get('end_line', chunk['start_line'])}")
+        parts.append(
+            f"lines {chunk['start_line']}-{chunk.get('end_line', chunk['start_line'])}"
+        )
+    if chunk.get("environment"):
+        environment = chunk["environment"]
+        if environment in _ENV_DISPLAY_NAMES:
+            environment = environment.capitalize()
+        if chunk.get("label"):
+            parts.append(f"{environment} ({chunk['label']})")
+        else:
+            parts.append(environment)
     return "; ".join(parts) if parts else "location unknown"
 
 

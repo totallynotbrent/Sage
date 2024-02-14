@@ -25,6 +25,19 @@ run.bat
 uvicorn app.main:app --host ${HOST:-0.0.0.0} --port ${PORT:-8000}
 ```
 
+## Notes folder watch
+
+Point Sage at LaTeX notes folders with `SAGE_WATCH_DIRS` — a JSON array of
+absolute paths, e.g. `SAGE_WATCH_DIRS=["/home/brent/notes/calculus"]` — and
+`SAGE_WATCH_SCAN_SECONDS` for the interval (default 300). The watcher starts
+with the app (lifespan) and, on every interval, ingests new or changed
+`.tex`/`.md`/PDF files into the library, re-ingests changed files, and tags
+each file's `subject` from its first folder segment. A same-stem `.tex`/`.pdf`
+pair is linked automatically. Manage sources live: `GET/POST /api/watch`
+lists/registers a folder, `POST /api/watch/scan` scans now, and
+`DELETE /api/watch/{id}` stops watching one. The first scan sleeps one full
+interval so it never races an explicit `POST /api/watch/scan`.
+
 ## LAN access
 
 The app binds to `0.0.0.0:8000` by default, so any device on your local

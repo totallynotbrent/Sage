@@ -5,6 +5,7 @@ import sqlite3
 from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
 
+from app.api.deps import handle_value_error
 from app.config import Settings, get_app_settings
 from app.db import get_conn, row_to_dict
 from app.errors import NotFoundError
@@ -25,22 +26,26 @@ async def upload_files(
     results: list[FileRecord] = []
     for upload in files:
         content = await upload.read()
-        results.append(
-            service.save_upload(
-                filename=upload.filename or "",
-                content=content,
-                content_type=upload.content_type or "",
+        try:
+            results.append(
+                service.save_upload(
+                    filename=upload.filename or "",
+                    content=content,
+                    content_type=upload.content_type or "",
+                )
             )
-        )
+        except ValueError as exc:
+            raise handle_value_error(exc)
     return results
 
 
 @router.get("/api/files", response_model=list[FileRecord])
 async def list_files(
+    subject: str | None = None,
     conn: sqlite3.Connection = Depends(get_conn),
     settings: Settings = Depends(get_app_settings),
 ) -> list[FileRecord]:
-    return FileService(conn, settings).list()
+    return FileService(conn, settings).list(subject=subject)
 
 
 @router.get("/api/files/{file_id}", response_model=FileRecord)

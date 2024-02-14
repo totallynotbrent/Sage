@@ -1,11 +1,76 @@
 {
   "task_id": "T4",
-  "agent": "turing",
+  "agent": "Merlin",
   "status": "done",
-  "summary": "Documented Windows-workspace ↔ Pi-NAS topology, Freebuff reachability, and secret/testing requirements",
-  "files": { "modified": [], "created": [".agents/jobs/docs/environment.md"], "deleted": [] },
-  "line_counts": {},
+  "session_id": "verification-t4-structured-output",
+  "declared_at": "2026-08-20T15:25:00Z",
+  "finalized_by": "Merlin",
+  "summary": "Verified Task T3 structured-output implementation, API contracts, Mermaid fail-closed behavior, and SSE regression coverage.",
+  "files": {
+    "modified": [".agents/jobs/T4.json", "oc-issues.txt"],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "committed_at": "",
+  "line_counts": {
+    "before": {".agents/jobs/T4.json": 11, "oc-issues.txt": 0},
+    "after": {".agents/jobs/T4.json": 76, "oc-issues.txt": 101}
+  },
   "modules_created": [],
-  "documentation": [".agents/jobs/docs/environment.md"],
-  "notes": "Recorded so future testing/implementation uses the Pi (192.168.1.57) topology and .env secrets correctly; no secrets written to the doc"
+  "documentation": [],
+  "final_report": "FAIL. The implementation is broadly verified but one concrete failure remains: app/services/mermaid.py catches built-in TimeoutError but not subprocess.TimeoutExpired. A controlled edge probe patching _run_adapter to raise subprocess.TimeoutExpired propagated that exception instead of returning ModelOutputError with issue_codes=[mermaid_validator_unavailable]. This violates the requested Mermaid unavailable/failure behavior for a real subprocess timeout. No source files were modified by Merlin. The incomplete node_modules Mermaid install means live valid-diagram parsing could not be exercised; the existing unavailable fail-closed path was exercised and returned the expected ModelOutputError. TASK STATUS: T4 → failed",
+  "verification": "merlin",
+  "findings": [
+    {
+      "check": "focused pytest",
+      "result": "PASS",
+      "evidence": "python -m pytest tests/test_api_chat_sse.py tests/test_structured_outputs.py tests/test_api_outputs.py tests/test_mermaid.py -q -> 25 passed in 3.70s"
+    },
+    {
+      "check": "full pytest suite",
+      "result": "PASS",
+      "evidence": "python -m pytest tests -q -> 309 passed in 29.82s"
+    },
+    {
+      "check": "syntax and compile",
+      "result": "PARTIAL",
+      "evidence": "node --check tools/validate_mermaid.mjs passed; node v22.15.1 and npm 11.4.0 available. python -m compileall -q app tests reached app/services/mermaid.py but failed replacing a temporary pyc with WinError 5 on the UNC/SMB workspace. This environment failure is recorded in oc-issues.txt entries 29-30. Focused py_compile was not claimed as a pass after this compileall failure."
+    },
+    {
+      "check": "OpenAPI response schema",
+      "result": "PASS",
+      "evidence": "Generated FastAPI OpenAPI for POST /api/sessions/{session_id}/outputs contains a response oneOf for ChatOutputEnvelope, MermaidOutputEnvelope, TodoOutputEnvelope, and QuizOutputEnvelope with discriminator propertyName=kind and complete mapping."
+    },
+    {
+      "check": "JSON parsing and repair",
+      "result": "PASS",
+      "evidence": "BOM and one JSON fence accepted; trailing object/data rejected with trailing_data; fenced JSON with trailing data rejected; existing tests verified one bounded repair attempt and retryable exhaustion."
+    },
+    {
+      "check": "strict models and quiz edges",
+      "result": "PASS",
+      "evidence": "Strict request probes rejected boolean count, integer prompt coercion, unknown request fields, and count=0. API probes returned 422 for quiz count mismatch and unknown/extra request fields. A two-question quiz returned positions [0, 1]. Existing tests verified duplicate options and invalid indexes."
+    },
+    {
+      "check": "session/config errors",
+      "result": "PASS",
+      "evidence": "POST output for missing session returned 404 not_found. Existing SSE tests verified missing configuration returns 400 config_error."
+    },
+    {
+      "check": "Mermaid unsafe/invalid/unavailable",
+      "result": "FAIL",
+      "evidence": "Unsafe directive %%{ was rejected with mermaid_unsafe_source; oversized and script sources are covered by tests. Incomplete node_modules caused a live adapter import failure, which correctly returned mermaid_validator_unavailable. A controlled _run_adapter subprocess.TimeoutExpired raised uncaught TimeoutExpired instead of ModelOutputError mermaid_validator_unavailable."
+    },
+    {
+      "check": "SSE /turns regression",
+      "result": "PASS",
+      "evidence": "The full existing SSE/chat tests ran as part of the focused set and full suite; event sequence, citations, partial persistence, retry, duplicate replay, strict insufficiency, grounded empty context, missing session, config, and CRUD checks passed."
+    }
+  ],
+  "blockers": [
+    "Production fix required in app/services/mermaid.py to catch subprocess.TimeoutExpired (or its appropriate superclass) and convert it to fail-closed ModelOutputError before approval.",
+    "Live Mermaid syntax validation remains environment-blocked by the incomplete node_modules tree from the prior npm timeout; a clean dependency install is needed for full valid/invalid adapter execution."
+  ],
+  "notes": "No production or test source files were modified. oc-issues.txt was appended because compileall encountered a system/SMB permission error and initial standalone edge probes had shell quoting errors. The requested existing plus new test coverage is green; verdict is failed solely for the timeout exception contract defect, with live Mermaid parsing additionally pending dependency repair. T5c provenance correction: before line counts corrected to git show base_commit:<path> raw newline counts (.agents/jobs/T4.json 11, oc-issues.txt 0). The prior before values (70/95) did not match base_commit 1b1a231: T4.json existed at base as an 11-line entry from an earlier task and was overwritten in this wave, and oc-issues.txt is gitignored/absent at base. This records the writer-overlap reconciliation (job-log files changed after base)."
 }

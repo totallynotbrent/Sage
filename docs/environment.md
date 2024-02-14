@@ -16,6 +16,8 @@ All variables are read from `.env` (see `.env.example`) by
 | `CHUNK_CHARS`         | `1500`                           | Chunk size (chars)                  |
 | `CHUNK_OVERLAP`       | `200`                            | Chunk overlap (chars)               |
 | `CONTEXT_CHUNK_BUDGET`| `8`                              | Max chunks sent to the model per turn |
+| `SAGE_WATCH_DIRS`     | *(none)*                         | JSON array of note folders to auto-scan, e.g. `["/home/brent/notes/calculus"]` |
+| `SAGE_WATCH_SCAN_SECONDS` | `300`                         | Seconds between automatic watch scans (first scan sleeps one interval) |
 
 `BROT_API_KEY` missing, placeholder, or `BROT_BASE_URL` invalid are surfaced
 as configuration problems: they appear in `GET /api/health` and cause SSE

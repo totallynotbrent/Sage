@@ -15,6 +15,8 @@ def test_defaults():
     assert settings.chunk_chars == 1500
     assert settings.chunk_overlap == 200
     assert settings.context_chunk_budget == 8
+    assert settings.watch_dirs == []
+    assert settings.watch_scan_seconds == 300
     assert settings.data_dir.name == "sage"
 
 
@@ -63,5 +65,17 @@ def test_env_overrides(monkeypatch):
         assert settings.brot_model == "some-model"
         assert settings.host == "127.0.0.1"
         assert settings.port == 9000
+    finally:
+        get_settings.cache_clear()
+
+
+def test_watch_dirs_env_parse(monkeypatch):
+    monkeypatch.setenv("SAGE_WATCH_DIRS", '["/notes/calculus", "/notes/algebra"]')
+    monkeypatch.setenv("SAGE_WATCH_SCAN_SECONDS", "60")
+    get_settings.cache_clear()
+    try:
+        settings = get_settings()
+        assert settings.watch_dirs == ["/notes/calculus", "/notes/algebra"]
+        assert settings.watch_scan_seconds == 60
     finally:
         get_settings.cache_clear()

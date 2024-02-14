@@ -13,10 +13,19 @@ if [ ! -d ".venv" ]; then
     fi
 fi
 
-.venv/bin/pip install --upgrade pip >/dev/null
-.venv/bin/pip install -r requirements.txt
+if [ ! -x ".venv/bin/uvicorn" ]; then
+    .venv/bin/python -m pip install -r requirements.txt
+fi
+
+if command -v npm >/dev/null 2>&1 && [ ! -d "node_modules/mermaid" ]; then
+    npm ci --ignore-scripts --no-audit --no-fund
+fi
 
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 
-exec .venv/bin/uvicorn app.main:app --host "$HOST" --port "$PORT"
+uvicorn_args=(app.main:app --host "$HOST" --port "$PORT")
+if [ "${RELOAD:-0}" = "1" ]; then
+    uvicorn_args+=(--reload)
+fi
+exec .venv/bin/uvicorn "${uvicorn_args[@]}"

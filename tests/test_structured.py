@@ -19,7 +19,7 @@ from tests.fakes.fake_llm import FakeLLM
 
 def test_parse_plain_json():
     assert parse_json('{"a": 1}') == {"a": 1}
-    assert parse_json('[1, 2, 3]') == [1, 2, 3]
+    assert parse_json("[1, 2, 3]") == [1, 2, 3]
 
 
 def test_parse_fenced_json():
@@ -30,6 +30,11 @@ def test_parse_fenced_json():
 def test_parse_prose_wrapped_json():
     text = 'Sure! Here is the plan:\n{"plan": true}\nHope that helps.'
     assert parse_json(text) == {"plan": True}
+
+
+def test_parse_supported_bool_json():
+    assert parse_json('{"supported": true}') == {"supported": True}
+    assert parse_json('{"supported": false}') == {"supported": False}
 
 
 def test_parse_broken_raises():
@@ -45,7 +50,12 @@ def test_validate_plan_ok():
     raw = {
         "nodes": [
             {"node_key": "k1", "title": "Prereq", "description": "d", "depends_on": []},
-            {"node_key": "k2", "title": "Main", "description": "d2", "depends_on": ["k1"]},
+            {
+                "node_key": "k2",
+                "title": "Main",
+                "description": "d2",
+                "depends_on": ["k1"],
+            },
         ]
     }
     plan = validate_plan(raw)
@@ -144,18 +154,23 @@ def test_validate_questions_rejects_idk_option_length():
 
 
 def _session():
-    return {"id": "s1", "goal": "learn x", "phase": "setup", "grounding_mode": "grounded"}
+    return {
+        "id": "s1",
+        "goal": "learn x",
+        "phase": "setup",
+        "grounding_mode": "grounded",
+    }
 
 
 def test_request_plan_ok():
     llm = FakeLLM()
     llm.complete_json_responses = [
-        json.dumps(
-            {"nodes": [{"node_key": "a", "title": "A", "depends_on": []}]}
-        )
+        json.dumps({"nodes": [{"node_key": "a", "title": "A", "depends_on": []}]})
     ]
     plan = asyncio.run(
-        request_plan(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
+        request_plan(
+            llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
+        )
     )
     assert plan is not None
     assert plan.nodes[0].title == "A"
@@ -165,12 +180,12 @@ def test_request_plan_corrective_retry():
     llm = FakeLLM()
     llm.complete_json_responses = [
         "not json at all",
-        json.dumps(
-            {"nodes": [{"node_key": "a", "title": "A", "depends_on": []}]}
-        ),
+        json.dumps({"nodes": [{"node_key": "a", "title": "A", "depends_on": []}]}),
     ]
     plan = asyncio.run(
-        request_plan(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
+        request_plan(
+            llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
+        )
     )
     assert plan is not None
     assert len(llm.calls) == 2
@@ -185,7 +200,9 @@ def test_request_plan_degrades_to_outline():
         "still broken",
     ]
     plan = asyncio.run(
-        request_plan(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
+        request_plan(
+            llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
+        )
     )
     assert plan is not None
     assert [n.title for n in plan.nodes] == ["First"]
@@ -195,7 +212,9 @@ def test_request_plan_nothing_usable_returns_none():
     llm = FakeLLM()
     llm.complete_json_responses = ["garbage", "more garbage"]
     plan = asyncio.run(
-        request_plan(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
+        request_plan(
+            llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
+        )
     )
     assert plan is None
 
@@ -204,7 +223,9 @@ def test_request_questions_ok():
     llm = FakeLLM()
     llm.complete_json_responses = [json.dumps(_good_questions())]
     questions = asyncio.run(
-        request_questions(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
+        request_questions(
+            llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
+        )
     )
     assert len(questions) == 2
 
@@ -216,7 +237,9 @@ def test_request_questions_corrective_retry():
         json.dumps(_good_questions()),
     ]
     questions = asyncio.run(
-        request_questions(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
+        request_questions(
+            llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
+        )
     )
     assert questions is not None and len(questions) == 2
     assert len(llm.calls) == 2
@@ -228,7 +251,9 @@ def test_request_questions_keeps_valid_questions():
     bad[0]["correct_index"] = 99
     llm.complete_json_responses = [json.dumps(bad), "no"]
     questions = asyncio.run(
-        request_questions(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
+        request_questions(
+            llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
+        )
     )
     assert len(questions) == 1
     assert questions[0].question == "What is water?"
@@ -238,6 +263,8 @@ def test_request_questions_nothing_returns_empty():
     llm = FakeLLM()
     llm.complete_json_responses = ["junk", "junk"]
     questions = asyncio.run(
-        request_questions(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
+        request_questions(
+            llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
+        )
     )
     assert questions == []
