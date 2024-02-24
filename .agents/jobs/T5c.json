@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "turing-t5c-provenance-correction",
   "declared_at": "2026-08-20T16:29:22.873450+00:00",
-  "finalized_by": "Turing",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Documentation and job-log provenance corrections: README tree/UI-node updates plus raw line-count fixes and writer-overlap reconciliation notes in the T3/T3-Fix/T4/T4-recheck job logs.",
   "files": {
     "modified": [
@@ -31,7 +31,7 @@
     "tests": []
   },
   "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
-  "committed_at": "",
+  "committed_at": "e535bba741523342b68c3b2ac701fa8fa2b8e300",
   "line_counts": {
     "before": {
       "README.md": 280,

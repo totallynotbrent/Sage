@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "merlin-t6-recheck",
   "declared_at": "2026-08-20T20:00:00Z",
-  "finalized_by": "Merlin",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Re-verified the T5a/T5b/T5c structured-output, security-hardening, and provenance corrections against the working tree: full pytest suite, bounded Mermaid repair, strict-no-chunks guard, stable issue codes, DOC-boundary neutralization, Mermaid click/href/linkStyle rejection, concurrency cap, OpenAPI discriminated union, SSE /turns regression, and README/job-log accuracy.",
   "files": {
     "modified": [".agents/jobs/T6-recheck.json"],
@@ -12,7 +12,7 @@
     "deleted": []
   },
   "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
-  "committed_at": "",
+  "committed_at": "e535bba741523342b68c3b2ac701fa8fa2b8e300",
   "line_counts": {
     "before": {".agents/jobs/T6-recheck.json": 0},
     "after": {".agents/jobs/T6-recheck.json": 68}
