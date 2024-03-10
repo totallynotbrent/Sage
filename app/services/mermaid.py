@@ -59,7 +59,10 @@ async def validate_mermaid(source: str) -> str:
             "The Mermaid source failed syntax validation.",
             detail={"issue_codes": ["mermaid_invalid"]},
         )
-    return str(result.get("diagram_type") or "unknown")
+    raw = result.get("diagram_type")
+    if isinstance(raw, dict):
+        raw = raw.get("diagramType") or raw.get("type")
+    return str(raw) if raw else "unknown"
 
 
 def _run_adapter(source: str) -> dict[str, Any]:

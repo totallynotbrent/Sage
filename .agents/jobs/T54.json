@@ -1,0 +1,87 @@
+{
+  "task_id": "T54",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "t54-merlin-live-probe",
+  "declared_at": "2026-08-22T00:20:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Final live probe of generate_mermaid against restarted Pi http://192.168.1.57:8000 (post-T53 schema hints): grounded session, two turns consumed fully over SSE. Verdict FAIL - turn B tool_call(generate_mermaid, topic=recursion) returned tool_result error mermaid_invalid (both internal attempts), so no PASS-A card and no PASS-B decline.",
+  "files": {
+    "modified": [],
+    "created": [
+      ".agents/jobs/T54.json"
+    ],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
+  "line_counts": {
+    "before": {},
+    "after": {
+      ".agents/jobs/T54.json": 85
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "probe": {
+    "base_url": "http://192.168.1.57:8000",
+    "health": "{\"status\":\"ok\",\"model_configured\":true,\"endpoint_reachable\":true,\"dependency_errors\":[]}",
+    "create_status": 200,
+    "session_id": "72bc0e6001cc4cc391b3d6a3fe187a0d",
+    "grounding_mode": "grounded",
+    "turn_a_message": "Explain recursion in one sentence.",
+    "turn_b_message": "Now show me that as a mermaid diagram."
+  },
+  "sequences": {
+    "turn_a": {
+      "http_status": 200,
+      "elapsed_s": 1.3,
+      "delta_chars": 238,
+      "events": [
+        "meta {\"chunks\": \"[]\", \"insufficient\": \"False\", \"web_sources\": \"[]\"}",
+        "done message_id=802c164b6d5b4a889bc2a24dfde2636c replayed=False"
+      ],
+      "deltas_head": "Recursion is a programming technique where a function calls itself to solve a smaller version of the",
+      "done_arrived": true
+    },
+    "turn_b": {
+      "http_status": 200,
+      "elapsed_s": 17.4,
+      "delta_chars": 747,
+      "events": [
+        "meta {\"chunks\": \"[]\", \"insufficient\": \"False\", \"web_sources\": \"[]\"}",
+        "tool_call name=generate_mermaid arguments={\"topic\": \"Recursion concept: a function calling itself to",
+        "tool_result name=generate_mermaid summary=error: mermaid_invalid card={}",
+        "tool_call name=record_step_actions arguments={\"actions\": [{\"id\": \"continue\", \"label\": \"Explain Base ",
+        "tool_result name=record_step_actions summary=2 actions card={}",
+        "tool_call name=record_step_actions arguments={\"actions\": [{\"id\": \"continue\", \"label\": \"Explain Base ",
+        "tool_result name=record_step_actions summary=2 actions card={}",
+        "done message_id=593a54e083ec45018e7ba01fa7c909d7 replayed=False"
+      ],
+      "deltas_head": "I apologize, but I encountered an error while trying to generate that diagram for you. Since we are ",
+      "deltas_tail": "le condition that tells the function when to stop.\n\n**Check:** If a recursive function does not have",
+      "done_arrived": true
+    }
+  },
+  "verdict": "FAIL",
+  "verdict_detail": {
+    "pass_a": false,
+    "pass_b": false,
+    "fail_triggers": [
+      "tool_result generate_mermaid summary='error: mermaid_invalid' (wire form of result dict with 'error' key)"
+    ],
+    "mermaid_call_count_visible": 1,
+    "mermaid_tool_args_topic": "Recursion concept: a function calling itself to solve a smaller version of the same problem",
+    "successful_card_fields_present": false,
+    "thought_leak_hits": 0,
+    "thought_markers_scanned": [
+      "<|channel|>thought",
+      "<|channel|>",
+      "<|think|>"
+    ],
+    "diagnosis": "Schema hints effective: code moved from T52 missing/type=missing to mermaid_invalid, i.e. JSON parse"
+  },
+  "final_report": "T54 done. Live two-turn probe against restarted Pi (health ok, model_configured, endpoint_reachable). Turn A: HTTP 200 in 1.3s, meta->done arrived, one-sentence recursion answer, zero leaks. Turn B: HTTP 200 in 17.4s; meta -> tool_call(generate_mermaid topic='Recursion concept...') -> tool_result(summary='error: mermaid_invalid') -> record_step_actions x2 (identical args, both ok '2 actions') -> done. Verdict FAIL per rules: a tool_result carried an error, so neither PASS-A (no source/diagram_type card emitted) nor PASS-B (error present; deltas were an apology, not a clean decline) holds. Positive signal vs T52/T53: schema hints worked - failure mode moved from type=missing to mermaid_invalid, meaning JSON parsed with required fields and only the Node-side mermaid syntax validation rejected the generated source on both internal attempts. Zero thought-leak markers across raw SSE payloads and assembled deltas in both turns. No source modified; all recorded previews <=100 chars.",
+  "verification": "merlin",
+  "notes": "Read-only live probe: no source modified; probe script kept outside repo at %TEMP%/opencode/t54_probe.py with raw capture in t54_results.json. Toolchain note: rg not resolvable in this pwsh session (Grep tool used instead); pre-existing LSP typing noise in app/services/sessions/turn.py, app/llm/client.py, tests/fakes/fake_llm.py matches T53 notes and was left alone. This job log is the only created file; committed_at left null pending batch committer."
+}
