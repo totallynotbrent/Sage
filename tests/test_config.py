@@ -5,9 +5,10 @@ from app.config import PLACEHOLDER_KEY, Settings, get_settings, validation_probl
 
 def test_defaults():
     settings = Settings(_env_file=None)
-    assert settings.brot_base_url == "http://127.0.0.1:8877/v1"
+    assert settings.brot_base_url == "https://ollama.com/v1"
     assert settings.brot_api_key == ""
-    assert settings.brot_model == "deepseek/deepseek-v4-pro"
+    assert settings.brot_model == "gemma4:31b-cloud"
+    assert settings.searxng_url == ""
     assert settings.host == "0.0.0.0"
     assert settings.port == 8000
     assert settings.max_upload_mb == 30

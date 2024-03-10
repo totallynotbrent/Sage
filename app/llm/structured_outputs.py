@@ -10,9 +10,11 @@ from pydantic import ValidationError
 from app.errors import ModelOutputError
 from app.models import (
     ChatOutputDraft,
+    LatexOutputDraft,
     MermaidOutputDraft,
     QuizOutputDraft,
     StructuredOutputRequest,
+    TeachOutputDraft,
     TodoOutputDraft,
 )
 
@@ -98,6 +100,41 @@ def validate_output(raw: Any, output_kind: str):
                 )
             )
         return draft.model_copy(update={"questions": questions})
+    if output_kind == "teach":
+        draft = TeachOutputDraft.model_validate(raw)
+        content = draft.content.strip()
+        if not content:
+            raise ValueError("empty_text")
+        latex_blocks = [block.strip() for block in draft.latex_blocks]
+        actions = [
+            action.model_copy(
+                update={"label": action.label.strip(), "prompt": action.prompt.strip()}
+            )
+            for action in draft.actions
+        ]
+        if not actions:
+            raise ValueError("empty_text")
+        if any(not action.label for action in actions):
+            raise ValueError("empty_text")
+        ids = [action.id for action in actions]
+        if len(set(ids)) != len(ids):
+            raise ValueError("duplicate_action_ids")
+        return draft.model_copy(
+            update={
+                "content": content,
+                "latex_blocks": latex_blocks,
+                "actions": actions,
+            }
+        )
+    if output_kind == "latex":
+        draft = LatexOutputDraft.model_validate(raw)
+        title = draft.title.strip()
+        latex = draft.latex.strip()
+        if not title or not latex:
+            raise ValueError("empty_text")
+        if "</script" in latex.lower():
+            raise ValueError("script_content")
+        return draft.model_copy(update={"title": title, "latex": latex})
     raise ValueError("unsupported_output_kind")
 
 
@@ -108,6 +145,9 @@ _VALUE_ERROR_CODES = {
     "quiz_count": "quiz_count",
     "quiz_shape": "quiz_shape",
     "unsupported_output_kind": "unsupported_output_kind",
+    "duplicate_action_ids": "duplicate_action_ids",
+    "invalid_action": "invalid_action",
+    "script_content": "script_content",
 }
 
 
@@ -168,6 +208,11 @@ async def request_output(
                     raise ValueError("quiz_shape")
                 if len(output.questions) != request.count:
                     raise ValueError("quiz_count")
+            if request.output_kind == "teach":
+                if not isinstance(output, TeachOutputDraft):
+                    raise ValueError("invalid_action")
+                if not output.actions:
+                    raise ValueError("empty_text")
             if semantic_validator is not None:
                 diagram_type = await semantic_validator(output)
             return output, attempt, diagram_type

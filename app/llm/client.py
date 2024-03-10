@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 from typing import AsyncIterator
 
@@ -24,7 +25,25 @@ logger = logging.getLogger("app")
 _PROBE_TIMEOUT = httpx.Timeout(connect=5, read=30, write=10, pool=5)
 _PROBE_CACHE_SECONDS = 30.0
 
-GENERATION_TIMEOUT = httpx.Timeout(connect=30, read=900, write=60, pool=30)
+GENERATION_TIMEOUT = httpx.Timeout(connect=30, read=300, write=60, pool=30)
+
+_THOUGHT_STARTS = ("<|channel|>thought", "<|think|>")
+_THOUGHT_ENDS = ("channel|>", "<|channel|>")
+
+
+def _strip_thought(text: str) -> str:
+    if not text:
+        return text
+    text = re.sub(
+        r"<\|channel\|>thought.*?(?:channel\|>|<\|channel\|>)",
+        "",
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r"<\|think\|>.*?(?:channel\|>|<\|channel\|>)", "", text, flags=re.DOTALL
+    )
+    return text
 
 
 class LLMClient:
@@ -85,14 +104,91 @@ class LLMClient:
                 temperature=temperature,
             )
             iterator = stream.__aiter__()
+            in_thought = False
+            buf = ""
+            longest = 18
             while True:
-                chunk = await self._next_chunk(iterator, event)
+                try:
+                    chunk = await self._next_chunk(iterator, event)
+                except StopAsyncIteration:
+                    if buf and not in_thought:
+                        yield _strip_thought(buf)
+                    return
                 choices = getattr(chunk, "choices", None) or []
                 if not choices:
                     continue
-                delta = choices[0].delta.content if choices[0].delta else None
-                if delta:
-                    yield delta
+                delta_obj = choices[0].delta if choices[0].delta else None
+                raw = (
+                    getattr(delta_obj, "content", None)
+                    if delta_obj is not None
+                    else None
+                )
+                if delta_obj is not None and (
+                    getattr(delta_obj, "reasoning_content", None)
+                    or getattr(delta_obj, "reasoning", None)
+                    or getattr(delta_obj, "thinking", None)
+                ):
+                    if not raw:
+                        continue
+                if not raw:
+                    continue
+                buf += raw
+                while buf:
+                    if not in_thought:
+                        earliest = None
+                        earliest_s = ""
+                        for s in _THOUGHT_STARTS:
+                            idx = buf.find(s)
+                            if idx != -1 and (earliest is None or idx < earliest):
+                                earliest = idx
+                                earliest_s = s
+                        if earliest is not None:
+                            if earliest > 0:
+                                yield buf[:earliest]
+                            buf = buf[earliest + len(earliest_s) :]
+                            in_thought = True
+                            continue
+                        keep = 0
+                        for s in _THOUGHT_STARTS:
+                            for k in range(longest - 1, 0, -1):
+                                if len(buf) >= k and s.startswith(buf[-k:]):
+                                    keep = max(keep, k)
+                                    break
+                                if len(buf) < k and s.startswith(buf):
+                                    keep = max(keep, len(buf))
+                                    break
+                        if keep and len(buf) > keep:
+                            yield buf[:-keep]
+                            buf = buf[-keep:]
+                            break
+                        if keep:
+                            break
+                        yield buf
+                        buf = ""
+                        break
+                    else:
+                        earliest = None
+                        earliest_s = ""
+                        for e in _THOUGHT_ENDS:
+                            idx = buf.find(e)
+                            if idx != -1 and (earliest is None or idx < earliest):
+                                earliest = idx
+                                earliest_s = e
+                        if earliest is not None:
+                            buf = buf[earliest + len(earliest_s) :]
+                            in_thought = False
+                            continue
+                        keep = 0
+                        for e in _THOUGHT_ENDS:
+                            for k in range(len(e) - 1, 0, -1):
+                                if len(buf) >= k and e.startswith(buf[-k:]):
+                                    keep = max(keep, k)
+                                    break
+                        if keep:
+                            buf = buf[-keep:] if len(buf) > keep else buf
+                            break
+                        buf = ""
+                        break
         except GenerationCancelled:
             raise
         except Exception as exc:  # noqa: BLE001 - normalize every failure
@@ -130,7 +226,8 @@ class LLMClient:
                 temperature=temperature,
             )
             content = response.choices[0].message.content if response.choices else None
-            return (content or "", None)
+            cleaned = _strip_thought(content or "")
+            return (cleaned, None)
         except Exception as exc:  # noqa: BLE001 - normalize every failure
             provider_error = self._normalize(exc)
             return (

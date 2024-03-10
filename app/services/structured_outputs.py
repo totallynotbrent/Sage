@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sqlite3
 
 from app.config import Settings
@@ -9,12 +10,16 @@ from app.llm.structured_outputs import request_output
 from app.models import (
     ChatOutputContent,
     ChatOutputEnvelope,
+    LatexOutputContent,
+    LatexOutputEnvelope,
     MermaidOutputContent,
     MermaidOutputEnvelope,
     QuizOutputContent,
     QuizOutputEnvelope,
     StructuredOutputRequest,
     StructuredQuizQuestion,
+    TeachOutputContent,
+    TeachOutputEnvelope,
     TodoItem,
     TodoOutputContent,
     TodoOutputEnvelope,
@@ -23,6 +28,11 @@ from app.models import (
 from app.services.mermaid import validate_mermaid
 from app.services.sessions import SessionService
 from app.util import new_id
+
+try:
+    from app.services.web_search import search_web
+except ImportError:
+    search_web = None
 
 
 class StructuredOutputService:
@@ -39,12 +49,29 @@ class StructuredOutputService:
             )
             error.retryable = True
             raise error
+        web_results = None
+        if (
+            search_web is not None
+            and self.sessions.settings.searxng_url
+            and session.grounding_mode == "grounded"
+        ):
+            try:
+                max_results = min(5, self.sessions.settings.context_chunk_budget)
+                web_results = await search_web(
+                    self.sessions.settings.searxng_url,
+                    request.prompt,
+                    max_results=max_results,
+                )
+            except Exception:
+                logging.getLogger("app").warning("web search failed", exc_info=True)
+                web_results = None
         messages = build_chat_messages(
             session.model_dump(),
             self._prompt(request),
             chunks,
             self.sessions._mastery_summary(),
             session.grounding_mode,
+            web_results=web_results,
         )
         validator = self._validate_mermaid if request.output_kind == "mermaid" else None
         draft, attempts, diagram_type = await request_output(
@@ -73,6 +100,8 @@ class StructuredOutputService:
             "mermaid": '{"title":"...","source":"graph TD\\n A-->B"}',
             "todo": '{"title":"...","items":[{"text":"...","done":false}]}',
             "quiz": '{"questions":[{"question":"...","options":["...","..."],"correct_index":0,"explanation":"...","topic":"...","difficulty":3}]}',
+            "teach": '{"content":"...","latex_blocks":["$$...$$"],"actions":[{"id":"continue","label":"Continue","prompt":"..."}]}',
+            "latex": '{"title":"...","latex":"..."}',
         }
         return (
             f"Create a {request.output_kind} artifact for this learner request. "
@@ -117,6 +146,17 @@ class StructuredOutputService:
                 for index, item in enumerate(draft.questions)
             ]
             return QuizOutputContent(questions=questions), "quiz"
+        if output_kind == "teach":
+            return (
+                TeachOutputContent(
+                    content=draft.content,
+                    latex_blocks=list(draft.latex_blocks),
+                    actions=list(draft.actions),
+                ),
+                "teach",
+            )
+        if output_kind == "latex":
+            return LatexOutputContent(title=draft.title, latex=draft.latex), "latex"
         raise ModelOutputError("Unsupported structured output kind.")
 
     @staticmethod
@@ -135,5 +175,7 @@ class StructuredOutputService:
             "mermaid": MermaidOutputEnvelope,
             "todo": TodoOutputEnvelope,
             "quiz": QuizOutputEnvelope,
+            "teach": TeachOutputEnvelope,
+            "latex": LatexOutputEnvelope,
         }
         return envelope_types[kind](**common)

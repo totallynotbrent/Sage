@@ -183,3 +183,47 @@ def test_request_output_propagates_mermaid_validator_unavailable():
         )
     assert caught.value.detail["issue_codes"] == ["mermaid_validator_unavailable"]
     assert len(llm.calls) == 1
+
+
+def test_validate_teach_valid():
+    result = validate_output(  # type: ignore[assignment]
+        {
+            "content": "  lesson content  ",
+            "latex_blocks": ["  $$x=1$$  "],
+            "actions": [{"id": "continue", "label": " Continue ", "prompt": "next"}],
+        },
+        "teach",
+    )
+    assert result.content == "lesson content"  # type: ignore[attr-defined]
+    assert result.latex_blocks == ["$$x=1$$"]  # type: ignore[attr-defined]
+    assert result.actions[0].id == "continue"  # type: ignore[attr-defined]
+    assert result.actions[0].label == "Continue"  # type: ignore[attr-defined]
+
+
+def test_validate_teach_duplicate_action_ids_rejected():
+    with pytest.raises(ValueError, match="duplicate_action_ids"):
+        validate_output(
+            {
+                "content": "content",
+                "latex_blocks": [],
+                "actions": [
+                    {"id": "continue", "label": "Continue", "prompt": "a"},
+                    {"id": "continue", "label": "Again", "prompt": "b"},
+                ],
+            },
+            "teach",
+        )
+
+
+def test_validate_latex_valid_and_script_rejected():
+    result = validate_output(  # type: ignore[assignment]
+        {
+            "title": "  My Title  ",
+            "latex": "  \\begin{document} hello \\end{document}  ",
+        },
+        "latex",
+    )
+    assert result.title == "My Title"  # type: ignore[attr-defined]
+    assert result.latex == "\\begin{document} hello \\end{document}"  # type: ignore[attr-defined]
+    with pytest.raises(ValueError, match="script_content"):
+        validate_output({"title": "t", "latex": "hello </ScRiPt> world"}, "latex")

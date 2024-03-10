@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, AsyncIterator, Awaitable, Callable
 
 from app.config import validation_problems
@@ -15,6 +16,11 @@ from app.llm.messages import (
     extract_citation_markers,
     format_location,
 )
+
+try:
+    from app.services.web_search import search_web
+except ImportError:
+    search_web = None
 
 if TYPE_CHECKING:
     from app.llm.client import LLMClient
@@ -66,7 +72,11 @@ class TurnMixin:
                     return
 
             cancel_event = llm.begin_inflight(session_id)
+            buffer: list[str] = []
             try:
+                existing_marker = self.find_message(session_id, client_msg_id)
+                if existing_marker is None:
+                    self.persist_user_message(session_id, user_text)
                 self.save_partial_marker(session_id, client_msg_id)
 
                 chunks = self._select_chunks(session, user_text)
@@ -95,14 +105,36 @@ class TurnMixin:
                         yield event
                     return
 
+                web_results = None
+                if (
+                    search_web is not None
+                    and self.settings.searxng_url
+                    and mode == "grounded"
+                    and not strict_mode
+                ):
+                    try:
+                        max_results = min(5, self.settings.context_chunk_budget)
+                        if max_results < 3:
+                            max_results = 3
+                        web_results = await search_web(
+                            self.settings.searxng_url,
+                            user_text,
+                            max_results=max_results,
+                        )
+                    except Exception:
+                        logging.getLogger("app").warning(
+                            "web search failed", exc_info=True
+                        )
+                        web_results = None
+
                 messages = build_chat_messages(
                     session.model_dump(),
                     user_text,
                     chunks,
                     self._mastery_summary(),
                     mode,
+                    web_results=web_results,
                 )
-                buffer: list[str] = []
                 async for delta in llm.stream_chat(
                     messages,
                     session_id=session_id,
@@ -146,6 +178,7 @@ class TurnMixin:
                     )
                 )
             finally:
+                self.persist_partial_content(session_id, client_msg_id, "".join(buffer))
                 llm.end_inflight(session_id)
         finally:
             self.conn.close()

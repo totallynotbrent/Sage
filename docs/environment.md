@@ -5,9 +5,10 @@ All variables are read from `.env` (see `.env.example`) by
 
 | Variable              | Default                          | Purpose                             |
 | --------------------- | -------------------------------- | ----------------------------------- |
-| `BROT_BASE_URL`       | `http://127.0.0.1:8877/v1`       | OpenAI-compatible endpoint base URL |
-| `BROT_API_KEY`        | *(required)*                     | Secret key, server-side only        |
-| `BROT_MODEL`          | `deepseek/deepseek-v4-pro`       | Model name                          |
+| `BROT_BASE_URL`       | `https://ollama.com/v1`          | Ollama cloud OpenAI-compatible endpoint base URL (https://ollama.com/v1) |
+| `BROT_API_KEY`        | *(required)*                     | Secret key, server-side only (Ollama cloud key from https://ollama.com/settings/keys) |
+| `BROT_MODEL`          | `gemma4:31b-cloud`               | Model name (Ollama cloud default)   |
+| `SEARXNG_URL`         | *(none)*                         | SearXNG instance base URL, e.g. `http://192.168.1.57:8080` |
 | `HOST`                | `0.0.0.0`                        | Bind address                        |
 | `PORT`                | `8000`                           | Bind port                           |
 | `DATA_DIR`            | `~/.local/share/sage`            | SQLite DB + uploads location        |
@@ -18,6 +19,8 @@ All variables are read from `.env` (see `.env.example`) by
 | `CONTEXT_CHUNK_BUDGET`| `8`                              | Max chunks sent to the model per turn |
 | `SAGE_WATCH_DIRS`     | *(none)*                         | JSON array of note folders to auto-scan, e.g. `["/home/brent/notes/calculus"]` |
 | `SAGE_WATCH_SCAN_SECONDS` | `300`                         | Seconds between automatic watch scans (first scan sleeps one interval) |
+
+BROT_BASE_URL=https://ollama.com is auto-normalized to https://ollama.com/v1; get a cloud key at https://ollama.com/settings/keys. When SEARXNG_URL is set, grounded turns and teach/latex outputs include web results as [WEB] blocks; strict mode remains file-only; search failures fall back to file-only.
 
 `BROT_API_KEY` missing, placeholder, or `BROT_BASE_URL` invalid are surfaced
 as configuration problems: they appear in `GET /api/health` and cause SSE

@@ -8,6 +8,8 @@ The API key stays server-side and is never delivered to the browser, and usage
 is bounded by the single local endpoint. A shared access token is a planned
 follow-up.
 
+SearXNG (when configured) is queried server-side only; the browser never sees SEARXNG_URL.
+
 ## Watch API
 
 The watch API (`POST /api/watch`, `POST /api/watch/scan`) reads server-local
