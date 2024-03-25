@@ -23,4 +23,4 @@ if %errorlevel%==0 if not exist "node_modules\mermaid" npm ci --ignore-scripts -
 if "%HOST%"=="" set HOST=0.0.0.0
 if "%PORT%"=="" set PORT=8000
 
-python -m uvicorn app.main:app --host %HOST% --port %PORT%
+python -m uvicorn app.main:app --host %HOST% --port %PORT% --reload --reload-dir app --reload-include "*.py"

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:1120ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--fg);background:var(--bg)}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:var(--fg)}
+input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
+.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
+.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--fg)}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
+.logo span{color:var(--muted)}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform 500ms var(--ease),opacity 500ms var(--ease)}
+.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
+.sidebar:not(.collapsed){transform:translateX(0)}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__header:hover{color:var(--muted)}
+.sidebar__chevron{transition:transform var(--dur) var(--ease)}
+.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
+.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
+.sidebar__section.open .sidebar__list{display:block}
+.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
+.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.sidebar__item.active{background:var(--overlay);color:var(--fg)}
+.sidebar__item-dot{width:6px;height:6px;border-radius:50%;background:var(--meta);flex-shrink:0}
+.sidebar__item-dot.ready{background:var(--foam)}
+.sidebar__item-dot.error{background:var(--love)}
+.sidebar__item-dot.pending{background:var(--gold)}
+.sidebar__item-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar__item-meta{font-size:11px;color:var(--meta);flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg)}
+.content_centered{max-width:900px;width:100%;margin:0 auto;padding:var(--space-8) var(--space-5);overflow-y:auto}
+.page_header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)}
+.page_title{font-family:var(--font-display);font-size:24px;font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease),border-color 150ms var(--ease)}
+.btn_primary{background:var(--accent);color:var(--bg)}
+.btn_primary:hover{background:var(--accent-hover)}
+.btn_small{font-size:11px;padding:3px 8px;border-radius:4px;background:var(--overlay);color:var(--muted);transition:background 150ms var(--ease),color 150ms var(--ease)}
+.btn_small:hover{background:var(--surface-raised);color:var(--fg)}
+.btn_small.danger:hover{background:rgba(235,111,146,0.15);color:var(--love)}
+.upload_zone{border:2px dashed var(--border);border-radius:var(--r);padding:var(--space-8) var(--space-5);text-align:center;margin-bottom:var(--space-6);transition:border-color 150ms var(--ease),background 150ms var(--ease);cursor:pointer}
+.upload_zone:hover,.upload_zone.dragover{border-color:var(--accent);background:var(--accent-dim)}
+.upload_zone_title{font-size:15px;font-weight:500;margin-bottom:var(--space-1)}
+.upload_zone_hint{font-size:12px;color:var(--meta);font-family:var(--font-mono)}
+.file_table{width:100%;border-collapse:collapse;margin-bottom:var(--space-6)}
+.file_table th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--meta);padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border)}
+.file_table td{padding:var(--space-3);border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.file_table tr:last-child td{border-bottom:none}
+.file_table tbody tr{transition:background 150ms var(--ease)}
+.file_table tbody tr:hover{background:var(--overlay)}
+.file_table tbody tr.row_ready{cursor:pointer}
+.file_name{font-weight:500}
+.file_meta{font-size:11px;color:var(--meta);font-family:var(--font-mono);margin-top:2px}
+.file_size{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.file_chunks{font-family:var(--font-mono);font-size:12px}
+.status_pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:4px;font-family:var(--font-mono)}
+.status_pill.ready{background:rgba(156,207,216,0.12);color:var(--foam)}
+.status_pill.error{background:rgba(235,111,146,0.12);color:var(--love)}
+.status_pill.pending{background:rgba(246,193,119,0.12);color:var(--gold)}
+.status_pill .dot{width:6px;height:6px;border-radius:50%}
+.status_pill.ready .dot{background:var(--foam)}
+.status_pill.error .dot{background:var(--love)}
+.status_pill.pending .dot{background:var(--gold)}
+.file_error{font-size:12px;color:var(--love);margin-top:2px}
+.actions{display:flex;gap:var(--space-2)}
+.empty{text-align:center;padding:var(--space-12);color:var(--meta)}
+.empty_title{font-family:var(--font-display);font-size:20px;font-weight:500;color:var(--muted);margin-bottom:var(--space-2)}
+.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal_backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.6)}
+.modal_dialog{position:relative;width:90%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5);z-index:1;display:flex;flex-direction:column;gap:var(--space-3)}
+.modal_head{display:flex;align-items:center;justify-content:space-between}
+.modal_title{font-family:var(--font-display);font-size:20px;font-weight:500}
+.modal_hint{font-size:12px;color:var(--meta);line-height:1.5}
+.modal_fetch_row{display:flex;gap:var(--space-2)}
+.field_input{flex:1;padding:8px 12px;background:var(--overlay);border:1px solid var(--border);border-radius:var(--r);color:var(--fg);font-size:13px;font-family:var(--font-mono);transition:border-color 150ms var(--ease)}
+.field_input:focus{outline:none;border-color:var(--accent)}
+.field_input::placeholder{color:var(--meta)}
+.modal_error{font-size:12px;color:var(--love);display:none}
+.excerpt_body{max-height:56vh;overflow-y:auto;display:none;flex-direction:column;gap:var(--space-3)}
+.excerpt_location{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em;text-transform:uppercase}
+.excerpt_text{white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.6;color:var(--fg);background:var(--surface-sunken);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-3)}
+.excerpt_context_label{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;color:var(--meta)}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
+.sidebar-backdrop.open{display:block}
+@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.content_centered{padding:var(--space-4)}.file_table{display:block;overflow-x:auto}}
+@media(prefers-reduced-motion:reduce){
+*{transition-duration:0ms!important;animation-duration:0ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <a href="index.html" class="logo">S<span>a</span>ge</a>
+  </div>
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <a href="index.html" class="sidebar__item">Home</a>
+      <a href="sage-workspace.html" class="sidebar__item">Workspace</a>
+      <a href="sage-library.html" class="sidebar__item active">Library</a>
+      <a href="sage-sessions.html" class="sidebar__item">Sessions</a>
+      <a href="sage-settings.html" class="sidebar__item">Settings</a>
+      <a href="sage-health.html" class="sidebar__item">Health</a>
+    </div>
+  </div>
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Files</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list" id="files-list"></div>
+  </div>
+</aside>
+<main class="main">
+<div class="content_centered">
+<div class="page_header">
+<h1 class="page_title">Library</h1>
+<button class="btn btn_primary" id="upload-btn">Upload Files</button>
+</div>
+<div class="upload_zone" id="upload-zone">
+<div class="upload_zone_title">Drag and drop files here</div>
+<div class="upload_zone_hint">PDF, DOCX, PPTX, MD, TEX, TXT</div>
+<input type="file" id="file-input" multiple accept=".pdf,.docx,.pptx,.md,.tex,.txt" style="display:none">
+</div>
+<table class="file_table">
+<thead>
+<tr><th>Name</th><th>Size</th><th>Chunks</th><th>Status</th><th>Actions</th></tr>
+</thead>
+<tbody id="file-list"></tbody>
+</table>
+<div class="empty" id="empty-state" style="display:none">
+<div class="empty_title">No files yet</div>
+<p>Upload study materials to get started.</p>
+</div>
+</div>
+</main>
+</div>
+</div>
+
+<div class="modal" id="excerpts-modal">
+  <div class="modal_backdrop" id="excerpts-backdrop"></div>
+  <div class="modal_dialog">
+    <div class="modal_head">
+      <div class="modal_title" id="excerpts-title">Excerpts</div>
+      <button class="icon-btn" id="excerpts-close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+    </div>
+    <p class="modal_hint">View one chunk with its surrounding context. Chunk ids appear on citations inside a session's Workspace.</p>
+    <div class="modal_fetch_row">
+      <input class="field_input" id="excerpts-chunk-input" placeholder="chunk id">
+      <button class="btn btn_primary" id="excerpts-fetch">Fetch</button>
+    </div>
+    <div class="modal_error" id="excerpts-error"></div>
+    <div class="excerpt_body" id="excerpts-body"></div>
+  </div>
+</div>
+
+<script>
+const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
+function toggleSidebar(){sidebar.classList.toggle('collapsed');backdrop.classList.toggle('open',!sidebar.classList.contains('collapsed'))}
+function close_sidebar(){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}
+const menu_btn=document.getElementById('menu-btn');
+menu_btn.addEventListener('click',toggleSidebar);
+backdrop.addEventListener('click',close_sidebar);
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){b.closest('.sidebar__section').classList.toggle('open')})});
+if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+
+const upload_btn=document.getElementById('upload-btn');
+const zone=document.getElementById('upload-zone');
+const file_input=document.getElementById('file-input');
+upload_btn.onclick=()=>file_input.click();
+zone.onclick=()=>file_input.click();
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
+zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
+file_input.onchange=e=>handleFiles(e.target.files);
+
+async function handleFiles(files){
+  const fd=new FormData();
+  for(const f of files)fd.append('files',f);
+  try{await fetch('/api/files',{method:'POST',body:fd});loadFiles()}catch(e){console.error(e)}
+}
+let files_cache=[];
+async function loadFiles(){
+  try{
+    const r=await fetch('/api/files');const d=await r.json();
+    files_cache=d;
+    if(!d.length){document.getElementById('file-list').innerHTML='';document.getElementById('files-list').innerHTML='';document.getElementById('empty-state').style.display='';return}
+    document.getElementById('empty-state').style.display='none';
+    document.getElementById('file-list').innerHTML=d.map(f=>{
+      const cls=status_class(f.status);
+      const err=cls==='error'&&f.error?`<div class="file_error">${esc(f.error)}</div>`:'';
+      const clickable=cls==='ready'?' row_ready':'';
+      const retry=cls==='error'?`<button class="btn_small" type="button" data-retry="${esc(f.id)}">retry</button>`:'';
+      return `<tr class="${clickable}" data-open="${cls==='ready'?esc(f.id):''}" data-delete="${esc(f.id)}"><td><div class="file_name">${esc(f.display_name)}</div>${err}</td><td class="file_size">${fmt(f.size_bytes)}</td><td class="file_chunks">${f.num_chunks||'—'}</td><td><span class="status_pill ${cls}"><span class="dot"></span>${esc(f.status)}</span></td><td><div class="actions">${retry}<button class="btn_small danger" type="button" data-delete-btn="${esc(f.id)}">delete</button></div></td></tr>`;
+    }).join('');
+    document.getElementById('files-list').innerHTML=d.map(f=>`<div class="sidebar__item"><span class="sidebar__item-dot ${status_class(f.status)}"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks||'—'}</span></div>`).join('');
+  }catch(e){console.error(e)}
+}
+document.getElementById('file-list').addEventListener('click',e=>{
+  const retry_btn=e.target.closest('[data-retry]');
+  if(retry_btn){retryFile(retry_btn.getAttribute('data-retry'));return}
+  if(e.target.closest('[data-delete-btn]')){deleteFile(e.target.closest('[data-delete-btn]').getAttribute('data-delete-btn'));return}
+  const row=e.target.closest('tr[data-open]');
+  if(row&&row.getAttribute('data-open'))openExcerpts(row.getAttribute('data-open'));
+});
+function status_class(s){return s==='ready'?'ready':(s==='failed'||s==='error')?'error':'pending'}
+async function retryFile(id){try{await fetch(`/api/files/${id}/retry`,{method:'POST'});loadFiles()}catch(e){console.error(e)}}
+async function deleteFile(id){if(!confirm('Delete this file?'))return;try{await fetch(`/api/files/${id}`,{method:'DELETE'});loadFiles()}catch(e){console.error(e)}}
+
+let excerpts_file_id=null;
+function openExcerpts(id){
+  const rec=files_cache.find(f=>f.id===id);
+  excerpts_file_id=id;
+  document.getElementById('excerpts-title').textContent=`Excerpts — ${rec?rec.display_name:'file'}`;
+  document.getElementById('excerpts-chunk-input').value='';
+  document.getElementById('excerpts-error').style.display='none';
+  const body=document.getElementById('excerpts-body');
+  body.style.display='none';body.innerHTML='';
+  document.getElementById('excerpts-modal').classList.add('open');
+  document.getElementById('excerpts-chunk-input').focus();
+}
+function close_excerpts(){document.getElementById('excerpts-modal').classList.remove('open')}
+document.getElementById('excerpts-close').onclick=close_excerpts;
+document.getElementById('excerpts-backdrop').onclick=close_excerpts;
+document.getElementById('excerpts-fetch').onclick=fetch_excerpt;
+document.getElementById('excerpts-chunk-input').addEventListener('keydown',e=>{if(e.key==='Enter')fetch_excerpt()});
+async function fetch_excerpt(){
+  if(!excerpts_file_id)return;
+  const cid=document.getElementById('excerpts-chunk-input').value.trim();
+  const err_el=document.getElementById('excerpts-error');
+  const body=document.getElementById('excerpts-body');
+  if(!cid){err_el.textContent='Enter a chunk id first.';err_el.style.display='';return}
+  err_el.style.display='none';
+  try{
+    const r=await fetch(`/api/files/${encodeURIComponent(excerpts_file_id)}/excerpts?chunk=${encodeURIComponent(cid)}`);
+    if(!r.ok){err_el.textContent='That chunk id was not found in this file.';err_el.style.display='';return}
+    const c=await r.json();
+    const before=c.context_around&&c.context_around.before?`<div class="excerpt_context_label">before</div><div class="excerpt_text">${esc(c.context_around.before)}</div>`:'';
+    const after=c.context_around&&c.context_around.after?`<div class="excerpt_context_label">after</div><div class="excerpt_text">${esc(c.context_around.after)}</div>`:'';
+    body.innerHTML=`${c.location?`<div class="excerpt_location">${esc(c.location)}</div>`:''}<div class="excerpt_text">${esc(c.text)}</div>${before}${after}`;
+    body.style.display='flex';
+  }catch(e){err_el.textContent='Could not reach the Sage server.';err_el.style.display=''}
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.getElementById('excerpts-modal').classList.contains('open'))close_excerpts();else close_sidebar()}});
+function fmt(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'}
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+loadFiles();
+</script>
+</body>
+</html>

@@ -21,7 +21,7 @@ logger = logging.getLogger("app")
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
-    setup_logging(settings.brot_api_key)
+    setup_logging(settings.brot_api_key, data_dir=settings.data_dir)
     reset_llm_client()
 
     @asynccontextmanager

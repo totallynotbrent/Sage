@@ -24,8 +24,4 @@ fi
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 
-uvicorn_args=(app.main:app --host "$HOST" --port "$PORT")
-if [ "${RELOAD:-0}" = "1" ]; then
-    uvicorn_args+=(--reload)
-fi
-exec .venv/bin/uvicorn "${uvicorn_args[@]}"
+exec .venv/bin/uvicorn app.main:app --host "$HOST" --port "$PORT" --reload --reload-dir app --reload-include "*.py"

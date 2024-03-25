@@ -396,3 +396,120 @@ def test_environment_location_and_pair_in_citation_meta(client, override_llm):
     joined = "\n".join(user_messages)
     assert f'pair="{pdf_record["display_name"]}"' in joined
     assert f'file="{tex_record["display_name"]}"' in joined
+
+
+def test_second_turn_system_prompt_carries_lesson_state(client, override_llm, settings):
+    session, chunk_id = _ready_session(client, settings)
+    override_llm.script(
+        "What is a group", "A group is a set with one binary operation."
+    )
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "What is a group?", "client_msg_id": "ls1"},
+    ) as response:
+        list(sse_events(response))
+
+    override_llm.script(
+        "How does the identity",
+        "Right: the identity element leaves everything unchanged.",
+    )
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={
+            "message": "How does the identity element work?",
+            "client_msg_id": "ls2",
+        },
+    ) as response:
+        events = list(sse_events(response))
+
+    assert events[-1]["type"] == "done"
+
+    stream_calls = [c for c in override_llm.calls if c["kind"] == "stream"]
+    assert len(stream_calls) == 2
+    first_system = next(
+        m["content"] for m in stream_calls[0]["messages"] if m["role"] == "system"
+    )
+    assert "[LESSON STATE]" in first_system
+    assert "Greeting: not yet given." in first_system
+
+    second_system = next(
+        m["content"] for m in stream_calls[1]["messages"] if m["role"] == "system"
+    )
+    assert "[LESSON STATE]" in second_system
+    assert "Teaching turns completed so far: 1." in second_system
+    assert "Greeting: already delivered." in second_system
+    assert "Nesting-dolls analogy: unused." in second_system
+    assert (
+        'Learner\'s most recent message: "How does the identity element work?"'
+        in second_system
+    )
+
+
+def test_duplicate_record_step_actions_absorbed_by_executor(
+    client, override_llm, settings, monkeypatch
+):
+    import app.services.sessions.turn as turn_module
+
+    executed: list[str] = []
+    original_execute = turn_module.execute_tool
+
+    async def counting_execute_tool(name, arguments, ctx):
+        executed.append(name)
+        return await original_execute(name, arguments, ctx)
+
+    monkeypatch.setattr(turn_module, "execute_tool", counting_execute_tool)
+
+    session, chunk_id = _ready_session(client, settings)
+    override_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "record_step_actions",
+                "arguments": {
+                    "actions": [
+                        {"id": "continue", "label": "Continue", "prompt": "Go on"}
+                    ]
+                },
+                "id": "call_a1",
+            },
+            {
+                "type": "tool_call",
+                "name": "record_step_actions",
+                "arguments": {
+                    "actions": [{"id": "repeat", "label": "Repeat", "prompt": "Again"}]
+                },
+                "id": "call_a2",
+            },
+        ]
+    )
+    override_llm.script("group", "Step taught.")
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "Teach me a step", "client_msg_id": "ls3"},
+    ) as response:
+        events = list(sse_events(response))
+
+    assert executed == ["record_step_actions"]
+
+    tool_results = [e for e in events if e["type"] == "tool_result"]
+    assert len(tool_results) == 2
+    assert tool_results[0]["summary"] == "1 actions"
+    assert tool_results[1]["summary"] == "0 actions"
+
+    done = events[-1]
+    assert done["type"] == "done"
+    assert [a["id"] for a in done["actions"]] == ["continue"]
+
+    followups = [c for c in override_llm.calls if c["kind"] == "stream"]
+    tool_messages = [m for m in followups[-1]["messages"] if m.get("role") == "tool"]
+    assert len(tool_messages) == 2
+    assert tool_messages[-1]["tool_call_id"] == "call_a2"
+    assert json.loads(tool_messages[-1]["content"]) == {
+        "note": "actions already recorded this turn",
+        "actions": [],
+    }
