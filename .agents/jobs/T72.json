@@ -1,0 +1,37 @@
+{
+  "task_id": "T72",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "opencode-turing-t72-lesson-state-steering",
+  "declared_at": "2026-08-22T00:00:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Dynamic prompt-side lesson-state steering: server-computed [LESSON STATE] block per turn, procedural wording replacing abstract prohibitions, executor-side record_step_actions dedupe.",
+  "files": {
+    "modified": [
+      "app/llm/messages.py",
+      "app/services/sessions/turn.py",
+      "tests/test_api_chat_sse.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "aaf06ddeafa8c92584fa3bfe23c7ce122e8659a5",
+  "committed_at": "1b8587855188ee2946ba7bcae10832607fb3c479",
+  "line_counts": {
+    "before": {
+      "app/llm/messages.py": 231,
+      "app/services/sessions/turn.py": 367,
+      "tests/test_api_chat_sse.py": 398
+    },
+    "after": {
+      "app/llm/messages.py": 258,
+      "app/services/sessions/turn.py": 403,
+      "tests/test_api_chat_sse.py": 515
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "analyzer_pending",
+  "final_report": "T72 done. Prompt-side lesson-state steering implemented exactly per the user prescription. app/llm/messages.py: new build_lesson_state_block(state) renders the changing [LESSON STATE] lines (teaching turns count, Greeting already delivered/not yet given, Core definition taught/not yet taught, Nesting-dolls analogy used/unused, learner's last message truncated to 200 chars, plus the procedure line: apply state, skip covered material, back-reference, teach the next unresolved piece, end with one new check question); make_system_prompt gains optional lesson_state param inserting the block after SESSION CONTEXT; build_chat_messages passes it through. TUTOR_TOOL_GUIDANCE prohibition sentences replaced with procedural ones ('Begin each reply by applying LESSON STATE: skip covered material, advance to new ground.'), voice-continuity sentence kept, micro-rules added ('Greet only when Greeting says not yet given.', 'Call record_step_actions at most once per reply.'). app/services/sessions/turn.py: computes state each turn over the existing conn (assistant COUNT partial=0 -> teaching_turns/greeting_done/definition_taught; dolls_used EXISTS LIKE '%nesting dolls%'/'%matryoshka%'; last_user_text=current user_text) and passes lesson_state into build_chat_messages; agentic loop carries step_actions_recorded flag - a duplicate record_step_actions call is absorbed WITHOUT execute_tool, yielding tool_result note 'actions already recorded this turn' while still appending the role:tool JSON so the loop stays consistent; stash/web_sources untouched (note-guard prevents the [] clobbering real actions); flag set only after a successful first execution so invalid_action retries stay possible. tests/test_api_chat_sse.py extended with test_second_turn_system_prompt_carries_lesson_state (asserts second-turn system prompt contains [LESSON STATE], 'Teaching turns completed so far: 1.', 'Greeting: already delivered.', dolls unused, echoed last user message; first turn asserts not-yet-given) and test_duplicate_record_step_actions_absorbed_by_executor (monkeypatched executor counter proves execute_tool ran once for record_step_actions; two tool_result events '1 actions' then '0 actions'; done.actions keeps only the first call's action; follow-up messages contain the exact note JSON under tool_call_id call_a2). IMPORTANT framing: the state line is metadata steering like BROT's memory blocks - server-computed context injected fresh each turn - NOT output scrubbing; nothing mutates or filters model output. The uvicorn --reload watcher auto-applies these changes on save. Verification: python -m compileall clean on all three files; pytest tests/test_api_chat_sse.py tests/test_tools_loop.py -q -> 25 passed, 1 failed where the single failure is tests/test_api_chat_sse.py::test_turn_rejects_missing_config returning 404 instead of 400 - this is exactly oc-issues #34, an environment failure (repo .env defines BROT_API_KEY which wins over the field-name init kwarg via pydantic-settings validation_alias; documented as reproducing at base commit 28e2e37 without any of these changes), not a T72 regression; isolated rerun of both new tests plus the whole tools-loop suite: 12 passed. No commit made per task spec - batch committer owns it. Job log: .agents/jobs/T72.json.",
+  "notes": "Overlap/reconciliation: jobs folder scanned at start; T48.json (in_progress) is a stale orphan from prior session opencode-turing-t48-dolls-scrub - grep confirms none of its scrubber code exists on disk or in any commit between its base 28e2e37 and HEAD aaf06dd; T72 supersedes it under the binding prescription (prompt-side steering instead of output scrubbing); Zenyatta should mark T48 cancelled in the todo. No [swarm-shift] notices received during the run; none of the three declared files moved against base_commit, so no reconciliation was needed. line_counts use raw newline semantics (Python bytes.count(b'\n') fallback because wc is unavailable on this host, oc-issues #18/#19/#31); before values are the working tree as declared (it already carried the landed-but-uncommitted T45/T46/T69-T71 batch deltas versus HEAD). Design decisions recorded: definition_taught derives from assistant_count > 0 (the core definition is scheduled for turn 1, so any completed assistant turn marks it taught); dedupe flag set only when the first record_step_actions result has no error key, keeping model self-correction possible; absorbed duplicates still append the role:tool message with the note JSON so OpenAI-style message alternation stays valid for the next stream iteration; _tool_result_summary naturally renders '0 actions' for the absorbed call. verification=analyzer_pending reflects that an independent Merlin behavioral pass is still owed; writer-executed compileall + focused pytest were green in-session (exact numbers in final_report)."
+}

@@ -1,0 +1,25 @@
+{
+  "task_id": "T74",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ox-alpha/T74-prompt-polish",
+  "declared_at": "2026-08-22T00:00:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Two-line prompt polish in app/llm/messages.py: (1) appended privacy/narration ban to build_lesson_state_block's procedure block so the model never narrates or labels LESSON STATE lines to the learner; (2) replaced the TUTOR_TOOL_GUIDANCE back-reference clause with capped wording (at most one short back-reference per reply).",
+  "files": {
+    "modified": ["app/llm/messages.py"],
+    "created": [".agents/jobs/T74.json"],
+    "deleted": []
+  },
+  "base_commit": "aaf06ddeafa8c92584fa3bfe23c7ce122e8659a5",
+  "committed_at": "1b8587855188ee2946ba7bcae10832607fb3c479",
+  "line_counts": {
+    "before": { "app/llm/messages.py": 258 },
+    "after": { "app/llm/messages.py": 262 }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T74 done. Two edits only, both in app/llm/messages.py: (1) build_lesson_state_block's final 'Procedure for this turn' sentence now ends with: 'These lines are PRIVATE planning metadata for you alone; the learner never sees them. Never mention, quote, narrate, or label them in your reply — do not start with 'LESSON STATE'.' (2) TUTOR_TOOL_GUIDANCE's back-reference clause 'back-reference it in a few words ('as with the dolls example')' replaced with 'back-reference it briefly instead (at most one short back-reference per reply)' — the hard cap targets T73's live evidence of ~6 dolls back-references per session. Nothing else changed: net +4 lines (258 → 262, wc semantics via Python newline count; Measure-Object -Line is non-empty-only and was avoided). Verification run here and green: python -m compileall app/llm/messages.py clean, pytest tests/test_api_chat_sse.py::test_second_turn_system_prompt_carries_lesson_state -q → 1 passed in 1.71s (test asserts state lines only; additive strings safe). No commit per batch policy. Notes for Orpheus/Merlin: working tree already carried uncommitted prior-task work vs HEAD aaf06dd (TOOL_HINT→TUTOR_TOOL_GUIDANCE rename, lesson-state machinery, analogy-scrub removal); git diff vs HEAD therefore shows +56/−70 total, of which mine is exactly the two hunks inside TUTOR_TOOL_GUIDANCE and build_lesson_state_block; no concurrent writer touched the file during this task. oc-issues.txt #39 appended (wc absent on host).",
+  "verification": "analyzer_pending",
+  "notes": "Line counts use wc -l semantics via Python newline count ('wc' binary absent; see oc-issues.txt #39): before=258 is the actual working-tree start state at declare time, after=262; HEAD:aaf06dd version itself is 276 lines because prior tasks' work sits uncommitted in this tree — my delta vs my start is exactly +4 lines from the two mandated edits. compileall + targeted pytest passed locally; Merlin re-verification still owed, hence analyzer_pending."
+}
