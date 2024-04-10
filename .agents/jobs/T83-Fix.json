@@ -1,0 +1,57 @@
+{
+  "task_id": "T83-Fix",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "opencode-turing-t83-fix-deterministic-mermaid-and-remediation-exit",
+  "declared_at": "2026-08-23T00:55:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Closed both T83 gaps: build_plan now deterministically emits a validated mermaid plan artifact (plan_diagram in tool payload + SSE tool_result + rendered PLAN\u00b7GRAPH card in the workspace rail), and advance_lesson{passed_check:false} during remediation now auto-issues a fresh check card so a correct grade auto-advances via answer_quiz's existing server-side rule \u2014 no model re-fire needed.",
+  "files": {
+    "modified": [
+      "app/llm/tools.py",
+      "app/services/sessions/turn.py",
+      "app/llm/messages.py",
+      "static/sage-workspace.html",
+      "tests/test_tools_loop.py",
+      "tests/test_api_chat_sse.py"
+    ],
+    "created": [
+      ".agents/jobs/T83-Fix.json"
+    ],
+    "deleted": []
+  },
+  "base_commit": "799852bcac0e2177c42499060693cd5870f0ba37",
+  "committed_at": "43203343d774e7013d154e76e095ba3eab1bf66f",
+  "line_counts": {
+    "before": {
+      "app/llm/tools.py": 229,
+      "app/services/sessions/turn.py": 403,
+      "app/llm/messages.py": 262,
+      "static/sage-workspace.html": 1198,
+      "tests/test_tools_loop.py": 463,
+      "tests/test_api_chat_sse.py": 515
+    },
+    "after": {
+      "app/llm/tools.py": 500,
+      "app/services/sessions/turn.py": 432,
+      "app/llm/messages.py": 312,
+      "static/sage-workspace.html": 1363,
+      "tests/test_tools_loop.py": 766,
+      "tests/test_api_chat_sse.py": 686
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "analyzer_pending",
+  "final_report": "T83-Fix complete \u2014 both structural gaps closed, verified live against the auto-reloaded Pi server.\n\nGAP 1 (deterministic plan mermaid): app/llm/tools.py _run_build_plan now builds 'flowchart TD' source from the ordered nodes (one '    {node_key}[{title}]' line each, then one '{dep} --> {node_key}' edge line per depends_on entry). Titles sanitized (double quotes and square brackets removed, whitespace collapsed) via _plan_label; node keys without truthy value are skipped. Validated via ctx.mermaid_validate when provided, else lazy-imported validate_mermaid; on ModelOutputError the plan_diagram key is omitted entirely (plan still returns, nothing logged). turn.py embeds result['plan_diagram'] into the build_plan tool_result SSE event (same pattern as generate_mermaid/check_question embedding). static/sage-workspace.html gains appendPlanDiagramCard(), which reuses the EXACT generate_mermaid rendering path (buildDiagramCard + renderMermaidIn: .mermaid div via textContent + mermaid.run) \u2014 marker overridden to 'PLAN \u00b7 GRAPH', title from sessionGoal or 'Lesson plan', badge validated, opens the artifacts rail and updates the count; wired into the tool_result handler for ev.name==='build_plan'. LIVE PROOF: real gemma turn returned tool_result build_plan carrying plan_diagram.source ('flowchart TD ... rec_def[What is Recursion?] ... rec_def --> base_case ...') validated as diagram_type flowchart-v2.\n\nGAP 2 (deterministic remediation exit): tools.py _run_advance_lesson passed_check=false branch now, after set_phase('remediate'), reads the fresh phase and \u2014 when it is 'remediate' \u2014 calls LearningService.generate_check and appends stripped check_question {id, question, options} exactly like the check_due path. This inserts a gradeable kind=check row, so answer_quiz's existing rule (learning.py L225-242: correct grade while phase check/remediate \u21d2 set_phase teach + teach.advance) advances deterministically even if the model never re-fires passed_check:true. messages.py PHASE_PLAYBOOK rewritten: plan section states the artifact renders automatically and forbids generate_mermaid for plans; remediation section now says REMEDIATION IS ONE ROUND with automatic fresh check card, grade with grade_answer (exact id), correct grade advances automatically, never leave the learner stuck. LIVE PROOF (session f9cd940017fa422984d086a41f4b03e5): graded-wrong REST check flipped phase to remediate; gemma chat turn fired advance_lesson{passed_check:false} and the tool_result carried summary 'remediation' plus a fresh check_question card; answering that card correctly via REST auto-advanced to next_node 'The Recursive Step' with phase back to teach \u2014 zero model cooperation needed for the exit.\n\nTESTS: tests/test_tools_loop.py \u2014 _learning_ctx now injects an async stub validator returning 'flowchart-v2' (hermetic: the real adapter shells out to node and times out >30s over SMB from Windows); build_plan test extended to assert plan_diagram.diagram_type=='flowchart-v2', source startswith 'flowchart TD', label and edge lines present; failed-check remediation test extended (_CHECK_JSON queued) asserting check_question keys {id,question,options}, trailing \"I don't know\" option, refreshed phase 'check', a pending kind=check row, and n1 still current. tests/test_api_chat_sse.py \u2014 new test_build_plan_tool_result_carries_plan_diagram streams a build_plan turn through the API (validator monkeypatched like the existing generate_mermaid pattern) and asserts the SSE tool_result carries plan_diagram.source/g1 edges/summary 'plan ready: 2 nodes'.\n\nSMOKE: python -m compileall app tests \u2014 OK. pytest tests/test_tools_loop.py \u2014 18 passed. pytest tests/test_api_chat_sse.py \u2014 16 passed + test_turn_rejects_missing_config failing, which is oc-issues.txt issue #34 verbatim (fails whenever repo .env defines BROT_API_KEY; reproduces at base commit, environmental not code). Server health ok post-reload and serving the updated workspace HTML.\n\nNOTES FOR MERLIN: live probe session f9cd940017fa422984d086a41f4b03e5 ('learn recursion basics') left in the dev DB as evidence \u2014 its rail should show the PLAN\u00b7GRAPH card on reload since loadSession() still doesn't hydrate artifacts (pre-existing T83 note, out of scope). One honest caveat: the fresh-card issuance trigger remains the model's passed_check:false call (made deterministic in outcome by the server); if gemma skips the call entirely no card appears \u2014 the rewritten playbook plus the always-gradeable design is the mitigation chosen by the task spec. Playbook wording also verified live: gemma cited the new protocol when asked for the card.",
+  "notes": "Shared tree: all declared files already carried uncommitted prior-task work vs HEAD, so 'before' counts reflect git HEAD (wc -l via python count of b'\\n') while edits landed on the current tree state; initial Measure-Object -Line figures were discarded because they skip blank lines and violate wc -l semantics. Stale orphan job log T48.json (in_progress since 08-21, long superseded) overlaps this set but is not a live writer; HEAD stayed at base_commit throughout \u2014 no reconciliation needed. Environment fact discovered and worked around: tools/validate_mermaid.mjs subprocess times out (>30s) over SMB from this Windows box because node re-reads the mermaid ESM bundle across the share; validation works fast on-device on the Pi (live flowchart-v2 proof above), so unit/SSE tests use injected stub validators instead of shelling out. No commit made (parallel-batch rules): committed_at left null for the batch committer.",
+  "plan": [
+    "tools.py _run_build_plan: build flowchart TD source from ordered nodes + depends_on edges, sanitized labels; validate via ctx.mermaid_validate or lazy-imported validate_mermaid; ModelOutputError -> omit plan_diagram key entirely",
+    "tools.py _run_advance_lesson passed_check=false branch: after set_phase(remediate) read fresh phase; if remediate, LearningService.generate_check and append stripped check_question {id,question,options} mirroring check_due path",
+    "turn.py tool_result event: embed plan_diagram for build_plan like generate_mermaid/check_question embedding",
+    "messages.py PHASE_PLAYBOOK: plan section says artifact is automatic, never call generate_mermaid for plan; remediation rewritten as one round with automatic fresh check card and auto-advance on correct grade",
+    "sage-workspace.html: appendPlanDiagramCard reusing buildDiagramCard/renderMermaidIn (marker PLAN \u00b7 GRAPH, title sessionGoal or 'Lesson plan', badge validated, open rail, count update); wired into tool_result handler for build_plan",
+    "test_tools_loop.py: stub validator in _learning_ctx returning flowchart-v2; extend build_plan test (plan_diagram.source startswith flowchart TD); extend failed-check test (_CHECK_JSON appended, check_question stripped keys, pending kind=check row, phase check)",
+    "test_api_chat_sse.py: new SSE test build_plan tool_result carries plan_diagram.source with monkeypatched validator"
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "task_id": "T83",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "opencode-merlin-t83-playwright-socratic-arc",
+  "declared_at": "2026-08-23T03:18:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "VERDICT: FAILED - button-driven probe arc (A1, A2, A3, A4) verified live end-to-end in the web UI, but A5 (recorded advance after a correct post-remediation answer) is a concrete broken link: after one deliberately wrong CHECK answer the model never calls advance_lesson{passed_check:true} again despite five consecutive correct free-text answers and explicit learner requests, so the session stalls at phase=remediate / node 3 current across three page reloads. Secondary broken expectation: no mermaid plan artifact ever appears in the right rail (artifacts-count stayed 0 all session). No source modified.",
+  "files": {
+    "modified": [],
+    "created": [
+      ".agents/jobs/T83.json"
+    ],
+    "deleted": []
+  },
+  "base_commit": "799852bcac0e2177c42499060693cd5870f0ba37",
+  "committed_at": "43203343d774e7013d154e76e095ba3eab1bf66f",
+  "line_counts": {},
+  "modules_created": [],
+  "documentation": [],
+  "verification": "merlin",
+  "environment": {
+    "server": "http://raspberrypi.local:8000/ (name resolved; IP fallback not needed)",
+    "health_precheck": "GET /api/health -> status ok, model_configured true, endpoint_reachable true, dependency_errors []",
+    "session_id_used": "2283720ff6cd4c88abec834efb87b285",
+    "session_title_after_run": "Mastering the Art of Recursion",
+    "env_notes": [
+      "ENV-NOTE UX: opening sage-workspace.html fresh with no ?session= renders 'No session selected' and Send is a SILENT NO-OP on text (sendMessage guard !sessionId) - the typed message stays in the input with no user bubble and no request. A fresh session must be bootstrapped via sage-sessions.html New Session modal (UI-only route used: modal goal 'teach me recursion' -> Create Session -> click card -> workspace?session=...). Pre-existing behavior outside T82's probe-card scope, but it contradicts the naive 'type into fresh workspace' flow.",
+      "ENV-TIMEOUT: none - every SSE stream completed well under the 90s ceiling (longest observed wait ~50s).",
+      "Interaction budget overrun: ~30 UI interactions vs ~12 budgeted. Causes: session bootstrap detour (3), plus 6 extra pushes trying to get the model to record the passed check post-remediation."
+    ]
+  },
+  "interaction_table": [
+    {"action": "Open /sage-workspace.html fresh (no session param)", "observed_ui": "Page renders, h1 'Sage workspace', 'No session selected' empty-state, composer present", "assertion": "setup OK"},
+    {"action": "Type 'teach me recursion' + click Send with no session", "observed_ui": "Silent no-op: input keeps text, zero .msg bubbles, zero network turns", "assertion": "ENV-NOTE (pre-existing guard)"},
+    {"action": "Sidebar -> Sessions -> New Session -> goal 'teach me recursion' -> Create Session -> click card", "observed_ui": "Session created phase=setup; navigated to sage-workspace.html?session=2283720ff6cd...", "assertion": "bootstrap OK"},
+    {"action": "Type 'teach me recursion' + Send", "observed_ui": "User bubble appears; typing indicator; stream completes ~20s", "assertion": "turn OK"},
+    {"action": "Wait for stream end", "observed_ui": "3 interactive cards rendered mid-stream: markers PROBE · 01/02/03, each article[data-kind=quiz] with role=radiogroup and exactly 5 role=radio option buttons labeled 'A)'..'E)', single '.probe-send' 'Send answers' button (disabled at rest); Sage bubble is greeting+invitation only, does NOT restate questions", "assertion": "A1 PASS"},
+    {"action": "Click card1 option B ('condition that stops recursion') ", "observed_ui": "option gets class 'selected', aria-checked=true, siblings cleared; data-selected='1'; Send answers still enabled-check passes (partial allowed, disabled=false)", "assertion": "A2 selection highlight PASS"},
+    {"action": "Click card2 option E (\"I don't know\")", "observed_ui": "card2 E selected (.selected, aria-checked=true); card3 untouched; NO auto-submit on partial (no .sent)", "assertion": "A2 partial-allowed PASS"},
+    {"action": "Click 'Send answers'", "observed_ui": "New USER bubble with exact ordinal reply '1: B; 2: E'; ALL THREE cards (incl. unanswered #3) get class 'sent'; send button disabled=true; turn auto-fires", "assertion": "A2 PASS"},
+    {"action": "Wait for grading turn", "observed_ui": "Sage narrates per-question outcomes: 'You got the first one right!' (B correct) and \"it looks like you're unsure\" + re-explains stack frames for E; no pre-grade answer leakage anywhere", "assertion": "A3 PASS"},
+    {"action": "Answer inline follow-ups x3 ('stack grows larger', tail-recursion yes, missing-base-case no)", "observed_ui": "Conversational teaching continues (model teaches tail recursion + anatomy inline); plan NOT yet built; rail count stays 0", "assertion": "context"},
+    {"action": "Ask 'lay out my lesson plan and move me into the first node'", "observed_ui": "Model calls build_plan then advance_lesson: ONE teaching step ('Winding and Unwinding') ending with exactly ONE CHECK card (marker CHECK, 5 options A-E); rail STILL 0 artifacts (no mermaid plan card)", "assertion": "plan-flow PARTIAL (mermaid card MISSING)"},
+    {"action": "Click deliberately WRONG option A on CHECK card", "observed_ui": "single-card batch auto-submits immediately: user bubble '1: A'; card .sent", "assertion": "auto-submit-on-complete PASS"},
+    {"action": "Wait for remediation", "observed_ui": "\"That's not quite it\" + re-explanation from a DIFFERENT ANGLE (climbing up/down ladder vs earlier spring metaphor) + fresh differently-worded retry question; no node advance narration", "assertion": "A4 remediation PASS"},
+    {"action": "Reload page (authoritative server state check #1)", "observed_ui": "phase badge = 'remediate'; sidebar plan NOW populated: Anatomy of Recursion [done], Call Stack & Memory [done], Winding and Unwinding [CURRENT accent], 3 nodes pending - wrong answer did NOT advance anything", "assertion": "A4 non-advance corroborated server-side"},
+    {"action": "Answer retry correctly + 'move to next node' (x3 turns: 'after base case' / B stack-overflow / 'shrinks, please mark passed')", "observed_ui": "Each time model says 'exactly right' but re-teaches inline (base case / winding cycled 3x) with NEW inline checks; NEVER emits a fresh CHECK card; never calls advance_lesson", "assertion": "A5 STALLING"},
+    {"action": "Explicit tool request: 'record my passed check with your lesson tool now'", "observed_ui": "Model continues teaching base case again with another inline Yes/No question; still no advance_lesson, no CHECK card", "assertion": "A5 FAIL confirmed"},
+    {"action": "Reload page (checks #2 and #3)", "observed_ui": "phase badge STILL 'remediate', Winding and Unwinding STILL current, nodes 4-6 pending - zero recorded progress through 5 correct answers", "assertion": "A5 FAIL (broken link)"},
+    {"action": "Final globals sweep over all 24 bubbles", "observed_ui": "0 console errors besides favicon.ico 404 (acceptable per brief); 0 thought-leak markers (<think>, tool_call/result, run_probe(, grade_answer(, advance_lesson, SYSTEM:, raw JSON); no U+FFFD", "assertion": "globals PASS"}
+  ],
+  "screenshots": [
+    ".agents/jobs/evidence/t83_ws_fresh_no_session.png",
+    ".agents/jobs/evidence/t83_probe_cards.png",
+    ".agents/jobs/evidence/t83_probe_selected_partial.png",
+    ".agents/jobs/evidence/t83_probe_sent_state.png",
+    ".agents/jobs/evidence/t83_check_card.png",
+    ".agents/jobs/evidence/t83_check_remediation_wrong_answer.png",
+    ".agents/jobs/evidence/t83_final_state_post_reload.png"
+  ],
+  "assertions": {
+    "A1_probe_cards_rendered": "PASS - >=2 (exactly 3) PROBE·NN cards, radio options A)-E) each, 'Send answers' button present",
+    "A2_selection_and_ordinal_send": "PASS - selected class + aria-checked highlight; partial answers enable button without auto-submit; click sends user bubble exactly '1: B; 2: E'; all cards .sent + button disabled; auto-submit also verified on the single CHECK card",
+    "A3_grading_narration": "PASS - per-question outcomes narrated (correct acknowledged, idk acknowledged + taught), no answer leakage pre-grade",
+    "plan_flow_mermaid_card": "FAIL - build_plan ran server-side (6-node plan confirmed) but NO mermaid plan artifact ever appeared in the right rail (artifacts-count stayed 0 all session): the model never called its mermaid tool for the plan AND the workspace UI has no SSE handler that would render a plan artifact anyway (rail artifacts come only from composer buttons or diagram-intent user text)",
+    "A4_wrong_answer_remediates_without_advance": "PASS - different-angle re-explanation + fresh wording retry; server-side corroboration: node 3 stayed current, phase flipped to remediate, no passed event",
+    "A5_correct_answer_advances": "FAIL - broken link: post-remediation the model never emits a fresh CHECK card and never calls advance_lesson{passed_check:true}; five consecutive correct chat answers (incl. explicit 'mark passed / move on' requests) produced zero recorded progress (phase stuck at remediate, node 3 current, across 3 reloads). The advance machinery itself works when invoked (nodes 1->2->3 transitions happened earlier this same session), so the defect is that gemma only grades/advances off the card path and abandons it after a failed check",
+    "G_console_errors": "PASS - only favicon.ico 404 (explicitly acceptable)",
+    "G_thought_leaks": "PASS - 0 leak markers across all 24 bubbles, no U+FFFD",
+    "G_tool_phase_statuses": "NOT LIVE-CAPTURED - composer-status mechanism exists in code (tool_call handler sets 'running <tool>...' text) but sampling at 150-500ms across full streams never caught visible text; statuses appear to flash shorter than sampling resolution. Honest note: code-verified only, not behaviorally confirmed"
+  },
+  "final_report": "T83 decisive Playwright pass of the button-driven Socratic arc (learner-only via http://raspberrypi.local:8000/, health precheck ok, session 2283720ff6cd4c88abec834efb87b285).\n\nRESULT: A1 PASS, A2 PASS, A3 PASS, A4 PASS; plan-mermaid-rail FAIL; A5 FAIL.\n\nWHAT WORKS END-TO-END: fresh workspace renders no-session empty state; probe turn renders 3 interactive PROBE·01..03 cards with 5 radio options A)-E) and one 'Send answers' button (Sage's bubble does not restate questions); selection highlights (.selected + aria-checked); partial answering enables the button WITHOUT auto-submit; clicking it posts the exact ordinal user bubble '1: B; 2: E', marks all cards .sent and disables the button; single-card CHECK batch auto-submits ('1: A'). Grading turn narrates per-question outcomes ('You got the first one right!' / \"you're unsure\" + re-explanation) with no pre-grade leakage. build_plan ran (6-node plan verified in sidebar after reload). advance_lesson emitted exactly ONE teaching step ending in ONE CHECK card. Deliberately wrong CHECK answer got different-angle remediation (ladder metaphor vs spring metaphor) with a freshly-worded retry and NO advance - corroborated server-side (node 3 stayed current, phase badge flipped to 'remediate').\n\nBROKEN LINK (naming as required): A5 - grade/advance after a failed check. After the wrong '1: A', the model never again called advance_lesson{passed_check:true}: five consecutive correct free-text answers, two explicit 'move to the next node' requests, and one explicit 'record my passed check with your lesson tool' request all produced inline re-teaching loops (winding/unwinding/base-case cycled three times) instead of a fresh CHECK card or an advance. Three page reloads confirm zero recorded progress: phase stuck at 'remediate', 'Winding and Unwinding' still current, nodes 4-6 unreachable. The machinery works when invoked (nodes 1->2->3 advanced earlier in this same session), so the fix belongs in playbook enforcement / prompt hardening (or a server-side fallback that grades explicit learner assertions) rather than in the card UI. Secondary gap: the expected plan mermaid artifact never reached the right rail (artifacts-count 0 all session) - the model skipped its mermaid presentation step, and the workspace UI has no SSE wiring to render a plan artifact regardless (only composer buttons / diagram-intent text create rail artifacts).\n\nGLOBALS: 0 console errors beyond the accepted favicon 404; 0 thought-leak markers and no U+FFFD across all 24 bubbles; tool-phase status line could not be captured live at 150-500ms sampling (code path exists; flashes too briefly) - recorded honestly as not behaviorally confirmed. ENV notes: workspace Send is a silent no-op without ?session= (fresh-session bootstrap must go through the Sessions modal - used, UI-only); no stream exceeded ~50s (no ENV-TIMEOUT); interaction budget overrun to ~30 due to bootstrap detour plus six pushes against the A5 stall.\n\nEvidence: 7 screenshots in .agents/jobs/evidence/t83_*.png covering no-session state, pristine probe cards, partial selection, sent state, CHECK card, remediation-after-wrong-answer, and post-reload plan sidebar.\n\nTASK STATUS: T83 → failed",
+  "notes": "Read-only verification task: no source files touched. Screenshots moved from Playwright output dir into .agents/jobs/evidence/. Plan-sidebar evidence required page reloads because #plan-nodes is populated only by loadSession() on page load (static/sage-workspace.html L1313) - there is no live SSE handler updating the sidebar, which is itself worth noting for future UX work but not part of T82's declared scope."
+}
