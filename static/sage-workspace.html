@@ -169,6 +169,12 @@ textarea{font:inherit;color:inherit}
 .artifact-card__quiz-btn{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:6px 12px;border-radius:5px;background:var(--overlay);color:var(--muted);border:1px solid var(--border);cursor:pointer;transition:all var(--dur) var(--ease)}
 .artifact-card__quiz-btn:hover{background:var(--surface-warm);color:var(--fg)}
 .artifact-card__fallback{font-size:13px;color:var(--muted);line-height:1.5;padding:var(--space-2) 0}
+.probe-wrap{display:flex;flex-direction:column;gap:var(--space-3);max-width:760px;width:100%;margin:0 auto;padding:var(--space-2) 0}
+.probe-actions{display:flex;justify-content:flex-end}
+.probe-send{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:8px 16px;border-radius:var(--r);background:var(--accent);color:var(--bg);transition:opacity var(--dur) var(--ease)}
+.probe-send:hover{opacity:0.85}
+.probe-send:disabled{opacity:0.5;cursor:not-allowed}
+.artifact-card.sent{opacity:0.5;pointer-events:none}
 
 .illustrated-card{margin:var(--space-3) auto 0;max-width:680px;padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--r);display:flex;flex-direction:column;gap:var(--space-2)}
 .illustrated-card__label{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--meta);display:flex;align-items:center;gap:6px}
@@ -348,6 +354,7 @@ let artifacts = [];
 let artifactCounter = 0;
 let pendingDiagramAuto = false;
 let last_math_typeset = 0;
+let pending_probe_reply = null;
 
 function client_msg_id(){
   const web_crypto=globalThis.crypto;
@@ -858,6 +865,33 @@ function appendErrorArtifact(kind, title, message) {
   openArtifactsRail();
 }
 
+function appendPlanDiagramCard(plan_diagram) {
+  const source = plan_diagram && plan_diagram.source;
+  if (!source) return;
+  const number = ++artifactCounter;
+  const envelope = {
+    kind: ARTIFACT_KIND.DIAGRAM,
+    output_id: `plan-diagram-${number}`,
+    content: {
+      title: sessionGoal || 'Lesson plan',
+      source,
+      diagram_type: plan_diagram.diagram_type || 'flowchart'
+    },
+    validation: { status: 'validated' }
+  };
+  const artifact = { id: envelope.output_id, kind: envelope.kind, number, element: null };
+  const element = buildDiagramCard(envelope, artifact);
+  const marker = element.querySelector('.artifact-card__marker');
+  if (marker) marker.textContent = 'PLAN \u00b7 GRAPH';
+  artifact.element = element;
+  artifacts.push(artifact);
+  if (diagramBody.querySelector('.diagram-panel__empty')) diagramBody.innerHTML = '';
+  diagramBody.appendChild(element);
+  show_card(element);
+  updateArtifactsCount();
+  openArtifactsRail();
+}
+
 function appendIllustratedCard(envelope, parentMessage) {
   if (!parentMessage) return;
   if (parentMessage.querySelector('.illustrated-card')) return;
@@ -956,6 +990,125 @@ function append_action_chips(message_el, actions) {
     row.appendChild(btn);
   });
   if (!row.children.length) row.remove();
+}
+
+function build_probe_card(question, ordinal, marker_text, on_select) {
+  const card = document.createElement('article');
+  card.className = 'artifact-card';
+  card.dataset.kind = 'quiz';
+  card.dataset.ordinal = String(ordinal);
+  card.dataset.selected = '';
+  card.setAttribute('aria-label', `Question ${ordinal}`);
+  const marker = document.createElement('span');
+  marker.className = 'artifact-card__marker';
+  marker.textContent = marker_text;
+  const title = document.createElement('h3');
+  title.className = 'artifact-card__title';
+  title.textContent = `Question ${ordinal}`;
+  const header = document.createElement('header');
+  header.className = 'artifact-card__header';
+  header.appendChild(marker);
+  header.appendChild(title);
+  const content = document.createElement('div');
+  content.className = 'artifact-card__content';
+  const wrap = document.createElement('div');
+  wrap.className = 'artifact-card__quiz-question';
+  const qtext = document.createElement('div');
+  qtext.className = 'artifact-card__quiz-qtext';
+  qtext.textContent = String(question.question || '');
+  qtext.addEventListener('animationend', () => qtext.classList.add('typed'), { once: true });
+  const options_el = document.createElement('div');
+  options_el.className = 'artifact-card__quiz-options';
+  options_el.setAttribute('role', 'radiogroup');
+  options_el.setAttribute('aria-label', `Question ${ordinal}`);
+  const option_buttons = [];
+  (Array.isArray(question.options) ? question.options : []).forEach((opt, oi) => {
+    const opt_btn = document.createElement('button');
+    opt_btn.type = 'button';
+    opt_btn.className = 'artifact-card__quiz-option';
+    opt_btn.setAttribute('role', 'radio');
+    opt_btn.setAttribute('aria-checked', 'false');
+    const radio = document.createElement('span');
+    radio.className = 'artifact-card__quiz-radio';
+    radio.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.textContent = `${String.fromCharCode(65 + oi)}) ${opt}`;
+    opt_btn.appendChild(radio);
+    opt_btn.appendChild(label);
+    opt_btn.onclick = () => {
+      card.dataset.selected = String(oi);
+      option_buttons.forEach((btn, idx) => {
+        btn.classList.toggle('selected', idx === oi);
+        btn.setAttribute('aria-checked', String(idx === oi));
+      });
+      on_select();
+    };
+    option_buttons.push(opt_btn);
+    options_el.appendChild(opt_btn);
+  });
+  wrap.appendChild(qtext);
+  wrap.appendChild(options_el);
+  content.appendChild(wrap);
+  card.appendChild(header);
+  card.appendChild(content);
+  return card;
+}
+
+function start_probe_batch(items, kind_label) {
+  if (!Array.isArray(items) || !items.length) return;
+  const entries = [];
+  let send_btn = null;
+  const submit = () => {
+    if (!send_btn || send_btn.disabled) return;
+    const parts = [];
+    entries.forEach(entry => {
+      const sel = entry.card.dataset.selected;
+      if (sel === '') return;
+      parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))}`);
+    });
+    if (!parts.length) return;
+    entries.forEach(entry => entry.card.classList.add('sent'));
+    send_btn.disabled = true;
+    queue_probe_reply(parts.join('; '));
+  };
+  const update_state = () => {
+    if (!send_btn) return;
+    const open = entries.filter(entry => !entry.card.classList.contains('sent'));
+    const answered = open.filter(entry => entry.card.dataset.selected !== '');
+    send_btn.disabled = answered.length === 0;
+    if (open.length > 0 && answered.length === open.length) submit();
+  };
+  const wrap = document.createElement('div');
+  wrap.className = 'probe-wrap';
+  items.forEach((question, qi) => {
+    const marker_text = kind_label === 'check'
+      ? 'CHECK'
+      : `PROBE \u00b7 ${String(qi + 1).padStart(2, '0')}`;
+    const card = build_probe_card(question, qi + 1, marker_text, update_state);
+    entries.push({ card });
+    wrap.appendChild(card);
+  });
+  const actions = document.createElement('div');
+  actions.className = 'probe-actions';
+  send_btn = document.createElement('button');
+  send_btn.type = 'button';
+  send_btn.className = 'probe-send';
+  send_btn.textContent = 'Send answers';
+  send_btn.disabled = true;
+  send_btn.onclick = submit;
+  actions.appendChild(send_btn);
+  wrap.appendChild(actions);
+  const anchor = document.getElementById('streaming-msg') || box.lastElementChild;
+  if (anchor && anchor.parentElement === box) anchor.after(wrap);
+  else box.appendChild(wrap);
+  entries.forEach(entry => show_card(entry.card));
+  box.scrollTop = box.scrollHeight;
+}
+
+function queue_probe_reply(text) {
+  if (streaming) { pending_probe_reply = text; return; }
+  input.value = text;
+  sendMessage();
 }
 
 function artifactErrorMessage(envelope, error_codes) {
@@ -1091,6 +1244,13 @@ async function sendMessage() {
           setComposerStatus(tool_status_text(ev));
         } else if (ev.type === 'tool_result') {
           setComposerStatus('');
+          if (ev.name === 'run_probe' && Array.isArray(ev.questions) && ev.questions.length) {
+            start_probe_batch(ev.questions, 'probe');
+          } else if (ev.name === 'advance_lesson' && ev.check_question && ev.check_question.question) {
+            start_probe_batch([ev.check_question], 'check');
+          } else if (ev.name === 'build_plan' && ev.plan_diagram && ev.plan_diagram.source) {
+            appendPlanDiagramCard(ev.plan_diagram);
+          }
         } else if (ev.type === 'done') {
           stream_done = true;
           if (Array.isArray(ev.actions)) done_actions = ev.actions;
@@ -1148,6 +1308,11 @@ async function sendMessage() {
         appendIllustratedCard(envelope, assistant_msg);
       }
     }
+  }
+  if (pending_probe_reply) {
+    const reply = pending_probe_reply;
+    pending_probe_reply = null;
+    queue_probe_reply(reply);
   }
   if (sessionId && first_turn) { fetch(`${API}/sessions/${sessionId}/title`, { method: 'POST' }).then(loadSessionList_safe).catch(() => {}); }
 }

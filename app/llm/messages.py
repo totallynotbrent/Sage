@@ -29,6 +29,39 @@ TUTOR_TOOL_GUIDANCE = (
     "reply."
 )
 
+PHASE_PLAYBOOK = (
+    "TEACHING ARC (follow strictly): setup→probe→plan→teach→check loop→complete. "
+    "- setup: greet once, then IMMEDIATELY call run_probe before teaching "
+    "anything. After calling run_probe, the web UI renders the questions as "
+    "interactive answer cards automatically. Do not restate or reformat them; "
+    "write one short line inviting the learner to pick answers. When their "
+    "reply arrives (e.g. '1: B'), grade each item with grade_answer using "
+    "exact ids; never reveal answers before grading. After "
+    "probe_complete, briefly summarize the learner's edge of understanding. "
+    "- plan: call build_plan once; build_plan automatically renders the plan "
+    "as a validated mermaid artifact in the side rail. Do NOT call "
+    "generate_mermaid for the plan; walk the learner through the nodes "
+    "briefly, then enter the first node. "
+    "- teach: explain the CURRENT node in exactly ONE small reasoning step "
+    "grounded in the excerpts; end with ONE check question. Grading: call "
+    "grade_answer passing question_id EXACTLY as returned by run_probe. The "
+    "moment the learner's answer grades correct — or they say they've got it / "
+    "ask to move on — call advance_lesson{passed_check:true} IN THAT SAME REPLY "
+    "before writing any teaching prose. If their answer grades incorrect, "
+    "remediate first without advancing. "
+    "- check_due: when advance_lesson returns a check_question, present it the "
+    "same graded way and grade with grade_answer. REMEDIATION IS ONE ROUND: "
+    "re-teach the missed piece from a different angle; "
+    "advance_lesson{passed_check:false} automatically issues a FRESH check "
+    "card. Have the learner answer it and grade with grade_answer (exact id). "
+    "A correct grade advances the lesson automatically — acknowledge progress "
+    "and continue at the new node. Never leave the learner stuck in "
+    "remediation. "
+    "- complete: celebrate briefly, offer follow-up topics. "
+    "Use generate_mermaid/generate_quiz/generate_todo whenever they serve the "
+    "current step."
+)
+
 HISTORY_LIMIT = 8
 
 _CITATION_RE = re.compile(r"\[cit:([^\]\s]+)\]")
@@ -54,14 +87,28 @@ def build_lesson_state_block(state: dict[str, Any]) -> str:
     )
     dolls = "used" if state.get("dolls_used") else "unused"
     last_user_text = str(state.get("last_user_text") or "")[:200]
-    return "\n".join(
+    lines = [
+        "[LESSON STATE]",
+        f"Teaching turns completed so far: {turns}.",
+        f"Greeting: {greeting}.",
+        f"Core definition of the topic: {definition}.",
+        f"Nesting-dolls analogy: {dolls}.",
+        f'Learner\'s most recent message: "{last_user_text}"',
+    ]
+    pending = state.get("pending_questions") or []
+    if pending:
+        lines.append(
+            "[PENDING QUESTIONS] The learner still owes answers to these. "
+            "Grade each reply against these EXACT ids (copy id "
+            "character-for-character):"
+        )
+        for item in pending:
+            lines.append(
+                f"- id={item.get('id')} ({item.get('kind')}) "
+                f"{str(item.get('question') or '')[:140]}"
+            )
+    lines.extend(
         [
-            "[LESSON STATE]",
-            f"Teaching turns completed so far: {turns}.",
-            f"Greeting: {greeting}.",
-            f"Core definition of the topic: {definition}.",
-            f"Nesting-dolls analogy: {dolls}.",
-            f'Learner\'s most recent message: "{last_user_text}"',
             "Procedure for this turn: read the state above; do not greet again "
             "if already delivered; skip anything marked taught/used and "
             "back-reference it briefly instead; teach the next unresolved "
@@ -71,6 +118,7 @@ def build_lesson_state_block(state: dict[str, Any]) -> str:
             "not start with 'LESSON STATE'.",
         ]
     )
+    return "\n".join(lines)
 
 
 def make_system_prompt(
@@ -143,6 +191,8 @@ def make_system_prompt(
     if lesson_state is not None:
         blocks.append(build_lesson_state_block(lesson_state))
         blocks.append("")
+    blocks.append(PHASE_PLAYBOOK)
+    blocks.append("")
     blocks.extend(["[DOCUMENT EXCERPTS]", DOC_GUARD])
     return "\n".join(blocks)
 

@@ -447,6 +447,177 @@ def test_second_turn_system_prompt_carries_lesson_state(client, override_llm, se
         in second_system
     )
 
+    assert "[PENDING QUESTIONS]" not in first_system
+
+    override_llm.complete_json_responses.append(
+        json.dumps(
+            [
+                {
+                    "question": "Which axiom gives every element an inverse?",
+                    "options": ["Inverses", "Closure"],
+                    "correct_index": 0,
+                    "explanation": "The inverses axiom.",
+                    "topic": "group theory",
+                    "difficulty": 2,
+                },
+                {
+                    "question": "What is the additive identity on integers?",
+                    "options": ["0", "1"],
+                    "correct_index": 0,
+                    "explanation": "Adding zero changes nothing.",
+                    "topic": "group theory",
+                    "difficulty": 2,
+                },
+                {
+                    "question": "Is every abelian group commutative?",
+                    "options": ["Yes", "No"],
+                    "correct_index": 0,
+                    "explanation": "Abelian means commutative.",
+                    "topic": "group theory",
+                    "difficulty": 3,
+                },
+            ]
+        )
+    )
+    override_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "run_probe",
+                "arguments": {},
+                "id": "call_probe",
+            }
+        ]
+    )
+    override_llm.script("diagnostic probe now", "Let's see where you stand.")
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "Run the diagnostic probe now.", "client_msg_id": "ls5"},
+    ) as response:
+        probe_events = list(sse_events(response))
+
+    probe_results = [e for e in probe_events if e["type"] == "tool_result"]
+    assert probe_results[0]["summary"] == "probe ready: 3 questions"
+
+    questions = probe_results[0]["questions"]
+    assert len(questions) == 3
+    for question in questions:
+        assert set(question) == {"id", "question", "options", "difficulty"}
+        assert question["options"][-1] == "I don't know"
+
+    assert not any(
+        e["type"] == "delta" and "Quick check" in str(e.get("delta") or "")
+        for e in probe_events
+    )
+
+    full_after_probe = client.get(f"/api/sessions/{session['id']}").json()
+    probe_message = next(
+        m
+        for m in full_after_probe["messages"]
+        if m["client_msg_id"] == "ls5" and m["role"] == "assistant"
+    )
+    assert "Quick check" not in probe_message["content"]
+    assert "Reply like" not in probe_message["content"]
+
+    override_llm.script("My answers", "Nicely done.")
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={
+            "message": "My answers: 1) Inverses; 2) 0; 3) Yes.",
+            "client_msg_id": "ls6",
+        },
+    ) as response:
+        list(sse_events(response))
+
+    tool_payloads = [
+        json.loads(m["content"])
+        for call in override_llm.calls
+        for m in call.get("messages") or []
+        if m.get("role") == "tool"
+    ]
+    probe_payload = next(p for p in tool_payloads if p.get("questions"))
+    probe_id = probe_payload["questions"][0]["id"]
+
+    answer_call = [c for c in override_llm.calls if c["kind"] == "stream"][-1]
+    fourth_system = next(
+        m["content"] for m in answer_call["messages"] if m["role"] == "system"
+    )
+    assert "[PENDING QUESTIONS]" in fourth_system
+    assert (
+        "Grade each reply against these EXACT ids (copy id "
+        "character-for-character):" in fourth_system
+    )
+    assert f"- id={probe_id} (probe)" in fourth_system
+    assert "- id=" in fourth_system
+    assert (
+        "the web UI renders the questions as interactive answer cards "
+        "automatically" in fourth_system
+    )
+
+
+def test_build_plan_tool_result_carries_plan_diagram(
+    client, override_llm, settings, monkeypatch
+):
+    import app.services.mermaid as mermaid_module
+
+    async def fake_validate(source: str) -> str:
+        return "flowchart-v2"
+
+    monkeypatch.setattr(mermaid_module, "validate_mermaid", fake_validate)
+
+    session, _ = _ready_session(client, settings)
+    override_llm.complete_json_responses.append(
+        json.dumps(
+            {
+                "nodes": [
+                    {
+                        "node_key": "g1",
+                        "title": "Group definition",
+                        "description": "What makes a group.",
+                        "depends_on": [],
+                    },
+                    {
+                        "node_key": "g2",
+                        "title": "Identity element",
+                        "description": "The neutral element.",
+                        "depends_on": ["g1"],
+                    },
+                ]
+            }
+        )
+    )
+    override_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "build_plan",
+                "arguments": {},
+                "id": "call_plan",
+            }
+        ]
+    )
+    override_llm.script("plan", "Your path through group theory.")
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "Lay out the plan.", "client_msg_id": "bp1"},
+    ) as response:
+        events = list(sse_events(response))
+
+    plan_results = [
+        e for e in events if e["type"] == "tool_result" and e["name"] == "build_plan"
+    ]
+    assert len(plan_results) == 1
+    plan_diagram = plan_results[0]["plan_diagram"]
+    assert plan_diagram["source"].startswith("flowchart TD")
+    assert "g1[Group definition]" in plan_diagram["source"]
+    assert "g1 --> g2" in plan_diagram["source"]
+    assert plan_results[0]["summary"] == "plan ready: 2 nodes"
+
 
 def test_duplicate_record_step_actions_absorbed_by_executor(
     client, override_llm, settings, monkeypatch
