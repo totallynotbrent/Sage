@@ -140,32 +140,36 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
 
 <script>
 const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
-function toggleSidebar(){sidebar.classList.toggle('collapsed');backdrop.classList.toggle('open',!sidebar.classList.contains('collapsed'))}
-function close_sidebar(){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}
+function toggleSidebar(){try{ sidebar?.classList.toggle('collapsed');backdrop?.classList.toggle('open',!sidebar?.classList.contains('collapsed')); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')))}catch(e){}}
+function close_sidebar(){try{ sidebar?.classList.add('collapsed');backdrop?.classList.remove('open'); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded','false')}catch(e){}}
 const menu_btn=document.getElementById('menu-btn');
-menu_btn.addEventListener('click',toggleSidebar);
-backdrop.addEventListener('click',close_sidebar);
-document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){b.closest('.sidebar__section').classList.toggle('open')})});
-if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+menu_btn?.addEventListener('click',toggleSidebar);
+backdrop?.addEventListener('click',close_sidebar);
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){const sec=b.closest('.sidebar__section'); if(!sec) return; const open=sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open))})});
+if(window.innerWidth<1024)sidebar?.classList.add('collapsed');
 
 const new_session_modal=document.getElementById('new-session-modal');
-function open_modal(){new_session_modal.classList.add('open');document.getElementById('session-goal').focus()}
-function close_modal(){new_session_modal.classList.remove('open')}
-document.getElementById('new-session-btn').onclick=open_modal;
-document.getElementById('modal-close').onclick=close_modal;
-document.getElementById('modal-cancel').onclick=close_modal;
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(new_session_modal.classList.contains('open'))close_modal();else close_sidebar()}});
-document.getElementById('modal-submit').onclick=async()=>{
-  const goal=document.getElementById('session-goal').value.trim();
-  const mode=document.getElementById('session-mode').value;
-  if(!goal)return;
+function open_modal(){new_session_modal?.classList.add('open');document.getElementById('session-goal')?.focus()}
+function close_modal(){new_session_modal?.classList.remove('open')}
+document.getElementById('new-session-btn')?.addEventListener('click', open_modal);
+document.getElementById('modal-close')?.addEventListener('click', close_modal);
+document.getElementById('modal-cancel')?.addEventListener('click', close_modal);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(new_session_modal?.classList.contains('open'))close_modal();else close_sidebar()}});
+document.getElementById('modal-submit')?.addEventListener('click', async()=>{
+  const goal=document.getElementById('session-goal')?.value.trim()||'';
+  const mode=document.getElementById('session-mode')?.value||'grounded';
+  if(!goal) return;
+  const btn=document.getElementById('modal-submit');
+  if(btn) {btn.disabled=true; btn.textContent='Creating…';}
   try{
-    await fetch('/api/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal,grounding_mode:mode})});
+    const r=await fetch('/api/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal,grounding_mode:mode})});
+    if(!r.ok) throw new Error(`Create failed: ${r.status}`);
     close_modal();
-    document.getElementById('session-goal').value='';
+    const inp=document.getElementById('session-goal');
+    if(inp) inp.value='';
     loadSessions();
-  }catch(e){console.error(e)}
-};
+  }catch(e){console.error(e)} finally { if(btn){ btn.disabled=false; btn.textContent='Create Session';}}
+});
 
 async function loadSessions(){
   try{
@@ -190,11 +194,17 @@ async function loadSessions(){
   }catch(e){console.error(e)}
 }
 
-document.getElementById('session-list').addEventListener('click',e=>{
+document.getElementById('session-list')?.addEventListener('click',e=>{
   const del=e.target.closest('[data-delete]');
   if(del){e.stopPropagation();deleteSession(del.getAttribute('data-delete'),del);return}
   const card=e.target.closest('.session_card');
   if(card)window.location.href=`sage-workspace.html?session=${encodeURIComponent(card.getAttribute('data-session'))}`;
+});
+document.getElementById('session-list')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter' || e.key===' '){
+    const card=e.target.closest('.session_card');
+    if(card){ e.preventDefault(); window.location.href=`sage-workspace.html?session=${encodeURIComponent(card.getAttribute('data-session'))}`; }
+  }
 });
 
 async function deleteSession(id,button){

@@ -133,59 +133,68 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
 </div>
 <script>
 const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
-function toggleSidebar(){sidebar.classList.toggle('collapsed');backdrop.classList.toggle('open',!sidebar.classList.contains('collapsed'))}
-function close_sidebar(){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}
+function toggleSidebar(){try{ sidebar?.classList.toggle('collapsed');backdrop?.classList.toggle('open',!sidebar?.classList.contains('collapsed')); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')))}catch(e){}}
+function close_sidebar(){try{ sidebar?.classList.add('collapsed');backdrop?.classList.remove('open'); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded','false')}catch(e){}}
 const menu_btn=document.getElementById('menu-btn');
-menu_btn.addEventListener('click',toggleSidebar);
-backdrop.addEventListener('click',close_sidebar);
-document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){b.closest('.sidebar__section').classList.toggle('open')})});
-if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+menu_btn?.addEventListener('click',toggleSidebar);
+backdrop?.addEventListener('click',close_sidebar);
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){const sec=b.closest('.sidebar__section'); if(!sec) return; const open=sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open))})});
+if(window.innerWidth<1024)sidebar?.classList.add('collapsed');
 
 const save_btn=document.getElementById('save-prefs');
-save_btn.onclick=async()=>{
+save_btn?.addEventListener('click', async()=>{
   const body={
-    depth:document.getElementById('pref-depth').value,
-    pacing:document.getElementById('pref-pacing').value,
-    style:document.getElementById('pref-style').value,
-    notes:document.getElementById('pref-notes').value
+    depth:document.getElementById('pref-depth')?.value||'standard',
+    pacing:document.getElementById('pref-pacing')?.value||'normal',
+    style:document.getElementById('pref-style')?.value||'analogy-first',
+    notes:document.getElementById('pref-notes')?.value||''
   };
+  const orig=save_btn.textContent;
+  save_btn.disabled=true;
+  save_btn.textContent='Saving…';
   try{
-    await fetch('/api/preferences',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const r=await fetch('/api/preferences',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(`Save failed: ${r.status}`);
     save_btn.textContent='Saved ✓';
-    setTimeout(()=>{save_btn.textContent='Save Preferences'},1500);
+    setTimeout(()=>{save_btn.textContent=orig; save_btn.disabled=false;},1500);
   }catch(e){
     save_btn.textContent='Save failed — try again';
-    setTimeout(()=>{save_btn.textContent='Save Preferences'},2500);
+    setTimeout(()=>{save_btn.textContent=orig; save_btn.disabled=false;},2500);
     console.error(e);
   }
-};
+});
 
 const reset_btn=document.getElementById('reset-mastery');
-reset_btn.onclick=async()=>{
+reset_btn?.addEventListener('click', async()=>{
   if(!confirm('Are you sure you want to reset all mastery data? This cannot be undone.'))return;
+  const orig=reset_btn.textContent;
+  reset_btn.disabled=true;
   try{
-    await fetch('/api/mastery',{method:'DELETE'});
+    const r=await fetch('/api/mastery',{method:'DELETE'});
+    if(!r.ok) throw new Error(`Reset failed: ${r.status}`);
     reset_btn.textContent='Mastery reset';
-    setTimeout(()=>{reset_btn.textContent='Reset Mastery Data'},1500);
+    setTimeout(()=>{reset_btn.textContent=orig; reset_btn.disabled=false;},1500);
   }catch(e){
     reset_btn.textContent='Reset failed — try again';
-    setTimeout(()=>{reset_btn.textContent='Reset Mastery Data'},2500);
+    setTimeout(()=>{reset_btn.textContent=orig; reset_btn.disabled=false;},2500);
     console.error(e);
   }
-};
+});
 
 async function loadPrefs(){
   try{
     const r=await fetch('/api/preferences');
     const d=await r.json();
-    document.getElementById('pref-depth').value=d.depth||'standard';
-    document.getElementById('pref-pacing').value=d.pacing||'normal';
-    document.getElementById('pref-style').value=d.style||'analogy-first';
-    document.getElementById('pref-notes').value=d.notes||'';
+    const el1=document.getElementById('pref-depth'); if(el1) el1.value=d.depth||'standard';
+    const el2=document.getElementById('pref-pacing'); if(el2) el2.value=d.pacing||'normal';
+    const el3=document.getElementById('pref-style'); if(el3) el3.value=d.style||'analogy-first';
+    const el4=document.getElementById('pref-notes'); if(el4) el4.value=d.notes||'';
   }catch(e){console.error(e)}
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')close_sidebar()});
+document.getElementById('save-prefs')?.setAttribute('aria-label','Save preferences');
+document.getElementById('reset-mastery')?.setAttribute('aria-label','Reset mastery data');
 loadPrefs();
 </script>
 </body>

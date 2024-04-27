@@ -170,23 +170,24 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
 
 <script>
 const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
-function toggleSidebar(){sidebar.classList.toggle('collapsed');backdrop.classList.toggle('open',!sidebar.classList.contains('collapsed'))}
-function close_sidebar(){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}
+function toggleSidebar(){try{ sidebar?.classList.toggle('collapsed');backdrop?.classList.toggle('open',!sidebar?.classList.contains('collapsed')); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')))}catch(e){}}
+function close_sidebar(){try{ sidebar?.classList.add('collapsed');backdrop?.classList.remove('open'); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded','false')}catch(e){}}
 const menu_btn=document.getElementById('menu-btn');
-menu_btn.addEventListener('click',toggleSidebar);
-backdrop.addEventListener('click',close_sidebar);
-document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){b.closest('.sidebar__section').classList.toggle('open')})});
-if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+menu_btn?.addEventListener('click',toggleSidebar);
+backdrop?.addEventListener('click',close_sidebar);
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){const sec=b.closest('.sidebar__section'); if(!sec) return; const open=sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open))})});
+if(window.innerWidth<1024)sidebar?.classList.add('collapsed');
 
 const upload_btn=document.getElementById('upload-btn');
 const zone=document.getElementById('upload-zone');
 const file_input=document.getElementById('file-input');
-upload_btn.onclick=()=>file_input.click();
-zone.onclick=()=>file_input.click();
-zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
-zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
-zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
-file_input.onchange=e=>handleFiles(e.target.files);
+upload_btn?.addEventListener('click', ()=> file_input?.click());
+zone?.addEventListener('click', ()=> file_input?.click());
+zone?.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); file_input?.click(); }});
+zone?.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
+zone?.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+zone?.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
+file_input?.addEventListener('change', e=>{ handleFiles(e.target.files); e.target.value='';});
 
 async function handleFiles(files){
   const fd=new FormData();
@@ -210,10 +211,11 @@ async function loadFiles(){
     document.getElementById('files-list').innerHTML=d.map(f=>`<div class="sidebar__item"><span class="sidebar__item-dot ${status_class(f.status)}"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks||'—'}</span></div>`).join('');
   }catch(e){console.error(e)}
 }
-document.getElementById('file-list').addEventListener('click',e=>{
+document.getElementById('file-list')?.addEventListener('click',e=>{
   const retry_btn=e.target.closest('[data-retry]');
   if(retry_btn){retryFile(retry_btn.getAttribute('data-retry'));return}
-  if(e.target.closest('[data-delete-btn]')){deleteFile(e.target.closest('[data-delete-btn]').getAttribute('data-delete-btn'));return}
+  const del_btn=e.target.closest('[data-delete-btn]');
+  if(del_btn){deleteFile(del_btn.getAttribute('data-delete-btn'));return}
   const row=e.target.closest('tr[data-open]');
   if(row&&row.getAttribute('data-open'))openExcerpts(row.getAttribute('data-open'));
 });
@@ -225,19 +227,22 @@ let excerpts_file_id=null;
 function openExcerpts(id){
   const rec=files_cache.find(f=>f.id===id);
   excerpts_file_id=id;
-  document.getElementById('excerpts-title').textContent=`Excerpts — ${rec?rec.display_name:'file'}`;
-  document.getElementById('excerpts-chunk-input').value='';
-  document.getElementById('excerpts-error').style.display='none';
+  const title_el=document.getElementById('excerpts-title');
+  if(title_el) title_el.textContent=`Excerpts — ${rec?rec.display_name:'file'}`;
+  const inp=document.getElementById('excerpts-chunk-input');
+  if(inp) inp.value='';
+  const err_el=document.getElementById('excerpts-error');
+  if(err_el) err_el.style.display='none';
   const body=document.getElementById('excerpts-body');
-  body.style.display='none';body.innerHTML='';
-  document.getElementById('excerpts-modal').classList.add('open');
-  document.getElementById('excerpts-chunk-input').focus();
+  if(body){ body.style.display='none';body.innerHTML='';}
+  document.getElementById('excerpts-modal')?.classList.add('open');
+  document.getElementById('excerpts-chunk-input')?.focus();
 }
-function close_excerpts(){document.getElementById('excerpts-modal').classList.remove('open')}
-document.getElementById('excerpts-close').onclick=close_excerpts;
-document.getElementById('excerpts-backdrop').onclick=close_excerpts;
-document.getElementById('excerpts-fetch').onclick=fetch_excerpt;
-document.getElementById('excerpts-chunk-input').addEventListener('keydown',e=>{if(e.key==='Enter')fetch_excerpt()});
+function close_excerpts(){document.getElementById('excerpts-modal')?.classList.remove('open')}
+document.getElementById('excerpts-close')?.addEventListener('click', close_excerpts);
+document.getElementById('excerpts-backdrop')?.addEventListener('click', close_excerpts);
+document.getElementById('excerpts-fetch')?.addEventListener('click', fetch_excerpt);
+document.getElementById('excerpts-chunk-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')fetch_excerpt()});
 async function fetch_excerpt(){
   if(!excerpts_file_id)return;
   const cid=document.getElementById('excerpts-chunk-input').value.trim();

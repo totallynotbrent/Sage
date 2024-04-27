@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 
 from fastapi import APIRouter, Depends
@@ -71,6 +72,39 @@ async def patch_session(
     return SessionService(conn, settings).update_grounding(
         session_id, body.grounding_mode
     )
+
+
+@router.post("/api/sessions/{session_id}/title", response_model=Session)
+async def generate_session_title(
+    session_id: str,
+    llm: LLMClient = Depends(get_llm_client),
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> Session:
+    service = SessionService(conn, settings)
+    session = service.get(session_id)
+    prompt = [
+        {
+            "role": "system",
+            "content": (
+                "Create one concise session title, 3 to 7 words. Return only the title. "
+                "Do not include secrets, credentials, personal data, or quotation marks."
+            ),
+        },
+        {"role": "user", "content": session.goal[:2000]},
+    ]
+    generated, _ = await llm.complete_json(prompt, max_tokens=32, temperature=0.2)
+    title = generated or session.goal
+    title = re.sub(
+        r"(?i)(?:api[_ -]?key|secret|token|password|authorization)\s*[:=]\s*\S+",
+        "",
+        title,
+    )
+    title = re.sub(r"\b(?:sk|pk)-[A-Za-z0-9_-]{12,}\b", "", title)
+    title = re.sub(r"[\r\n\t]+", " ", title)
+    title = title.strip().strip("\"'`")
+    title = re.sub(r"\s+", " ", title)
+    return service.update_title(session_id, title)
 
 
 @router.delete("/api/sessions/{session_id}", status_code=204)

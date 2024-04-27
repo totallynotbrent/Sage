@@ -109,15 +109,19 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
 </div>
 <script>
 const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
-function toggleSidebar(){sidebar.classList.toggle('collapsed');backdrop.classList.toggle('open',!sidebar.classList.contains('collapsed'))}
-function close_sidebar(){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}
+function toggleSidebar(){try{ sidebar?.classList.toggle('collapsed');backdrop?.classList.toggle('open',!sidebar?.classList.contains('collapsed')); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')))}catch(e){}}
+function close_sidebar(){try{ sidebar?.classList.add('collapsed');backdrop?.classList.remove('open'); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded','false')}catch(e){}}
 const menu_btn=document.getElementById('menu-btn');
-menu_btn.addEventListener('click',toggleSidebar);
-backdrop.addEventListener('click',close_sidebar);
-document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){b.closest('.sidebar__section').classList.toggle('open')})});
-if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+menu_btn?.addEventListener('click',toggleSidebar);
+backdrop?.addEventListener('click',close_sidebar);
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){const sec=b.closest('.sidebar__section'); if(!sec) return; const open=sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open))})});
+if(window.innerWidth<1024)sidebar?.classList.add('collapsed');
 
-document.getElementById('refresh-btn').onclick=loadHealth;
+const refresh_btn=document.getElementById('refresh-btn');
+refresh_btn?.addEventListener('click', async()=>{
+  if(refresh_btn){ refresh_btn.disabled=true; const orig=refresh_btn.innerHTML; refresh_btn.textContent='Refreshing…'; await loadHealth(); refresh_btn.disabled=false; refresh_btn.innerHTML=orig; }
+});
+document.getElementById('refresh-btn')?.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); loadHealth(); }});
 
 async function loadHealth(){
   const el=document.getElementById('health-content');
@@ -166,6 +170,7 @@ async function loadHealth(){
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')close_sidebar()});
 function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+document.getElementById('refresh-btn')?.setAttribute('aria-label','Refresh health check');
 loadHealth();
 </script>
 </body>
