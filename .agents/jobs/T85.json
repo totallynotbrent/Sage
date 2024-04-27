@@ -1,0 +1,22 @@
+{
+  "task_id": "T85",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "opencode-merlin-t85-live-verify-t84",
+  "declared_at": "2026-08-23T00:00:00Z",
+  "finalized_by": "Merlin",
+  "summary": "Live verification of T84 on http://raspberrypi.local:8000/ with a fresh Playwright context: A1 interactive probe cards on Home PASS, A2 no self-introduction PASS, workspace persisted probe history/cards state consistent PASS, workspace regression (follow-up teaching turn) PASS.",
+  "files": {
+    "modified": [],
+    "created": [".agents/jobs/T85.json"],
+    "deleted": []
+  },
+  "base_commit": null,
+  "committed_at": null,
+  "line_counts": {},
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T85 PASS - all four live checks verified against http://raspberrypi.local:8000/ using a brand-new Playwright browser context (empty cache = hard-refresh simulation; python server auto-reloaded). No source files modified.\n\nStatic pre-checks: prompt fix confirmed on disk at app/llm/messages.py line 28 ('Never introduce yourself or announce your name...'); probe card system confirmed ported in static/index.html (build_probe_card L431, start_probe_batch L493, queue_probe_reply L544, tool_result branches L623-626) mirroring static/sage-workspace.html.\n\nCHECK 1 / A1 - Interactive probe cards render ON THE HOME PAGE: PASS. Typed 'teach me recursion' into #message-input, clicked #send-btn. At ~16s one .probe-wrap rendered inside #messages with 3 article.artifact-card[data-kind=quiz] cards (markers PROBE - 01/02/03), each with role=radiogroup option buttons (button.artifact-card__quiz-option[role=radio], A-E incl. \"I don't know\") and a .probe-send 'Send answers' button (disabled until selection). Answered via buttons: Q1=B, Q2=C, Q3=C (aria-checked toggled true). All-open-and-answered triggered auto-submit per update_state(); my redundant manual click on the already-disabled button timed out harmlessly (evidence of terminal state, not a defect). Ordinal user bubble appeared verbatim: '1: B; 2: C; 3: C'. Grading narration streamed as next assistant message ('Perfect score! ... roadmap ... let's jump straight into the first node: The Core Concept of Recursion.'). Cards flipped to sent:true and Send answers disabled. Screenshots: evidence/t85_02_home_probe_cards_streaming.png, t85_03_home_answers_submitted.png, t85_04_home_graded.png.\n\nCHECK 2 / A2 - No self-introduction in first assistant reply: PASS. Full first reply text: 'Hello! I'd love to help you master recursion. To make sure we start at the right spot and don't waste your time on things you already know, please pick the best answers for the questions above.' Case-insensitive scan found none of: I'm Sage / I am Sage / I'm your / Hello! I'm. Starts with a name-free welcome.\n\nCHECK 3 - Workspace persistence: PASS. Opened /sage-workspace.html?session=5f773c8eaab14f409ebac7423e45b977 (fresh page load, same fresh context). Reload replayed all 4 persisted messages: user prompt, name-free greeting, ordinal probe-answer bubble '1: B; 2: C; 3: C', grading narration. Title 'Sage - Mastering the Art of Recursion', phase badge PLAN, 6 plan nodes rendered. Cards state consistent: 0 interactive quiz cards resurrected after reload (workspace loadSession replays history as plain bubbles by design) - no stale answerable probe is re-offered, matching the answered/sent terminal state reached on Home. Screenshot: evidence/t85_05_workspace_reload.png.\n\nCHECK 4 - Workspace regression: PASS. Sent follow-up 'what's next?' from the workspace composer; stream completed; assistant continued normal teaching referencing the side-rail plan ('we'll follow the plan in your side rail... mastering the safety switch... The Base Case'). No console errors, no page errors, no HTTP >=400 responses across the whole run (home + workspace + both streams). Screenshot: evidence/t85_06_workspace_followup.png.\n\nSession created during test: 5f773c8eaab14f409ebac7423e45b977 ('Mastering the Art of Recursion', phase plan).\n\nVERDICT: A1 PASS, A2 PASS -> T84 verified live.",
+  "verification": "merlin",
+  "notes": "Verification-only task; no source modifications. Evidence screenshots at .agents/jobs/evidence/t85_01..t85_06 (copied from temp). Note for triage, not a defect: minor copy nit observed - first greeting says 'the questions above' while probe cards render below the message; cosmetic only, out of T84 scope."
+}
