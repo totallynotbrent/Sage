@@ -441,7 +441,7 @@ def test_second_turn_system_prompt_carries_lesson_state(client, override_llm, se
     assert "[LESSON STATE]" in second_system
     assert "Teaching turns completed so far: 1." in second_system
     assert "Greeting: already delivered." in second_system
-    assert "Nesting-dolls analogy: unused." in second_system
+    assert "Core definition of the topic:" in second_system
     assert (
         'Learner\'s most recent message: "How does the identity element work?"'
         in second_system

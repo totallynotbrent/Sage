@@ -1,0 +1,31 @@
+{
+  "task_id": "T86",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "sage-t86-file-linking",
+  "declared_at": "2026-08-23T12:05:00-04:00",
+  "finalized_by": "Turing",
+  "summary": "Auto-link uploaded files to current session + strict-mode toast after upload in sage-workspace and index pages",
+  "files": {
+    "modified": ["static/sage-workspace.html", "static/index.html"],
+    "created": [".agents/jobs/T86.json"],
+    "deleted": []
+  },
+  "base_commit": "bf147f2d40f118af7961adc9d452792df3f0e1c6",
+  "committed_at": null,
+  "line_counts": {
+    "before": {
+      "static/index.html": 1104,
+      "static/sage-workspace.html": 1363
+    },
+    "after": {
+      "static/index.html": 1300,
+      "static/sage-workspace.html": 1751
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "Implemented auto-linking of uploaded files to the current session plus a strict-mode toast (T86).\n\nstatic/sage-workspace.html:\n- Added .composer-toast CSS (background var(--surface), border-left 3px solid var(--foam), padding var(--space-3), font-size 13px, tokens from the page's :root), .composer-toast__btn pill button, toastIn keyframe, @media(prefers-reduced-motion:reduce){.toast-in{animation:none}}, .composer-toast[hidden]{display:none}, and .phase-badge[data-grounding=\"strict\"]::after indicator.\n- Added <div class=\"composer-toast\" id=\"composer-toast\" role=\"status\" aria-live=\"polite\" hidden> next to composer-error.\n- In workspace_upload_fix IIFE: new functions hide_link_toast, show_link_toast(count), enable_strict_mode, link_files_to_session(uploaded). handle_files_direct and submit_upload now parse the upload response (array of FileRecord), keep refresh_files_list(), then await link_files_to_session(uploaded) which POSTs {file_ids:[ids]} to /api/sessions/{sessionId}/files. On success shows toast '✓ N file(s) linked to this session.' with a 'Strict mode — answer only from these' button that PATCHes /api/sessions/{sessionId} {grounding_mode:'strict'}, hides the toast, sets phase-badge dataset.grounding='strict', and confirms via composer status. Toast auto-dismisses after 8s (timer reset on re-upload). If no sessionId: composer error 'Create a session first.' Link/PATCH failures surface as friendly composer errors.",
+  "verification": "review_only",
+  "notes": "Declared set respected exactly: static/sage-workspace.html, static/index.html, .agents/jobs/T86.json. Jobs folder read first; no in-flight writer overlap (T-fix-buttons, T-word-anim, fix-anim, T-cleanup2, T-anim-debug all status=done). Working tree already carried uncommitted changes from those done tasks before I started (pre-edit tree: workspace 1672 lines, index 1223 lines); my edits stack on top of that disk state. My own deltas: workspace +79, index +77 vs pre-edit tree. line_counts.before uses HEAD (git show | bundled wc -l) per convention. index.html has no #phase-badge element (verified by grep), so there the strict-mode confirmation is shown via composer status and loadSessionsList() refresh instead of a badge update. Backend contract verified in source: POST /api/files returns list[FileRecord] (id field); POST /api/sessions/{id}/files takes SelectFilesBody{file_ids}; PATCH /api/sessions/{id} takes PatchSessionBody{grounding_mode}; SessionCreate requires goal min_length 1 (index.html derives goal from uploaded file names when creating a session first). Verification: node --check PASS on all 4 extracted inline script blocks (2 per file); behavioral verification (live upload/link/toast flow) handed to Merlin."
+}

@@ -90,6 +90,13 @@ textarea{font:inherit;color:inherit}
 .composer-toolbar__status{font-family:var(--font-mono);font-size:10px;color:var(--meta);letter-spacing:0.04em}
 .input-bar__wrapper{display:flex;align-items:flex-end;gap:var(--space-2);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-3) var(--space-2) var(--space-2) var(--space-4);transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease);max-width:760px;margin:0 auto}
 .input-bar__wrapper:focus-within{border-color:var(--accent);background:var(--surface-raised)}
+.composer-toast{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2) var(--space-3);background:var(--surface);border-left:3px solid var(--foam);padding:var(--space-3) var(--space-4);font-size:13px;color:var(--fg-2);font-family:var(--font-body);line-height:1.5;border-radius:0 var(--r) var(--r) 0;margin-top:var(--space-2);max-width:760px;margin-left:auto;margin-right:auto}
+.composer-toast[hidden]{display:none}
+.composer-toast__btn{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--foam);color:var(--foam);background:transparent;transition:all var(--dur) var(--ease)}
+.composer-toast__btn:hover{background:rgba(156,207,216,0.12)}
+.toast-in{animation:toastIn var(--dur-slow) var(--ease)}
+@keyframes toastIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.toast-in{animation:none}}
 .input-bar__textarea{flex:1;min-width:0;resize:none;border:none;background:transparent;font-size:15px;font-family:var(--font-body);line-height:1.5;max-height:120px;min-height:22px;padding:6px 0;color:var(--fg)}
 .input-bar__textarea::placeholder{color:var(--meta)}
 .input-bar__actions{display:flex;align-items:center;gap:var(--space-1);flex-shrink:0}
@@ -183,8 +190,10 @@ textarea{font:inherit;color:inherit}
 @keyframes hamburgerMorph2{to{opacity:0}}
 @keyframes hamburgerMorph3{to{transform:translateY(-7px) rotate(-45deg)}}
 
-@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.input-bar__wrapper{max-width:100%}.composer-toolbar{max-width:100%}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}.results__status::before{animation:none}}
+.word{display:inline-block;opacity:0;transform:translateY(4px);animation:wordIn 350ms var(--ease) forwards}
+@keyframes wordIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.input-bar__wrapper{max-width:100%}.composer-toolbar{max-width:100%}.composer-toast{max-width:100%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}.results__status::before{animation:none}.word{animation:none !important;opacity:1 !important;transform:none !important}}
   </style>
 </head>
 <body>
@@ -247,11 +256,13 @@ textarea{font:inherit;color:inherit}
               <button class="input-bar__send" id="send-btn" aria-label="Send"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 9l12-6-5 12v-6H3z" fill="currentColor"/></svg></button>
             </div>
           </div>
+          <div class="composer-toast" id="composer-toast" role="status" aria-live="polite" hidden></div>
         </div>
       </div>
     </main>
   </div>
 </div>
+<input type="file" id="file-input" hidden multiple accept=".pdf,.docx,.pptx,.md,.txt,.tex">
 <script>
 const API = '/api';
 let sessionId = null;
@@ -291,13 +302,14 @@ const sendBtn = document.getElementById('send-btn');
 const stopBtn = document.getElementById('stop-btn');
 const composerStatus = document.getElementById('composer-status');
 
-const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');const menu_btn=document.getElementById('menu-btn');const mobile_query=window.matchMedia('(max-width:1023px)');
-function reconcile_sidebar(){if(mobile_query.matches){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}else{sidebar.classList.remove('collapsed');backdrop.classList.remove('open')}menu_btn.setAttribute('aria-expanded',String(!sidebar.classList.contains('collapsed')))}
-function close_sidebar(){sidebar.classList.add('collapsed');backdrop.classList.remove('open');menu_btn.setAttribute('aria-expanded','false')}
-function toggleSidebar(){const open=sidebar.classList.toggle('collapsed')===false;if(mobile_query.matches)backdrop.classList.toggle('open',open);menu_btn.setAttribute('aria-expanded',String(open))}
-reconcile_sidebar();mobile_query.addEventListener('change',reconcile_sidebar);window.addEventListener('resize',reconcile_sidebar);
-document.getElementById('menu-btn').onclick=toggleSidebar;backdrop.onclick=close_sidebar;document.addEventListener('keydown',e=>{if(e.key==='Escape')close_sidebar()});
-document.querySelectorAll('.sidebar__header').forEach(b=>b.addEventListener('click',()=>{const open=b.closest('.sidebar__section').classList.toggle('open');b.setAttribute('aria-expanded',String(open))}));
+const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');const menu_btn=document.getElementById('menu-btn');const mobile_query=window.matchMedia('(max-width:1023px)');const reduced_motion=window.matchMedia('(prefers-reduced-motion: reduce)');
+function reconcile_sidebar(){try{ if(!sidebar||!backdrop||!menu_btn) return; if(mobile_query.matches){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}else{sidebar.classList.remove('collapsed');backdrop.classList.remove('open')}menu_btn.setAttribute('aria-expanded',String(!sidebar.classList.contains('collapsed')))}catch(e){}}
+function close_sidebar(){try{ sidebar?.classList.add('collapsed');backdrop?.classList.remove('open');menu_btn?.setAttribute('aria-expanded','false')}catch(e){}}
+function toggleSidebar(){try{ const open=sidebar.classList.toggle('collapsed')===false;if(mobile_query.matches)backdrop.classList.toggle('open',open);menu_btn.setAttribute('aria-expanded',String(open))}catch(e){}}
+try{ reconcile_sidebar(); }catch(e){}
+mobile_query.addEventListener('change', reconcile_sidebar);window.addEventListener('resize', reconcile_sidebar);
+document.getElementById('menu-btn')?.addEventListener('click', toggleSidebar);backdrop?.addEventListener('click', close_sidebar);document.addEventListener('keydown',e=>{if(e.key==='Escape')close_sidebar()});
+document.querySelectorAll('.sidebar__header').forEach(b=> b.addEventListener('click',()=>{ const sec=b.closest('.sidebar__section'); if(!sec) return; const open=sec.classList.toggle('open');b.setAttribute('aria-expanded',String(open))}));
 
 function renderMd(t){return marked.parse(t,{breaks:true,gfm:true})}
 function sanitize_html(html){
@@ -323,13 +335,79 @@ function render_math(force){
   last_math_typeset=now;
   MathJax.typesetPromise([box]).catch(()=>{});
 }
+function wrapWords(container){
+  try{
+    if(!container||reduced_motion.matches)return;
+    if(container.dataset.wordWrapped==='1')return;
+    let word_idx=0;
+    function walk(node){
+      try{
+        if(node.nodeType===1){
+          const tag=node.tagName;
+          if(tag==='PRE'||tag==='CODE'||tag==='SCRIPT'||tag==='STYLE')return;
+          if(node.classList&&node.classList.contains('word'))return;
+          const children=Array.from(node.childNodes);
+          children.forEach(walk);
+        }else if(node.nodeType===3){
+          const text=node.textContent;
+          if(!text||!text.trim())return;
+          if(text.includes('$')||text.includes('\\(')||text.includes('\\['))return;
+          const parent=node.parentElement;
+          if(parent&&parent.closest&&parent.closest('pre,code'))return;
+          const tokens=text.split(/(\s+)/);
+          if(tokens.length===1&&tokens[0]==='')return;
+          const frag=document.createDocumentFragment();
+          tokens.forEach(tok=>{
+            if(tok==='')return;
+            if(/^\s+$/.test(tok)){
+              frag.appendChild(document.createTextNode(tok));
+            }else{
+              const span=document.createElement('span');
+              span.className='word';
+              span.textContent=tok;
+              span.style.animationDelay=Math.min(word_idx*32,2000)+'ms';
+              word_idx++;
+              frag.appendChild(span);
+            }
+          });
+          if(frag.childNodes.length)node.replaceWith(frag);
+        }
+      }catch(e){}
+    }
+    walk(container);
+    container.dataset.wordWrapped='1';
+    const words=container.querySelectorAll('.word');
+    if(words.length){
+      const max_delay=Math.min((words.length-1)*32,2000)+400;
+      setTimeout(()=>{
+        words.forEach(w=>{
+          if(getComputedStyle(w).opacity==='0'){
+            w.style.opacity='1';
+            w.style.transform='none';
+          }
+        });
+      },max_delay+50);
+    }
+  }catch(e){}
+}
+function animateWords(element){try{wrapWords(element)}catch(e){}}
+function wrapQuizWords(card){
+  try{
+    if(!card||reduced_motion.matches)return;
+    card.querySelectorAll('.artifact-card__quiz-qtext,.artifact-card__quiz-question').forEach(qtext=>{
+      if(qtext.dataset.wordWrapped==='1')return;
+      if(qtext.querySelector('.word'))return;
+      wrapWords(qtext);
+    });
+  }catch(e){}
+}
 
 function addMessage(role,content){
   const d=document.createElement('div');
   d.className=`msg msg--${role}`;
   d.innerHTML=`<div class="msg__role">${role==='user'?'You':'Sage'}</div><div class="msg__bubble">${role==='assistant'?sanitize_html(renderMd(content)):esc(content)}</div>`;
   box.appendChild(d);
-  if(role==='assistant')render_math(true);
+  if(role==='assistant'){render_math(true);const bubble=d.querySelector('.msg__bubble');if(bubble)wrapWords(bubble);}
   box.scrollTop=box.scrollHeight;
   return d;
 }
@@ -426,7 +504,7 @@ function append_action_chips(message_el,actions){
   if(!row.children.length)row.remove();
 }
 
-function show_card(card){setTimeout(()=>card.classList.add('visible'),60)}
+function show_card(card){setTimeout(()=>{card.classList.add('visible');wrapQuizWords(card);},60)}
 
 function build_probe_card(question, ordinal, marker_text, on_select) {
   const card = document.createElement('article');
@@ -680,10 +758,10 @@ async function sendMessage(){
   if(sessionId){try{await fetch(`${API}/sessions/${sessionId}/title`,{method:'POST'});await loadSessionsList()}catch(e){}}
 }
 
-sendBtn.onclick=sendMessage;
-if(stopBtn)stopBtn.onclick=()=>{if(!streamCtrl)return;streamCtrl.abort();if(sessionId)fetch(`${API}/sessions/${sessionId}/stop`,{method:'POST'}).catch(()=>{})};
-input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});
-input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,120)+'px'});
+sendBtn?.addEventListener('click', sendMessage);
+stopBtn?.addEventListener('click', ()=>{if(!streamCtrl)return;streamCtrl.abort();if(sessionId)fetch(`${API}/sessions/${sessionId}/stop`,{method:'POST'}).catch(()=>{})});
+input?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});
+input?.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,120)+'px'});
 
 async function loadSessionsList(){
   try{
@@ -1076,6 +1154,7 @@ function handleArtifactClick(kind){
       showResultsStatus(null);
       const card = renderArtifact(envelope);
       resultsEl.appendChild(card);
+      if(envelope.kind==='quiz')setTimeout(()=>wrapQuizWords(card),60);
       resultsEl.scrollTop = resultsEl.scrollHeight;
       maybeRedirectToWorkspace(sessionId);
     })
@@ -1093,6 +1172,123 @@ artifactBtns.forEach(btn=>{
     if(kind) handleArtifactClick(kind);
   });
 });
+
+(function index_attach_fix(){
+  try{
+    const file_input = document.getElementById('file-input');
+    const attach_btn = document.getElementById('attach-btn');
+    const status_el = document.getElementById('composer-status');
+    const composer_toast = document.getElementById('composer-toast');
+    const input_bar = document.querySelector('.input-bar__wrapper');
+    function set_status(t){ if(status_el) status_el.textContent = t || 'Ask Sage anything...'; }
+    let toast_timer = null;
+    function hide_link_toast(){ clearTimeout(toast_timer); if(composer_toast) composer_toast.hidden = true; }
+    function show_link_toast(count){
+      if(!composer_toast || !count) return;
+      clearTimeout(toast_timer);
+      composer_toast.textContent = '';
+      const label = document.createElement('span');
+      label.textContent = `\u2713 ${count} ${count === 1 ? 'file' : 'files'} linked to this session.`;
+      const strict_btn = document.createElement('button');
+      strict_btn.type = 'button';
+      strict_btn.className = 'composer-toast__btn';
+      strict_btn.textContent = 'Strict mode \u2014 answer only from these';
+      strict_btn.addEventListener('click', enable_strict_mode);
+      composer_toast.append(label, strict_btn);
+      composer_toast.hidden = false;
+      if(!reduced_motion.matches){
+        composer_toast.classList.remove('toast-in');
+        void composer_toast.offsetWidth;
+        composer_toast.classList.add('toast-in');
+      }
+      toast_timer = setTimeout(hide_link_toast, 8000);
+    }
+    async function enable_strict_mode(){
+      if(!sessionId){
+        set_status('Create a session first.');
+        setTimeout(()=> set_status(''),3000);
+        return;
+      }
+      try{
+        const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({grounding_mode:'strict'})});
+        if(!r.ok) throw new Error(`Failed to switch to strict mode: ${r.status}`);
+        hide_link_toast();
+        set_status('strict grounding on');
+        setTimeout(()=> set_status(''),2000);
+      }catch(e){
+        set_status(e.message || 'Could not switch to strict mode.');
+        setTimeout(()=> set_status(''),3000);
+      }
+    }
+    async function ensure_session_for_files(names){
+      if(sessionId) return sessionId;
+      const goal = (names || []).filter(Boolean).slice(0, 3).join(', ') || 'uploaded files';
+      const r = await fetch(`${API}/sessions`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({goal: `Study these files: ${goal}`.slice(0, 2000), grounding_mode:'grounded'})});
+      if(!r.ok) throw new Error(`Session creation failed: ${r.status}`);
+      const d = await r.json();
+      sessionId = d.id || (d.session && d.session.id);
+      if(!sessionId) throw new Error('Session creation returned no session id');
+      return sessionId;
+    }
+    async function link_files_to_session(uploaded){
+      const records = Array.isArray(uploaded) ? uploaded : [];
+      const ids = records.map(f => f && f.id).filter(Boolean);
+      if(!ids.length) return;
+      try{
+        await ensure_session_for_files(records.map(f => f.display_name));
+        const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}/files`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({file_ids: ids})});
+        if(!r.ok){
+          const err = await r.json().catch(()=>({}));
+          throw new Error(err.detail || `Linking failed: ${r.status}`);
+        }
+        show_link_toast(ids.length);
+      }catch(e){
+        set_status(e.message || 'Could not link files to session.');
+        setTimeout(()=> set_status(''),3000);
+      }
+    }
+    async function handle_files(files){
+      if(!files || !files.length) return;
+      const fd = new FormData();
+      for(const f of files) fd.append('files', f);
+      try{
+        set_status('uploading…');
+        const r = await fetch(`${API}/files`, {method:'POST', body: fd});
+        if(!r.ok){
+          const err = await r.json().catch(()=>({}));
+          throw new Error(err.detail||`Upload failed: ${r.status}`);
+        }
+        const uploaded = await r.json();
+        set_status('upload complete');
+        await link_files_to_session(uploaded);
+        try{ await loadSessionsList(); }catch(e){}
+        setTimeout(()=> set_status(''),1500);
+      }catch(e){
+        set_status(e.message||'Upload failed');
+        setTimeout(()=> set_status(''),3000);
+      }
+    }
+    attach_btn?.addEventListener('click', ()=> file_input?.click());
+    file_input?.addEventListener('change', e=>{
+      const files = e.target.files;
+      if(files && files.length) handle_files(files);
+      e.target.value='';
+    });
+    input_bar?.addEventListener('dragover', e=>{ e.preventDefault(); input_bar.style.borderColor='var(--accent)';});
+    input_bar?.addEventListener('dragleave', ()=>{ input_bar.style.borderColor='';});
+    input_bar?.addEventListener('drop', e=>{
+      e.preventDefault();
+      input_bar.style.borderColor='';
+      if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) handle_files(e.dataTransfer.files);
+    });
+    const menu = document.getElementById('menu-btn');
+    const sidebar_el = document.getElementById('sidebar');
+    const backdrop_el = document.getElementById('sidebar-backdrop');
+    [menu, sidebar_el, backdrop_el].forEach(el=>{
+      if(el && !el.hasAttribute('aria-label') && el.id==='menu-btn') el.setAttribute('aria-label','Menu');
+    });
+  }catch(e){ console.error('index attach fix', e); }
+})();
 
 function sync_nav_workspace(){
   const link = document.querySelector('#nav-list a[href="sage-workspace.html"]');
