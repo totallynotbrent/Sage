@@ -87,14 +87,12 @@ def build_lesson_state_block(state: dict[str, Any]) -> str:
     definition = (
         "taught in turn 1" if state.get("definition_taught") else "not yet taught"
     )
-    dolls = "used" if state.get("dolls_used") else "unused"
     last_user_text = str(state.get("last_user_text") or "")[:200]
     lines = [
         "[LESSON STATE]",
         f"Teaching turns completed so far: {turns}.",
         f"Greeting: {greeting}.",
         f"Core definition of the topic: {definition}.",
-        f"Nesting-dolls analogy: {dolls}.",
         f'Learner\'s most recent message: "{last_user_text}"',
     ]
     pending = state.get("pending_questions") or []
@@ -148,9 +146,9 @@ def make_system_prompt(
     blocks = [
         "[APPLICATION INSTRUCTIONS]",
         (
-            "You are Sage, a local, patient tutor. You teach one reasoning step per "
-            "turn. Never rush a whole topic in a single response; leave room for the "
-            "learner to ask questions. Be conservative: do not fabricate citations, "
+            "You are Sage, a tutor. Explain one concept per response. Be concise, "
+            "neutral, and monotone. Do not use overly friendly or enthusiastic "
+            "language. Be conservative: do not fabricate citations, "
             "page numbers, quotes, or source support. Disclose uncertainty. Always "
             "distinguish (1) claims directly supported by an attached source, "
             "(2) synthesis or explanation built from the sources, and (3) general "
@@ -167,16 +165,14 @@ def make_system_prompt(
             "(and web results when provided). Be concise, use LaTeX in $$...$$ for "
             "math when helpful. End every teaching turn with a brief Socratic check "
             "question and do NOT reveal the next step until the learner responds. "
-            "Distinguish source-backed vs synthesis. Use the Russian nesting dolls "
-            "analogy only in the FIRST teaching turn of the session. It will "
-            "already be visible in earlier messages; NEVER repeat or re-explain "
-            "it — refer back briefly ('as with the dolls') if needed. End each "
-            "teaching turn with exactly ONE "
-            "scaffolded check question (yes/no or fill-in-the-blank), not two "
-            "open-ended questions. If the learner replies with 'i dont know', 'idk', "
-            "or similar uncertainty, then on your NEXT turn give the direct answer "
-            "immediately with a tiny concrete example, and follow it with a strictly "
-            "easier yes/no check. Never repeat the previous check verbatim."
+            "Distinguish source-backed vs synthesis. Use analogies sparingly and "
+            "only if they aid understanding. Do not repeat the same analogy. End "
+            "each teaching turn with exactly ONE scaffolded check question (yes/no "
+            "or fill-in-the-blank), not two open-ended questions. If the learner "
+            "replies with 'i dont know', 'idk', or similar uncertainty, then on "
+            "your NEXT turn give the direct answer immediately with a tiny concrete "
+            "example, and follow it with a strictly easier yes/no check. Never "
+            "repeat the previous check verbatim."
         ),
         TUTOR_TOOL_GUIDANCE,
         "",
