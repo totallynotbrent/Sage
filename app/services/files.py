@@ -5,7 +5,7 @@ import json
 import os
 import re
 import sqlite3
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from app.config import Settings
 from app.db import row_to_dict
@@ -38,7 +38,10 @@ _MIME_BY_EXT = {
 
 
 def sanitize_display_name(filename: str) -> str:
-    name = Path(filename or "").name
+    # Strip Windows path components too: Path.name only understands the
+    # host separator, so '..\\name.txt' would survive on Linux.
+    name = PureWindowsPath(filename or "").name
+    name = Path(name).name
     name = _CONTROL_CHARS.sub("", name).strip()
     if re.search(r"\[/?doc\]", filename or "", flags=re.IGNORECASE):
         raise ValueError("file names may not contain [DOC] or [/DOC] markers")
