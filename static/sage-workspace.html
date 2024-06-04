@@ -226,7 +226,13 @@ textarea{font:inherit;color:inherit}
 .artifact-card[data-kind="quiz"]{opacity:0;transform:translateY(8px)}
 .artifact-card[data-kind="quiz"].visible{animation:artifactReveal 500ms var(--ease) forwards}
 @keyframes artifactReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.artifact-card[data-kind="quiz"] .artifact-card__quiz-qtext{overflow:visible;white-space:normal;border-right:none;width:auto}
+@keyframes artType{to{width:100%}}
+@keyframes artCursorBlink{50%{border-color:transparent}}
+@keyframes borderWipe{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes msgIn{from{opacity:0;transform:translateY(12px)}}
+.artifact-card[data-kind="quiz"] .artifact-card__quiz-question{overflow:hidden;white-space:nowrap;border-right:2px solid var(--accent);width:0}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-question{animation:artType 1s steps(30) forwards,artCursorBlink .8s step-end infinite}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-question.typed{overflow:visible;white-space:normal;border-right-color:transparent;width:auto}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option{opacity:0;animation:artifactReveal 300ms var(--ease) forwards}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(1){animation-delay:1100ms}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(2){animation-delay:1300ms}
@@ -335,19 +341,7 @@ textarea{font:inherit;color:inherit}
       <div class="chat" id="chat">
         <div class="chat__messages" id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
         <div class="input-bar">
-          <div class="composer-toolbar" role="toolbar" aria-label="Artifact composer">
-            <button class="composer-toolbar__btn" id="composer-diagram" type="button" aria-label="Generate diagram" title="Generate diagram from current input">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5.5v3M10.5 5.5v3M5.5 3.5h3M5.5 10.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-              Diagram
-            </button>
-            <button class="composer-toolbar__btn" id="composer-quiz" type="button" aria-label="Generate quiz" title="Generate quiz from current input">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 3a1.5 1.5 0 011.5-1.5h7A1.5 1.5 0 0112 3v6a1.5 1.5 0 01-1.5 1.5H6.5L4 13v-2.5h-.5A1.5 1.5 0 012 9V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 5.5h4M5 7.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-              Quiz
-            </button>
-            <button class="composer-toolbar__btn" id="composer-todo" type="button" aria-label="Generate todo list" title="Generate todo list from current input">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="2.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6.5l1.5 1.5 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 9.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-              Todo
-            </button>
+          <div class="composer-toolbar" role="toolbar" aria-label="Composer status">
             <span class="composer-toolbar__spacer"></span>
             <span class="composer-toolbar__status" id="composer-status" aria-live="polite"></span>
           </div>
@@ -864,7 +858,7 @@ function buildQuizCard(envelope, artifact) {
     const qtext = document.createElement('div');
     qtext.className = 'artifact-card__quiz-qtext';
     qtext.textContent = `${qi + 1}. ${q.question}`;
-    qtext.addEventListener('animationend', () => qtext.classList.add('typed'), { once: true });
+    wrap.addEventListener('animationend', () => wrap.classList.add('typed'), { once: true });
     const options = document.createElement('div');
     options.className = 'artifact-card__quiz-options';
     options.setAttribute('role', 'radiogroup');
@@ -1158,7 +1152,7 @@ function build_probe_card(question, ordinal, marker_text, on_select) {
   const qtext = document.createElement('div');
   qtext.className = 'artifact-card__quiz-qtext';
   qtext.textContent = String(question.question || '');
-  qtext.addEventListener('animationend', () => qtext.classList.add('typed'), { once: true });
+  wrap.addEventListener('animationend', () => wrap.classList.add('typed'), { once: true });
   const options_el = document.createElement('div');
   options_el.className = 'artifact-card__quiz-options';
   options_el.setAttribute('role', 'radiogroup');
@@ -1240,11 +1234,11 @@ function start_probe_batch(items, kind_label) {
   send_btn.onclick = submit;
   actions.appendChild(send_btn);
   wrap.appendChild(actions);
-  const anchor = document.getElementById('streaming-msg') || box.lastElementChild;
-  if (anchor && anchor.parentElement === box) anchor.after(wrap);
-  else box.appendChild(wrap);
+  // Probe quizzes render in the artifacts rail (right side), per the design spec.
+  if (diagramBody.querySelector('.diagram-panel__empty')) diagramBody.innerHTML = '';
+  diagramBody.appendChild(wrap);
+  openArtifactsRail();
   entries.forEach(entry => show_card(entry.card));
-  box.scrollTop = box.scrollHeight;
 }
 
 function queue_probe_reply(text) {
