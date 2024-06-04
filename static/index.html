@@ -236,8 +236,6 @@ textarea{font:inherit;color:inherit}
             <p>Upload study materials or just start asking questions.</p>
           </div>
         </div>
-        <div class="eyebrow" id="results-eyebrow" hidden>Sage artifacts</div>
-        <section class="results" id="results" aria-live="polite" aria-label="Generated artifacts"></section>
         <div class="input-bar">
           <div class="composer-toolbar" role="toolbar" aria-label="Composer status">
             <span class="composer-toolbar__spacer"></span>
@@ -770,8 +768,9 @@ async function loadSessionsList(){
 
 loadSessionsList();
 
-const resultsEl = document.getElementById('results');
-const resultsEyebrow = document.getElementById('results-eyebrow');
+// results section removed from home page; stub refs so artifact code paths no-op
+const resultsEl = {appendChild(){}, querySelectorAll(){return []}, scrollTop:0, scrollHeight:0};
+const resultsEyebrow = {hidden:true};
 const artifactBtns = document.querySelectorAll('.composer-toolbar__btn[data-artifact-kind]');
 let firstArtifactShown = false;
 let artifactCounter = 0;
