@@ -1,0 +1,37 @@
+{
+  "task_id": "T-cleanup2",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "opencode-turing-cleanup2",
+  "declared_at": "2026-08-23T15:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Remove remaining hardcoded dolls/trees examples from turn.py and test, expand monotone tone ban in messages.py",
+  "files": {
+    "modified": [
+      "app/services/sessions/turn.py",
+      "app/llm/messages.py",
+      "tests/test_api_chat_sse.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "bf147f2d40f118af7961adc9d452792df3f0e1c6",
+  "committed_at": "763dd1a7cac1acddc1e01c6cc24c89db74390121",
+  "line_counts": {
+    "before": {
+      "app/services/sessions/turn.py": 432,
+      "app/llm/messages.py": 310,
+      "tests/test_api_chat_sse.py": 686
+    },
+    "after": {
+      "app/services/sessions/turn.py": 413,
+      "app/llm/messages.py": 312,
+      "tests/test_api_chat_sse.py": 686
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "review_only",
+  "notes": "Re-checked base_commit bf147f2 before finalizing; no concurrent writer overlap (jobs folder scanned, no in_progress). Turn.py: deleted trees? hint block (8 lines, file/directory/DOM trees injection), deleted dolls_row EXISTS query (8 lines) and dolls_used entry. Messages.py: expanded monotone instruction with explicit bans on \"I'd love to help\", \"Great question\", excessive exclamation marks (310->312). Test: replaced Nesting-dolls assertion with Core definition check. Grep verified 0 hits for dolls/nesting/matryoshka in app/tests (python regex fallback, wc absent). py_compile PASS for all three files, pytest test_second_turn_system_prompt_carries_lesson_state PASS (1 passed), full test_api_chat_sse.py 16 passed/1 failed (only known config_missing 404 vs 400). No new hardcoded examples added. No commit per batch policy; changes remain dirty for batch committer.",
+  "final_report": "Completed aggressive cleanup per T-cleanup2 spec. app/services/sessions/turn.py: removed hardcoded trees? hint injection (lines 141-148 originally: file trees / directory trees / DOM trees example), removed dolls_row query (SELECT ... LIKE '%nesting dolls%' OR '%matryoshka%') and dolls_used from lesson_state (413 lines, -19). tests/test_api_chat_sse.py: replaced assert \"Nesting-dolls analogy: unused.\" with assert \"Core definition of the topic:\" in second_system (686 lines unchanged). app/llm/messages.py: enhanced monotone tone from \"Be concise, neutral, and monotone. Do not use overly friendly...\" to explicitly ban phrases \"I'd love to help\", \"Great question\", excessive exclamation marks (312 lines, +2). Verified via python py_compile PASS, pytest test_second_turn_system_prompt_carries_lesson_state 1 passed, full file 16 passed 1 failed (known env), and grep 0 results for dolls/matryoshka/nesting in app/tests and no trees hint residue. No other hardcoded analogies remain in messages.py (generic sparingly guidance only). Ready for Merlin verification."
+}

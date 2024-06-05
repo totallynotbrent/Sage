@@ -1,0 +1,34 @@
+{
+  "task_id": "T59",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "opencode-turing-t59-diagram-type-normalize",
+  "declared_at": "2026-08-22T01:31:22Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Normalize wire diagram_type when the shimmed adapter emits a parse-result dict: unwrap diagramType/type before str() in validate_mermaid success path (T57 cosmetic finding); one focused monkeypatched test.",
+  "files": {
+    "modified": [
+      "app/services/mermaid.py",
+      "tests/test_mermaid.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
+  "line_counts": {
+    "before": {
+      "app/services/mermaid.py": 82,
+      "tests/test_mermaid.py": 32
+    },
+    "after": {
+      "app/services/mermaid.py": 85,
+      "tests/test_mermaid.py": 44
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "analyzer_pending",
+  "final_report": "T59 done - wire diagram_type normalized per T57 cosmetic finding. app/services/mermaid.py validate_mermaid success path now: raw = result.get(\"diagram_type\"); if isinstance(raw, dict): raw = raw.get(\"diagramType\") or raw.get(\"type\"); return str(raw) if raw else \"unknown\" - plain-string adapter output keeps existing behavior verbatim, missing/empty still \"unknown\", and the shimmed node adapter's {'diagramType': 'flowchart-v2', 'config': {}} repr leak is gone (wire now carries bare 'flowchart-v2'). tests/test_mermaid.py gained one focused test, test_mermaid_unwraps_dict_diagram_type: monkeypatches mermaid._run_adapter to return {\"ok\": True, \"diagram_type\": {\"diagramType\": \"flowchart-v2\", \"config\": {}}} and asserts asyncio.run(validate_mermaid(\"graph TD\\nA-->B\")) == \"flowchart-v2\". pytest tests/test_mermaid.py -q: 4 passed in 2.18s (existing 3 + new 1, all green). No comments added; snake_case throughout; declared set unchanged (app/services/mermaid.py, tests/test_mermaid.py, this log); HEAD stayed at base_commit 28e2e37 for the whole task so no reconciliation was needed; no commit made per task spec - batch committer owns it. verification=analyzer_pending per task instruction; note that behavioral verification via focused pytest run was already performed by this session and passed.",
+  "notes": "Overlap check at declaration: only in-flight job T48 (messages.py/turn.py/test_api_chat_sse.py) - zero intersection with this set. Re-check before finalizing: git log -1 still 28e2e37 and neither target file was touched by anyone else (git diff vs base shows only my hunks) - no conflict reconciliation required. line_counts use wc -l semantics computed via Python byte-count of newlines against git show HEAD:<path> for 'before' (plain wc binary not relied on over SMB). Pre-existing LSP type noise in app/llm/client.py, turn.py, fakes surfaced during edits is unrelated and untouched (already documented in T57 notes)."
+}

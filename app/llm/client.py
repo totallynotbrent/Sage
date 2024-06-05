@@ -1,3 +1,8 @@
+"""Sage LLM client — port of bread's OllamaClient (commit 9c7fe71).
+
+Talks to the ollama NATIVE /api/chat endpoint through the official ``ollama``
+AsyncClient, including bread's feature-degradation retry ladder.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -9,27 +14,63 @@ from typing import Any, AsyncIterator
 
 import httpx
 from fastapi import Request
-from openai import (
-    APIConnectionError,
-    APIStatusError,
-    APITimeoutError,
-    AsyncOpenAI,
-    AuthenticationError,
-    RateLimitError,
-)
+from ollama import AsyncClient, ResponseError
 
 from app.config import Settings
 from app.errors import GenerationCancelled, ProviderError
 
 logger = logging.getLogger("app")
 
-_PROBE_TIMEOUT = httpx.Timeout(connect=5, read=30, write=10, pool=5)
-_PROBE_CACHE_SECONDS = 30.0
+REQUEST_TIMEOUT = 300.0
 
-GENERATION_TIMEOUT = httpx.Timeout(connect=30, read=300, write=60, pool=30)
+UNSUPPORTED_TOOL_HINTS = ("tool", "function", "does not support tools")
+UNSUPPORTED_THINK_HINTS = ("think", "thinking")
+UNSUPPORTED_IMAGE_HINTS = ("image", "vision", "multimodal")
+UNSUPPORTED_FORMAT_HINTS = (
+    "format",
+    "json schema",
+    "structured output",
+    "structured outputs",
+    "does not support json",
+)
+RETRYABLE_STATUS_CODES = (429, 500, 502, 503, 504)
+MAX_ATTEMPTS = 4
 
 _THOUGHT_STARTS = ("<|channel|>thought", "<|think|>")
 _THOUGHT_ENDS = ("channel|>", "<|channel|>")
+
+# Text-form tool calls some models leak into visible content. The native
+# /api/chat path returns structured tool_calls, but gemma occasionally writes
+# the call as bare text too — sometimes with brackets, sometimes without
+# (e.g. "call:run_probe/" or "[call:run_probe]"). Strip bracketed forms and
+# bracketless residues so none of it can reach the UI.
+_LEAKED_CALL_RE = re.compile(r"<call:\w+\b[^>]*>?")
+_LEAKED_OPEN_RE = re.compile(r"<call:\w+\b[^<]*$")
+_LEAKED_BARE_RE = re.compile(
+    r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t.:;,!?)(\"'-]))"   # boundary before token
+    r"\[?call:\w+\b/?\]?"                             # [call:name] / call:name/
+    r"(?:\s*status\s*=\s*[\"'][^\"']*[\"'])?"
+    r"(?:\s*\([^)\"]*\))?"
+)
+
+
+def _detect_unsupported_feature(message: str) -> str | None:
+    lowered = message.lower()
+    if any(hint in lowered for hint in UNSUPPORTED_TOOL_HINTS):
+        return "tools"
+    if any(hint in lowered for hint in UNSUPPORTED_THINK_HINTS):
+        return "think"
+    if any(hint in lowered for hint in UNSUPPORTED_IMAGE_HINTS):
+        return "images"
+    if any(hint in lowered for hint in UNSUPPORTED_FORMAT_HINTS):
+        return "format"
+    return None
+
+
+class _FeatureUnsupportedError(Exception):
+    def __init__(self, feature: str, message: str) -> None:
+        super().__init__(message)
+        self.feature = feature
 
 
 def _strip_thought(text: str) -> str:
@@ -47,118 +88,129 @@ def _strip_thought(text: str) -> str:
     return text
 
 
+def _looks_like_leak(text: str) -> bool:
+    """True when text begins with a tool-call leak signature.
+
+    Used to hold streamed fragments that might be a leaked ``call:...`` so we
+    can discard them if a real structured tool call follows (mirrors bread,
+    which never streams content while a tool call is in flight).
+    """
+    stripped = text.lstrip()
+    return bool(re.match(r"^<?call:?", stripped, re.IGNORECASE)) or "<call:" in stripped
+
+
+def _strip_leaked_calls(text: str) -> str:
+    cleaned = _LEAKED_CALL_RE.sub("", text)
+    cleaned = _LEAKED_BARE_RE.sub("", cleaned)
+    return _LEAKED_OPEN_RE.sub("", cleaned)
+
+
 class _ThoughtScrubber:
+    """Filters reasoning-channel markers out of streamed deltas."""
+
     def __init__(self) -> None:
-        self.in_thought = False
-        self.buf = ""
-        self._longest = max(len(s) for s in _THOUGHT_STARTS)
+        self._buffer = ""
+        self._in_thought = False
 
     def feed(self, raw: str) -> list[str]:
-        pieces: list[str] = []
-        self.buf += raw
-        while self.buf:
-            if not self.in_thought:
-                earliest = None
-                earliest_start = ""
-                for start in _THOUGHT_STARTS:
-                    idx = self.buf.find(start)
-                    if idx != -1 and (earliest is None or idx < earliest):
-                        earliest = idx
-                        earliest_start = start
-                if earliest is not None:
-                    if earliest > 0:
-                        pieces.append(self.buf[:earliest])
-                    self.buf = self.buf[earliest + len(earliest_start) :]
-                    self.in_thought = True
-                    continue
-                keep = 0
-                for start in _THOUGHT_STARTS:
-                    for k in range(self._longest - 1, 0, -1):
-                        if len(self.buf) >= k and start.startswith(self.buf[-k:]):
-                            keep = max(keep, k)
-                            break
-                        if len(self.buf) < k and start.startswith(self.buf):
-                            keep = max(keep, len(self.buf))
-                            break
-                if keep and len(self.buf) > keep:
-                    pieces.append(self.buf[:-keep])
-                    self.buf = self.buf[-keep:]
+        self._buffer += raw
+        out: list[str] = []
+        while self._buffer:
+            if self._in_thought:
+                idx: int | None = None
+                found: str | None = None
+                for marker in _THOUGHT_ENDS:
+                    pos = self._buffer.find(marker)
+                    if pos != -1 and (idx is None or pos < idx):
+                        idx, found = pos, marker
+                if idx is None or found is None:
+                    self._buffer = ""
                     break
-                if keep:
-                    break
-                pieces.append(self.buf)
-                self.buf = ""
-                break
+                self._buffer = self._buffer[idx + len(found):]
+                self._in_thought = False
             else:
-                earliest = None
-                earliest_end = ""
-                for end in _THOUGHT_ENDS:
-                    idx = self.buf.find(end)
-                    if idx != -1 and (earliest is None or idx < earliest):
-                        earliest = idx
-                        earliest_end = end
-                if earliest is not None:
-                    self.buf = self.buf[earliest + len(earliest_end) :]
-                    self.in_thought = False
-                    continue
-                keep = 0
-                for end in _THOUGHT_ENDS:
-                    for k in range(len(end) - 1, 0, -1):
-                        if len(self.buf) >= k and end.startswith(self.buf[-k:]):
-                            keep = max(keep, k)
-                            break
-                if keep:
-                    self.buf = self.buf[-keep:] if len(self.buf) > keep else self.buf
+                idx = None
+                found = None
+                for marker in _THOUGHT_STARTS:
+                    pos = self._buffer.find(marker)
+                    if pos != -1 and (idx is None or pos < idx):
+                        idx, found = pos, marker
+                if idx is None or found is None:
+                    emit = self._buffer
+                    self._buffer = ""
+                    if emit:
+                        out.append(emit)
                     break
-                self.buf = ""
-                break
-        return pieces
+                if idx > 0:
+                    out.append(self._buffer[:idx])
+                self._buffer = self._buffer[idx + len(found):]
+                self._in_thought = True
+        return out
 
     def flush(self) -> list[str]:
-        remainder = self.buf
-        self.buf = ""
-        if remainder and not self.in_thought:
-            stripped = _strip_thought(remainder)
-            return [stripped] if stripped else []
-        return []
+        rest = self._buffer
+        self._buffer = ""
+        if self._in_thought:
+            return []
+        return [rest] if rest else []
 
 
-def _parse_arguments(raw: str) -> Any:
-    try:
-        return json.loads(raw) if raw.strip() else {}
-    except json.JSONDecodeError:
+def _parse_arguments(raw: Any) -> Any:
+    if isinstance(raw, dict):
         return raw
+    try:
+        return json.loads(raw) if isinstance(raw, str) and raw.strip() else {}
+    except json.JSONDecodeError:
+        return {}
 
 
-def _wire_tool_calls(pending: dict[int, dict]) -> list[dict]:
-    calls: list[dict] = []
-    for index in sorted(pending):
-        entry = pending[index]
-        calls.append(
-            {
-                "id": entry["id"] or f"call_{index}",
-                "type": "function",
-                "function": {
-                    "name": entry["name"],
-                    "arguments": entry["arguments"] or "{}",
-                },
-            }
-        )
-    return calls
+def _args_to_json(raw: Any) -> str:
+    if isinstance(raw, str):
+        return raw or "{}"
+    try:
+        return json.dumps(raw)
+    except (TypeError, ValueError):
+        return "{}"
+
+
+class ChatAttempt:
+    """Which features this attempt still includes (bread's degradation model)."""
+
+    __slots__ = ("use_tools", "use_format")
+
+    def __init__(self, use_tools: bool = False, use_format: bool = False) -> None:
+        self.use_tools = use_tools
+        self.use_format = use_format
+
+    def without(self, feature: str) -> "ChatAttempt":
+        clone = ChatAttempt(self.use_tools, self.use_format)
+        if feature == "tools":
+            clone.use_tools = False
+        elif feature == "format":
+            clone.use_format = False
+        return clone
 
 
 class LLMClient:
+    """Sage's LLM backend — a port of bread's OllamaClient.
+
+    Talks to the ollama NATIVE /api/chat endpoint through the official
+    ``ollama`` AsyncClient (the exact stack bread uses), including bread's
+    feature-degradation retry ladder.
+    """
+
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        api_key = settings.brot_api_key or "unset"
-        self._client = AsyncOpenAI(
-            base_url=settings.brot_base_url,
-            api_key=api_key,
-            timeout=GENERATION_TIMEOUT,
-        )
+        host = self._native_base()
+        api_key = (settings.brot_api_key or "").strip()
+        kwargs: dict[str, Any] = {"host": host, "timeout": REQUEST_TIMEOUT}
+        if api_key:
+            kwargs["headers"] = {"Authorization": f"Bearer {api_key}"}
+        self._client = AsyncClient(**kwargs)
         self._probe_cache: tuple[float, tuple[bool, str]] | None = None
         self._inflight: dict[str, dict] = {}
 
+    # -- inflight/cancellation bookkeeping --
     def begin_inflight(self, session_id: str) -> asyncio.Event:
         entry = self._inflight.get(session_id)
         if entry is None:
@@ -184,6 +236,67 @@ class LLMClient:
             entry["event"].set()
             logger.info("cancellation requested for session %s", session_id)
 
+    # -- helpers --
+    def _native_base(self) -> str:
+        base = (self._settings.brot_base_url or "").strip().rstrip("/")
+        if base.endswith("/v1"):
+            base = base[: -len("/v1")]
+        return base
+
+    @property
+    def model(self) -> str:
+        return self._settings.brot_model
+
+    @staticmethod
+    def _to_ollama_messages(messages: list[dict]) -> list[dict]:
+        """Convert OpenAI-style history entries into ollama-native shape."""
+        out: list[dict] = []
+        for m in messages:
+            role = m.get("role")
+            if role == "assistant" and isinstance(m.get("tool_calls"), list) and m["tool_calls"]:
+                calls = []
+                for c in m["tool_calls"]:
+                    fn = c.get("function") or {}
+                    calls.append(
+                        {
+                            "function": {
+                                "name": fn.get("name", ""),
+                                "arguments": _parse_arguments(fn.get("arguments", "{}")),
+                            }
+                        }
+                    )
+                out.append(
+                    {
+                        "role": "assistant",
+                        "content": m.get("content") or "",
+                        "tool_calls": calls,
+                    }
+                )
+            else:
+                out.append(m)
+        return out
+
+    @staticmethod
+    def _to_ollama_tools(tools: list[dict]) -> list[dict]:
+        converted: list[dict] = []
+        for t in tools:
+            fn = t.get("function") or t
+            if not fn.get("name"):
+                continue
+            converted.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": fn["name"],
+                        "description": fn.get("description", ""),
+                        "parameters": fn.get("parameters")
+                        or {"type": "object", "properties": {}},
+                    },
+                }
+            )
+        return converted
+
+    # -- streaming chat (bread-style attempts + Sage's event contract) --
     async def stream_chat(
         self,
         messages: list[dict],
@@ -197,152 +310,168 @@ class LLMClient:
         event = cancel_event or (
             self.get_inflight_event(session_id) if session_id else None
         )
-        try:
-            iterator = await self._open_stream(
-                messages, max_tokens=max_tokens, temperature=temperature, tools=tools
-            )
-            as_events = tools is not None
-            scrubber = _ThoughtScrubber()
-            pending: dict[int, dict] = {}
-            content_parts: list[str] = []
-            while True:
-                try:
-                    chunk = await self._next_chunk(iterator, event)
-                except StopAsyncIteration:
-                    break
-                choices = getattr(chunk, "choices", None) or []
-                if not choices:
-                    continue
-                choice = choices[0]
-                finish_reason = getattr(choice, "finish_reason", None)
-                delta_obj = choice.delta if choice.delta else None
-                if delta_obj is not None:
-                    for tool_delta in getattr(delta_obj, "tool_calls", None) or []:
-                        index = getattr(tool_delta, "index", 0) or 0
-                        entry = pending.setdefault(
-                            index, {"id": "", "name": "", "arguments": ""}
-                        )
-                        call_id = getattr(tool_delta, "id", None)
-                        if call_id:
-                            entry["id"] = call_id
-                        function = getattr(tool_delta, "function", None)
-                        if function is not None:
-                            fn_name = getattr(function, "name", None)
-                            if fn_name:
-                                entry["name"] = fn_name
-                            args_piece = getattr(function, "arguments", None)
-                            if args_piece:
-                                entry["arguments"] += args_piece
-                raw = (
-                    getattr(delta_obj, "content", None)
-                    if delta_obj is not None
-                    else None
-                )
-                if delta_obj is not None and (
-                    getattr(delta_obj, "reasoning_content", None)
-                    or getattr(delta_obj, "reasoning", None)
-                    or getattr(delta_obj, "thinking", None)
-                ):
-                    if not raw:
-                        continue
-                if not raw:
-                    continue
-                content_parts.append(raw)
-                for piece in scrubber.feed(raw):
-                    yield {"type": "delta", "delta": piece} if as_events else piece
-                if finish_reason == "tool_calls":
-                    break
-            for piece in scrubber.flush():
-                yield {"type": "delta", "delta": piece} if as_events else piece
-            if pending and as_events:
-                raw_calls = _wire_tool_calls(pending)
-                joined_content = "".join(content_parts)
-                for call in raw_calls:
-                    yield {
-                        "type": "tool_call",
-                        "id": call["id"],
-                        "name": call["function"]["name"],
-                        "arguments": _parse_arguments(call["function"]["arguments"]),
-                        "raw_tool_calls": raw_calls,
-                        "assistant_content": joined_content,
-                    }
-        except GenerationCancelled:
-            raise
-        except Exception as exc:  # noqa: BLE001 - normalize every failure
-            raise self._normalize(exc) from exc
+        as_events = tools is not None
+        ollama_messages = self._to_ollama_messages(messages)
+        ollama_tools = self._to_ollama_tools(tools) if tools else []
 
-    async def _open_stream(
-        self,
-        messages: list[dict],
-        *,
-        max_tokens: int,
-        temperature: float,
-        tools: list[dict] | None,
-    ):
-        kwargs: dict = {}
-        if tools:
-            kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
-        try:
-            stream = await self._client.chat.completions.create(
-                model=self._settings.brot_model,
-                messages=messages,
-                stream=True,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                **kwargs,
-            )
-            return stream.__aiter__()
-        except APIStatusError as exc:
-            status = getattr(exc, "status_code", None)
-            if tools and status == 400 and "tool" in str(exc).lower():
-                logger.warning("tools unsupported by endpoint; retrying without tools")
-                stream = await self._client.chat.completions.create(
-                    model=self._settings.brot_model,
-                    messages=messages,
-                    stream=True,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                )
-                return stream.__aiter__()
-            raise
+        attempt = ChatAttempt(use_tools=bool(ollama_tools))
+        last_error: Exception | None = None
 
-    @staticmethod
-    async def _next_chunk(iterator: AsyncIterator, cancel_event: asyncio.Event | None):
-        if cancel_event is None:
-            return await anext(iterator)
-        cancel_task = asyncio.ensure_future(cancel_event.wait())
-        next_task = asyncio.ensure_future(anext(iterator))
-        try:
-            done, _ = await asyncio.wait(
-                {cancel_task, next_task}, return_when=asyncio.FIRST_COMPLETED
-            )
-        except BaseException:
-            for task in (cancel_task, next_task):
-                task.cancel()
-                try:
-                    await task
-                except BaseException:
-                    pass
-            raise
-        if cancel_task in done:
-            next_task.cancel()
+        for _ in range(MAX_ATTEMPTS):
+            payload: dict[str, Any] = {
+                "model": self.model,
+                "messages": ollama_messages,
+                "options": {"temperature": temperature, "num_predict": max_tokens},
+            }
+            if attempt.use_tools and ollama_tools:
+                payload["tools"] = ollama_tools
             try:
-                await next_task
-            except (asyncio.CancelledError, StopAsyncIteration):
-                pass
-            except Exception:
-                pass
-            raise GenerationCancelled(
-                "Generation cancelled by the user or a client disconnect."
-            )
-        cancel_task.cancel()
-        try:
-            await cancel_task
-        except asyncio.CancelledError:
-            pass
-        return next_task.result()
+                async for item in self._run_stream(payload, event, as_events):
+                    yield item
+                return
+            except GenerationCancelled:
+                raise
+            except _FeatureUnsupportedError as exc:
+                logger.warning(
+                    "retrying without %s after unsupported-feature error: %s",
+                    exc.feature,
+                    exc,
+                )
+                attempt = attempt.without(exc.feature)
+                last_error = exc
+                continue
+            except ResponseError as exc:
+                status = getattr(exc, "status_code", None)
+                feature = _detect_unsupported_feature(str(exc))
+                if feature and getattr(attempt, f"use_{feature}", False):
+                    attempt = attempt.without(feature)
+                    last_error = exc
+                    continue
+                if status in RETRYABLE_STATUS_CODES:
+                    logger.warning(
+                        "retrying after ollama status_code=%s error=%r", status, exc
+                    )
+                    last_error = exc
+                    continue
+                logger.error("ollama ResponseError: %r", exc)
+                raise self._normalize(exc) from exc
+            except Exception as exc:  # noqa: BLE001
+                raise self._normalize(exc) from exc
 
+        raise ProviderError(
+            "upstream",
+            f"ollama chat failed after {MAX_ATTEMPTS} attempts: {last_error}",
+        )
+
+    async def _run_stream(
+        self,
+        payload: dict[str, Any],
+        cancel_event: asyncio.Event | None,
+        as_events: bool,
+    ) -> AsyncIterator:
+        # Bread-style leak handling. gemma sometimes writes the tool call as
+        # visible text (e.g. "call:run_probe/") inside the SAME message that
+        # also carries the structured tool_calls. That leaked text arrives in
+        # the stream BEFORE the tool_calls field, so per-delta regex stripping
+        # is defeated by token-splitting. Bread avoids the leak by never
+        # streaming content while a tool call is in flight: it buffers the
+        # message and only surfaces content when NO tool call was made.
+        #
+        # To keep normal answers streaming, we stream content live but hold
+        # back any fragment that looks like the start of a leaked call. If a
+        # real tool call follows, the held fragment is discarded; otherwise it
+        # is flushed as ordinary prose.
+        scrubber = _ThoughtScrubber()
+        content_parts: list[str] = []
+        pending_calls: list[dict] = []
+        held: list[str] = []
+        try:
+            stream = await self._client.chat(stream=True, **payload)
+            async for response in stream:
+                if cancel_event is not None and cancel_event.is_set():
+                    raise GenerationCancelled(
+                        "Generation cancelled by the user or a client disconnect."
+                    )
+                message = getattr(response, "message", None) or {}
+                content = getattr(message, "content", "") or ""
+                raw_calls = getattr(message, "tool_calls", None) or []
+                if raw_calls:
+                    for i, call in enumerate(raw_calls):
+                        fn = getattr(call, "function", None)
+                        name = (getattr(fn, "name", "") or "") if fn else ""
+                        if not name:
+                            continue
+                        args = getattr(fn, "arguments", {}) or {}
+                        pending_calls.append(
+                            {
+                                "id": getattr(call, "id", "") or f"call_{i + 1}",
+                                "type": "function",
+                                "function": {"name": name, "arguments": _args_to_json(args)},
+                            }
+                        )
+                if content:
+                    content_parts.append(content)
+                    for piece in scrubber.feed(content):
+                        if _looks_like_leak(piece):
+                            held.append(piece)
+                        elif held:
+                            held.append(piece)
+                            if not _looks_like_leak("".join(held)):
+                                # Resolved into normal prose — release it.
+                                flushed = "".join(held)
+                                held.clear()
+                                cleaned = _strip_leaked_calls(flushed)
+                                if cleaned:
+                                    yield (
+                                        {"type": "delta", "delta": cleaned}
+                                        if as_events
+                                        else cleaned
+                                    )
+                        else:
+                            cleaned = _strip_leaked_calls(piece)
+                            if cleaned:
+                                yield (
+                                    {"type": "delta", "delta": cleaned}
+                                    if as_events
+                                    else cleaned
+                                )
+                if not getattr(response, "done", False):
+                    continue
+                break
+        except ResponseError as exc:
+            message_text = str(getattr(exc, "error", exc))
+            feature = _detect_unsupported_feature(message_text)
+            if feature:
+                raise _FeatureUnsupportedError(feature, message_text) from exc
+            raise
+
+        if pending_calls:
+            # Tool-call turn: discard any held/leaked text and emit only the
+            # structured tool calls (the UI renders their output itself).
+            joined_content = _strip_leaked_calls("".join(content_parts)).strip()
+            for call in pending_calls:
+                yield {
+                    "type": "tool_call",
+                    "id": call["id"],
+                    "name": call["function"]["name"],
+                    "arguments": _parse_arguments(call["function"]["arguments"]),
+                    "raw_tool_calls": pending_calls,
+                    "assistant_content": joined_content or None,
+                }
+            return
+
+        # Plain answer turn: release any held fragment, then flush remainder.
+        if held:
+            cleaned = _strip_leaked_calls("".join(held))
+            if cleaned:
+                yield {"type": "delta", "delta": cleaned} if as_events else cleaned
+            held.clear()
+        for piece in scrubber.flush():
+            cleaned = _strip_leaked_calls(piece)
+            if cleaned:
+                yield {"type": "delta", "delta": cleaned} if as_events else cleaned
+
+    # -- non-streaming JSON helper (plan/diagram/title generation) --
     async def complete_json(
         self,
         messages: list[dict],
@@ -350,94 +479,75 @@ class LLMClient:
         max_tokens: int = 1200,
         temperature: float = 0.1,
     ) -> tuple[str | None, str | None]:
+        payload = {
+            "model": self.model,
+            "messages": self._to_ollama_messages(messages),
+            "stream": False,
+            "format": "json",
+            "options": {"temperature": temperature, "num_predict": max_tokens},
+        }
         try:
-            response = await self._client.chat.completions.create(
-                model=self._settings.brot_model,
-                messages=messages,
-                stream=False,
-                max_tokens=max_tokens,
-                temperature=temperature,
-            )
-            content = response.choices[0].message.content if response.choices else None
-            cleaned = _strip_thought(content or "")
-            return (cleaned, None)
-        except Exception as exc:  # noqa: BLE001 - normalize every failure
-            provider_error = self._normalize(exc)
-            return (
-                None,
-                f"{provider_error.code}: {provider_error.detail or provider_error.message}",
-            )
+            response = await self._client.chat(**payload)
+        except ResponseError as exc:
+            feature = _detect_unsupported_feature(str(exc))
+            if feature == "format":
+                payload.pop("format", None)
+                try:
+                    response = await self._client.chat(**payload)
+                except Exception as exc2:  # noqa: BLE001
+                    logger.warning("complete_json failed: %s", exc2)
+                    return None, str(exc2)
+            else:
+                logger.warning("complete_json failed: %s", exc)
+                return None, str(exc)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("complete_json failed: %s", exc)
+            return None, str(exc)
+        message = getattr(response, "message", None)
+        content = (getattr(message, "content", "") or "").strip()
+        if not content:
+            return None, "empty response"
+        return content, None
 
     async def quick_probe(self) -> tuple[bool, str]:
         now = time.monotonic()
-        if self._probe_cache and now - self._probe_cache[0] < _PROBE_CACHE_SECONDS:
+        if self._probe_cache and now - self._probe_cache[0] < 30.0:
             return self._probe_cache[1]
-
-        probe_client = self._client.with_options(timeout=_PROBE_TIMEOUT)
+        ok = False
+        detail = ""
         try:
-            await probe_client.chat.completions.create(
-                model=self._settings.brot_model,
-                messages=[{"role": "user", "content": "ping"}],
-                max_tokens=1,
-                temperature=0,
-            )
-            result = (True, "ok")
-        except Exception as exc:  # noqa: BLE001 - normalize every failure
-            provider_error = self._normalize(exc)
-            result = (
-                False,
-                f"{provider_error.code}: {provider_error.detail or provider_error.message}",
-            )
-        self._probe_cache = (now, result)
-        return result
+            await asyncio.wait_for(self._client.list(), timeout=10)
+            ok = True
+            detail = "ok"
+        except Exception as exc:  # noqa: BLE001
+            detail = type(exc).__name__
+        self._probe_cache = (now, (ok, detail))
+        return ok, detail
 
     @staticmethod
     def _normalize(exc: Exception) -> ProviderError:
-        if isinstance(exc, ProviderError):
-            return exc
-        if isinstance(exc, AuthenticationError):
-            return ProviderError("auth", "The model endpoint rejected the API key.")
-        if isinstance(exc, RateLimitError):
-            headers = getattr(exc, "headers", None) or {}
-            retry_after = headers.get("retry-after") or headers.get("Retry-After")
-            detail = (
-                f"retry-after={retry_after}"
-                if retry_after
-                else "retry the request later"
-            )
-            return ProviderError(
-                "rate_limit",
-                "The model endpoint is rate-limited.",
-                detail=detail,
-            )
-        if isinstance(exc, APITimeoutError):
-            return ProviderError("timeout", "The model endpoint timed out.")
-        if isinstance(exc, APIConnectionError):
-            return ProviderError(
-                "connection", "Could not connect to the model endpoint."
-            )
-        if isinstance(exc, APIStatusError):
-            status = getattr(exc, "status_code", None)
-            code = "bad_request" if status == 400 else "upstream"
-            return ProviderError(code, f"The model endpoint returned status {status}.")
-        if isinstance(exc, ValueError) and "api_key" in str(exc).lower():
-            return ProviderError("auth", "The API key is invalid or missing.")
-        return ProviderError(
-            "upstream", f"Unexpected model endpoint error: {type(exc).__name__}"
-        )
-
-
-_client_singleton: LLMClient | None = None
+        status = getattr(exc, "status_code", None)
+        if status is not None:
+            kind = "rate_limit" if status == 429 else "upstream"
+            return ProviderError(kind, f"HTTP {status}: {exc}")
+        text = str(exc).lower()
+        if "auth" in text or "unauthorized" in text or "401" in text:
+            return ProviderError("auth", str(exc))
+        if "timeout" in text or isinstance(exc, asyncio.TimeoutError):
+            return ProviderError("timeout", "generation timed out")
+        if "connect" in text or "network" in text:
+            return ProviderError("network", f"cannot reach model backend: {exc}")
+        return ProviderError("upstream", f"{type(exc).__name__}: {exc}")
 
 
 def get_llm_client(request: Request) -> LLMClient:
-    global _client_singleton
-    settings = request.app.state.settings
-    if _client_singleton is None:
-        _client_singleton = LLMClient(settings)
-    return _client_singleton
+    client = getattr(request.app.state, "llm_client", None)
+    if client is None:
+        client = LLMClient(request.app.state.settings)
+        request.app.state.llm_client = client
+    return client
 
 
 def reset_llm_client() -> None:
-    global _client_singleton
-    _client_singleton = None
+    """Drop any cached client on app.state."""
+    return None

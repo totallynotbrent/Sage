@@ -11,8 +11,6 @@
   <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},startup:{pageReady:()=>MathJax.startup.defaultPageReady()}}</script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-  <script src="js/leaked-call-guard.js"></script>
-  <script src="js/binary-check.js"></script>
   <style>
 :root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:180ms;--dur-slow:500ms;--sidebar-w:260px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -183,11 +181,6 @@ textarea{font:inherit;color:inherit}
 
 .typing-indicator{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0}
 .typing-indicator__bar{width:80px;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;animation:gradientSweep 1.2s ease infinite}
-.typing-indicator__status{font-size:13px;color:var(--muted);animation:statusFadeIn var(--dur-slow) var(--ease) both;transition:opacity var(--dur) var(--ease)}
-.typing-indicator__status.swapping{opacity:0}
-@keyframes statusFadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-.msg__bubble.streaming>*{animation:streamLineIn 320ms var(--ease) both}
-@keyframes streamLineIn{from{opacity:.25}to{opacity:1}}
 @keyframes gradientSweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 @keyframes msgCascade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -200,7 +193,7 @@ textarea{font:inherit;color:inherit}
 .word{display:inline-block;opacity:0;transform:translateY(4px);animation:wordIn 350ms var(--ease) forwards}
 @keyframes wordIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.input-bar__wrapper{max-width:100%}.composer-toolbar{max-width:100%}.composer-toast{max-width:100%}}
-@media(prefers-reduced-motion:reduce){*{animation-duration:200ms !important;transition-duration:120ms !important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}.results__status::before{animation:none}.word{animation:none !important;opacity:1 !important;transform:none !important}}
   </style>
 </head>
 <body>
@@ -236,8 +229,22 @@ textarea{font:inherit;color:inherit}
             <p>Upload study materials or just start asking questions.</p>
           </div>
         </div>
+        <div class="eyebrow" id="results-eyebrow" hidden>Sage artifacts</div>
+        <section class="results" id="results" aria-live="polite" aria-label="Generated artifacts"></section>
         <div class="input-bar">
-          <div class="composer-toolbar" role="toolbar" aria-label="Composer status">
+          <div class="composer-toolbar" role="toolbar" aria-label="Artifact composer">
+            <button class="composer-toolbar__btn" id="artifact-diagram-btn" type="button" data-artifact-kind="mermaid" aria-label="Generate diagram from prompt" title="Diagram">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5.5v3M10.5 5.5v3M5.5 3.5h3M5.5 10.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Diagram
+            </button>
+            <button class="composer-toolbar__btn" id="artifact-quiz-btn" type="button" data-artifact-kind="quiz" aria-label="Generate quiz from prompt" title="Quiz">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 3a1.5 1.5 0 011.5-1.5h7A1.5 1.5 0 0112 3v6a1.5 1.5 0 01-1.5 1.5H6.5L4 13v-2.5h-.5A1.5 1.5 0 012 9V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 5.5h4M5 7.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Quiz
+            </button>
+            <button class="composer-toolbar__btn" id="artifact-todo-btn" type="button" data-artifact-kind="todo" aria-label="Generate todo list from prompt" title="Todo">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="2.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6.5l1.5 1.5 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 9.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Todo
+            </button>
             <span class="composer-toolbar__spacer"></span>
             <span class="composer-toolbar__status" id="composer-status" aria-live="polite">Ask Sage anything...</span>
           </div>
@@ -330,7 +337,7 @@ function render_math(force){
 }
 function wrapWords(container){
   try{
-    if(!container)return;
+    if(!container||reduced_motion.matches)return;
     if(container.dataset.wordWrapped==='1')return;
     let word_idx=0;
     function walk(node){
@@ -386,7 +393,7 @@ function wrapWords(container){
 function animateWords(element){try{wrapWords(element)}catch(e){}}
 function wrapQuizWords(card){
   try{
-    if(!card)return;
+    if(!card||reduced_motion.matches)return;
     card.querySelectorAll('.artifact-card__quiz-qtext,.artifact-card__quiz-question').forEach(qtext=>{
       if(qtext.dataset.wordWrapped==='1')return;
       if(qtext.querySelector('.word'))return;
@@ -421,7 +428,7 @@ function addStreamingMessage(){
   const d=document.createElement('div');
   d.className='msg msg--assistant';
   d.id='streaming-msg';
-  d.innerHTML='<div class="msg__role">Sage</div><div class="msg__bubble streaming" id="streaming-bubble"></div>';
+  d.innerHTML='<div class="msg__role">Sage</div><div class="msg__bubble" id="streaming-bubble"></div>';
   box.appendChild(d);
   box.scrollTop=box.scrollHeight;
   return document.getElementById('streaming-bubble');
@@ -678,9 +685,7 @@ async function sendMessage(){
         if(ev.type==='delta'){
           if(!bubble_started){removeTypingIndicator();bubble=addStreamingMessage();bubble_started=true}
           fullText+=ev.delta||'';
-          const leakedCalls=LEAKED_CALL_OPEN_RE.test(fullText)||LEAKED_CALL_RE.test(fullText);
-          if(leakedCalls&&typeof setComposerStatus==='function'){setComposerStatus(leaked_call_status(fullText)||'Preparing your assessment…')}
-          bubble.innerHTML=sanitize_html(renderMd(strip_leaked_calls(fullText,{streaming:true})));
+          bubble.innerHTML=sanitize_html(renderMd(fullText));
           render_math(false);
           box.scrollTop=box.scrollHeight;
         }else if(ev.type==='meta'){
@@ -768,9 +773,8 @@ async function loadSessionsList(){
 
 loadSessionsList();
 
-// results section removed from home page; stub refs so artifact code paths no-op
-const resultsEl = {appendChild(){}, querySelectorAll(){return []}, scrollTop:0, scrollHeight:0};
-const resultsEyebrow = {hidden:true};
+const resultsEl = document.getElementById('results');
+const resultsEyebrow = document.getElementById('results-eyebrow');
 const artifactBtns = document.querySelectorAll('.composer-toolbar__btn[data-artifact-kind]');
 let firstArtifactShown = false;
 let artifactCounter = 0;

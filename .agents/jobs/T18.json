@@ -1,0 +1,22 @@
+{
+  "task_id": "T18",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "merlin_t18_sage_joblog_fix",
+  "declared_at": "2026-08-19T14:38:49Z",
+  "finalized_by": "Merlin",
+  "summary": "Correct T17.1.json line_counts.after for app/db.py (200 -> 227) and tests/test_db.py (211 -> 243) to match pinned git show <commit>:<path> | wc -l semantics at commit 3a029de.",
+  "files": {
+    "modified": [".agents/jobs/T17.1.json"],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "47ecbc2cd35f69392bc05f2fa86de6f4826f0eac",
+  "committed_at": "9660d38",
+  "line_counts": {},
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T18 done. Corrected .agents/jobs/T17.1.json line_counts.after: app/db.py 200 -> 227, tests/test_db.py 211 -> 243. Verified against commit 3a029de with wc -l semantics (LF byte count on git show output, wc binary absent on this host): app/db.py = 227, tests/test_db.py = 243; before values (186/180) and all other fields unchanged. git log 3a029de..HEAD for these two files is empty, so no later commit affects the counts. Fix committed as 9660d38 on feature/latex-notes (staged .agents/jobs/T17.1.json only); own job log .agents/jobs/T18.json committed in a separate follow-up commit. Working tree clean afterwards. TASK STATUS: T18 -> done.",
+  "verification": "review_only",
+  "notes": "job-log-only fix; no code changed"
+}

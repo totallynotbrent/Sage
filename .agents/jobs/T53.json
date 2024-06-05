@@ -1,0 +1,31 @@
+{
+  "task_id": "T53",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "t53-turing-onefile-fix",
+  "declared_at": "2026-08-21T23:59:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Fix T52 root cause: _run_generate tool prompts said 'matching schema' without ever showing the schema, so both attempts returned parseable JSON missing required fields (pydantic type=missing). Add module-level _SCHEMA_HINTS mirroring services/structured_outputs.py::_prompt shapes and embed the concrete shape in both the initial generate prompt and the repair note.",
+  "files": {
+    "modified": ["app/llm/tools.py", "tests/test_tools_loop.py"],
+    "created": [".agents/jobs/T53.json"],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
+  "line_counts": {
+    "before": {
+      "app/llm/tools.py": 193,
+      "tests/test_tools_loop.py": 456
+    },
+    "after": {
+      "app/llm/tools.py": 203,
+      "tests/test_tools_loop.py": 456
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T53 done. Root cause (per T52): _run_generate's prompts told the model to return 'ONLY JSON matching schema' / 'matching the schema exactly' but never showed any schema, so on unknown topics the model produced parseable JSON missing required fields -> pydantic ValidationError type='missing' -> {\"error\":\"missing\"} on BOTH attempts. Fix in app/llm/tools.py only (no import from app.services.structured_outputs; shapes duplicated verbatim per layering rule): (1) module-level _SCHEMA_HINTS with chat/mermaid/todo/quiz/latex shapes byte-identical to StructuredOutputService._prompt's schemas dict except latex, which uses the brief's '{"title":"...","latex":"\\\\documentclass{article}..."}' example so the model sees valid JSON-escaped LaTeX; (2) initial user prompt is now 'Generate ONLY the JSON for output_kind={kind} about: {topic}. Return ONLY this exact JSON shape: {shape}. Fill every field. The topic MUST stay within the current lesson thread ({topic}). Do not choose an unrelated subject.' with shape=_SCHEMA_HINTS.get(kind,'{}'); (3) repair note now 'Your previous answer could not be used ({stable_code}). Return ONLY corrected JSON for output_kind={kind} about {topic}, EXACTLY this shape: {shape}' - the shape rides along on attempt 2 too. Tests (tests/test_tools_loop.py): mermaid happy-path now asserts the LLM user message contains '\"source\"' and 'exact JSON shape'; todo repair test's exact-content assertion updated to the new wording including 'EXACTLY this shape: {\"title\":\"...\",\"items\":[{\"text\":\"...\",\"done\":false}]}'. Verification: python -m compileall app/llm/tools.py clean; python -m pytest tests/test_tools_loop.py -q => 10 passed. Pre-existing LSP typing noise (FakeLLM-vs-LLMClient param, httpx/httpx2 duplicate-package) untouched, outside scope. analyzer_pending: no tsc/eslint applies (Python); live Pi probe re-run owed to Merlin for behavioral confirmation. No commit made (batch policy); files left in working tree.",
+  "verification": "analyzer_pending",
+  "notes": "tools.py and test_tools_loop.py were untracked at declaration (earlier batch), so 'before' counts are working-tree raw line counts (Python fallback, wc-equivalent newline counting). No concurrent writer touched either file between declaration and finalize (re-checked via edits landing cleanly on declared base state)."
+}

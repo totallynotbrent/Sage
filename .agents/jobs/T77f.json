@@ -1,0 +1,101 @@
+{
+  "task_id": "T77f",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "opencode-merlin-t77f-probe-render-confirm",
+  "declared_at": "2026-08-23T02:36:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "VERDICT: VERIFIED - T77e structural probe rendering confirmed live end-to-end. All three counts EQUAL (N=3): run_probe tool_result 'probe ready: 3 questions' == 3 numbered question blocks in the single delta immediately after it == 3 numbered blocks persisted verbatim in the assistant message. Stream clean: 0 SSE type:error events, 0 thought-leak markers, 0 U+FFFD, no transport problems, block rendered exactly once (no re-render on turn 2). F1 regression sniff PASS: grade_answer carried ground-truth verbatim uuid f398e94a59334b06938c9ff88d1ff2ee, resolved successfully ('graded correct', not not_found). Two NEW residual findings logged for triage (R1 greeting verbosity vs <=2-sentence clause under strict whole-remainder reading; R2 single-ordinal answer misresolved q1->q3 recording spurious outcome=correct on a question the learner did not answer) - neither breaches T77e's stated acceptance nor reopens F1/F2.",
+  "files": {
+    "modified": [],
+    "created": [
+      ".agents/jobs/T77f.json"
+    ],
+    "deleted": []
+  },
+  "base_commit": null,
+  "committed_at": "43203343d774e7013d154e76e095ba3eab1bf66f",
+  "line_counts": {},
+  "modules_created": [],
+  "documentation": [],
+  "verification": "merlin",
+  "live_confirmation": {
+    "base_url": "http://raspberrypi.local:8000/",
+    "health": "GET /api/health -> status ok, model_configured true, endpoint_reachable true (T77e auto-reload confirmed live)",
+    "session_id": "bb5d9f06c865459d8681cedd9e73c74b",
+    "goal": "learn recursion",
+    "grounding_mode": "grounded",
+    "turns_used": 2,
+    "flow": "POST /api/sessions -> SSE turn 'teach me recursion' (consumed fully, byte-buffered reader) -> GET /api/sessions/{id} -> SSE turn '1: B' -> GET again"
+  },
+  "three_counts": {
+    "count_tool_result": 3,
+    "count_delta_question_blocks": 3,
+    "count_persisted_question_blocks": 3,
+    "all_equal": true,
+    "tool_result_summary_verbatim": "probe ready: 3 questions",
+    "delta_position": "immediately after run_probe tool_result (event idx 2 -> idx 3), ONE delta event containing the whole block",
+    "block_heading": "**Quick check — let's see where you're starting from.**",
+    "numbering_contiguous_1_to_3": true,
+    "option_markers_total": 15,
+    "option_letters_exact_per_question": {
+      "1_base_case": ["A", "B", "C", "D", "E"],
+      "2_call_stack": ["A", "B", "C", "D", "E"],
+      "3_tail_recursion": ["A", "B", "C", "D", "E"]
+    },
+    "persisted_contains_block_verbatim": true,
+    "persisted_block_index": 0,
+    "persistence_durable_after_turn2": true,
+    "re_renders_in_turn2": 0,
+    "rendered_content_matches_server_quiz_rows": "question texts + option lists byte-equal to GET /api/sessions/{id} quiz rows (kind=probe)"
+  },
+  "invitation_text_verbatim": "Hello! I'm Sage, your local tutor. I'd love to help you master recursion.\n\nTo make sure we start at the right level, I've put together a few diagnostic questions. Take your time — answer what you can!",
+  "invitation_analysis": {
+    "position": "entirety of model-authored deltas AFTER the rendered block (stream order: meta, tool_call run_probe, tool_result, delta=block, then these)",
+    "sentences_total_post_block": 5,
+    "greeting_part_sentences": 3,
+    "invitation_proper_sentences": 2,
+    "teaching_before_answers": false,
+    "question_restatement_or_reformatting": false,
+    "clause_reading_note": "'only a short invitation (<=2 sentences before any teaching)': invitation PROPER is exactly 2 sentences with zero teaching and zero question restatement - passes on that reading; the extra 3-sentence greeting makes the WHOLE post-block remainder 5 sentences - exceeds the bound under a strict whole-remainder reading. Text reported verbatim above for adjudication."
+  },
+  "regression_result_f1": {
+    "result": "PASS",
+    "learner_answer": "1: B",
+    "grade_calls_observed": 1,
+    "grade_call_arguments": {
+      "question_id": "f398e94a59334b06938c9ff88d1ff2ee",
+      "choice_index": 1,
+      "status": "Checking your answer on Tail Recursion..."
+    },
+    "is_32hex_verbatim_ground_truth": true,
+    "ground_truth_source": "GET /api/sessions/{id} quiz rows (stronger than T77d's existence-proof method): probe uuids 5c2b2b5188d045b5b273e90e16e8c18f (base case), 59a43287e28f4345bd61a8b363bb9b8a (call stack), f398e94a59334b06938c9ff88d1ff2ee (tail recursion)",
+    "server_resolution": "graded correct (real row updated, NOT error:not_found) - F1's fabricated-placeholder failure mode stays dead"
+  },
+  "globals_clean": {
+    "sse_error_events": 0,
+    "thought_leak_markers": 0,
+    "markers_checked": ["<|channel|>thought", "<|think|>", "channel|>"],
+    "transport_problems": "none (no non-data lines, no bad json, no trailing bytes across both turns)",
+    "mojibake": "0 x U+FFFD at byte level in saved transcripts and persisted messages; em-dash genuine (console '�' was PowerShell display artifact only, matching T77d)"
+  },
+  "residual_findings_for_triage": [
+    {
+      "id": "R1",
+      "severity": "minor/cosmetic",
+      "title": "Model adds a 3-sentence greeting after the block, so post-block prose totals 5 sentences vs the playbook's 'only one short line'",
+      "impact": "No question restatement, no teaching; invitation proper meets the 2-sentence cap exactly. Pure prompt-adherence variance; cannot be structurally fixed beyond the current playbook clause."
+    },
+    {
+      "id": "R2",
+      "severity": "functional, narrow",
+      "title": "Single-ordinal answer misresolved: learner's '1: B' (base case per rendered numbering) was graded against tail-recursion row f398e94a...",
+      "evidence": "DB after turn 2: f398e94a status=answered outcome=correct choice_index recorded as its option B; base case 5c2b2b51 still pending/outcome=null - the learner's actual answer was never recorded on any row",
+      "why_not_F1_or_F2": "uuid is verbatim ground truth (F1 plumbing intact) and all 3 questions WERE presented (F2 fixed); this is ordinal->row resolution by the model. Pending injection ([PENDING QUESTIONS]) carries no ordinals and lists rows in the SAME order as the rendered numbering, so the model had agreeing sources and still picked the wrong row.",
+      "prior_art": "T77d turn02 multi-answer ordinals ('1: B; 2: I don't know') mapped BOTH correctly - failure appears specific to sparse/single-question answers; same harm class as T77d turn03 spurious outcome (semantically wrong mastery signal)",
+      "recommendation": "new task: consider making the server resolve 'N: X' ordinals deterministically against pending rows (parse in turn pipeline before the LLM sees it), or inject explicit ordinals into the [PENDING QUESTIONS] lines matching the rendered numbering"
+    }
+  ],
+  "final_report": "T77f done - VERDICT: VERIFIED. No source modified. Live confirmation on http://raspberrypi.local:8000/ (T77e auto-reload live, /api/health ok, model_configured true). Session bb5d9f06c865459d8681cedd9e73c74b {goal 'learn recursion', grounded}, 2 turns used.\n\nPRIMARY ACCEPTANCE - ALL THREE COUNTS EQUAL (N=3 = 3 = 3):\n(1) run_probe tool_result summary verbatim 'probe ready: 3 questions'.\n(2) The NEXT event is ONE delta starting '**Quick check' containing exactly 3 contiguously numbered question blocks, every option of every question marked A)-E) (15 markers, letters exact), closing line 'Reply like `1: B` ...'. Rendered content matches the server quiz rows byte-for-byte.\n(3) Persisted assistant message contains that same block VERBATIM at index 0; still intact after turn 2; zero re-renders of the block anywhere (turn 2 count 0).\nStream clean: 0 type:error events, 0 thought-leak markers (<|channel|>thought / <|think|> / channel|>) across events AND assembled text, no non-data lines/bad json/trailing bytes, 0 U+FFFD at byte level (console dashes were display-only).\n\nREGRESSION SNIFF (F1): PASS. Learner answered by ordinal ('1: B'); model called grade_answer with question_id f398e94a59334b06938c9ff88d1ff2ee - verified verbatim against ground-truth probe uuids pulled from GET /api/sessions/{id} quiz rows (stronger than T77d's existence-proof) - resolved server-side as 'graded correct', not_found never seen. Zero placeholder-style ids anywhere.\n\nRESIDUALS FOR TRIAGE (neither breaches T77e acceptance nor reopens F1/F2):\nR1 (cosmetic): post-block model text = 3-sentence greeting + exactly-2-sentence invitation (verbatim text in job log); whole remainder is 5 short sentences vs the playbook's 'only one short line' if counted strictly; zero teaching, zero restatement.\nR2 (functional, needs follow-up): the single ordinal '1:' was misresolved - graded against tail-recursion (q3) instead of base case (q1); DB shows f398e94a answered/correct while 5c2b2b51 (the actually-answered question) remains pending/unrecorded. Injection ordering agrees with rendered numbering and carries no ordinals, so sources were consistent - pure model resolution error on sparse answers (multi-answer mapping worked in T77d turn02). Recommend deterministic server-side 'N: X' parsing or ordinal-labeled pending lines as the next task.\n\nRaw transcripts: %TEMP%/opencode/t77f/turn01.json, turn02.json, analysis.json, analysis_turn2.json, quiz_ground_truth.json, persisted_after_turn2.txt; harness phase1.py/phase2.py (byte-buffered v2 reader lineage from t77d).",
+  "notes": "Verification-only task: zero source files touched (brief constraint honored). Jobs folder read first; T77f unused. Ground truth upgraded vs T77d: probe question uuids read directly from load_full() quiz rows over HTTP instead of inferring from grading behavior. Turn budget consumed: 2 of session budget. Server DB itself unreachable over SMB (unchanged since T77d), but the HTTP quiz rows give equivalent id-level ground truth."
+}

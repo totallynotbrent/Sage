@@ -1,0 +1,33 @@
+{
+  "task_id": "T77-Fix",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ox-alpha/T77-Fix",
+  "declared_at": "2026-08-22T10:05:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Two narrow fixes from T77 live evidence: surface real exception codes from execute_tool (NotFoundError was masked as invalid_output) and harden the advance_lesson trigger instruction plus question_id provenance guidance.",
+  "files": {
+    "modified": ["app/llm/tools.py", "app/llm/messages.py", "tests/test_tools_loop.py"],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "799852bcac0e2177c42499060693cd5870f0ba37",
+  "committed_at": "43203343d774e7013d154e76e095ba3eab1bf66f",
+  "line_counts": {
+    "before": {
+      "app/llm/tools.py": 412,
+      "app/llm/messages.py": 289,
+      "tests/test_tools_loop.py": 722
+    },
+    "after": {
+      "app/llm/tools.py": 425,
+      "app/llm/messages.py": 291,
+      "tests/test_tools_loop.py": 743
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T77-Fix done — both evidence links fixed, compileall clean, pytest tests/test_tools_loop.py -q 18/18 green, no commit (batch rule).\n\n(1) Code surfacing, app/llm/tools.py:\n- grade_answer tool description now ends with: 'question_id MUST be copied VERBATIM from the ids returned by run_probe (opaque hex strings like 9f2c…, NEVER display numbers like 1 or 2).'\n- _issue_code now surfaces exception-borne codes: after the existing detail-issue_codes / pydantic / 'Empty model output' branches it checks getattr(exc, 'code', None) and returns any non-empty string as-is, so NotFoundError('question', <bad id>) from LearningService.answer_quiz now yields {\"error\": \"not_found\"} to the model instead of masked invalid_output; ProviderError codes (timeout/rate_limit/...) surface the same way. 'not_found' added to _KNOWN_ERROR_CODES. Deliberate ordering deviation from the brief's literal 'first check': a truly-first exc.code check would remap ModelOutputError('Empty model output…') from empty_output to its class code 'model_output' and break the existing repair-loop behavior/test (ModelOutputError carries class attr code='model_output'); NotFoundError hits none of the earlier branches so it still lands on the new check. Existing mappings fully preserved.\n- _run_probe return payload extended with \"grading_hint\": \"Grade replies with grade_answer using these exact question_id values.\" so id provenance rides along with every probe result.\n\n(2) Trigger hardening, app/llm/messages.py PHASE_PLAYBOOK teach section: soft sentence replaced with the brief's procedural imperative verbatim ('Grading: call grade_answer passing question_id EXACTLY as returned by run_probe. The moment the learner's answer grades correct — or they say they've got it / ask to move on — call advance_lesson{passed_check:true} IN THAT SAME REPLY before writing any teaching prose. If their answer grades incorrect, remediate first without advancing.')\n\n(3) Test, tests/test_tools_loop.py: added test_execute_tool_grade_answer_unknown_question_surfaces_not_found — runs a real run_probe through LearningService, asserts the grading_hint field, then grades an unknown uuid id and asserts execute_tool returns exactly {\"error\": \"not_found\"} (real production exception path, not a stubbed raise).\n\nVerification performed: python -m compileall clean on all three files; python -m pytest tests/test_tools_loop.py -q → 18 passed in 2.49s (17 pre-existing + 1 new). Full-suite run and live-server re-drive of the Socratic arc remain for Merlin (verification marked analyzer_pending per brief); server auto-reload picks the changes up live.\n\nNotes for reviewers: repo working tree carries large pre-existing uncommitted work, so `git show HEAD:<path> | wc -l` gives 229/262/463 for these files — those are NOT my baselines; my true before-state is the working tree at declaration time (412/289/722), measured via Python newline counts (wc fallback), after-state 425/291/743. No concurrent writer touched the declared set during the task window (all edits applied against freshly-read snapshots without conflicts). Pre-existing pyright diagnostics in the test file (FakeLLM-vs-LLMClient duck typing, httpx duplicate-package resolution at lines 199/286/330/684) are untouched and out of scope.",
+  "verification": "analyzer_pending",
+  "notes": "File-set unchanged throughout: exactly app/llm/tools.py, app/llm/messages.py, tests/test_tools_loop.py plus this log. Reconciliation check done: no file in the declared set changed between declaration and finalize other than by me. Line counts use Python str.count('\\n') fallback (raw wc semantics)."
+}

@@ -1,0 +1,43 @@
+{
+  "task_id": "T10",
+  "agent": "Turing",
+  "status": "done",
+  "summary": "Remove the web UI entirely: delete static/, strip static serving from app and docs",
+  "files": {
+    "modified": [
+      "app/main.py",
+      "app/__init__.py",
+      "app/config.py",
+      "README.md"
+    ],
+    "created": [],
+    "deleted": [
+      "static/app.js",
+      "static/data.js",
+      "static/index.html",
+      "static/plan.js",
+      "static/quiz.js",
+      "static/study.js",
+      "static/style.css",
+      "static/theme.js",
+      "static/vendor/mermaid.min.js"
+    ]
+  },
+  "line_counts": {
+    "before": {
+      "app/main.py": 70,
+      "app/__init__.py": 7,
+      "app/config.py": 103,
+      "README.md": 112
+    },
+    "after": {
+      "app/main.py": 62,
+      "app/__init__.py": 7,
+      "app/config.py": 103,
+      "README.md": 111
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "notes": "API, persistence, and learning loop stay. Replaces a superseded T10 entry (dark-mode UI fixes) whose files are all deleted here. Untracked static/theme.js removed from disk, not via git rm. Also dropped the now-unused pathlib.Path import in app/main.py. Tests: 211 passed. Smoke: GET /api/health -> 200, GET / -> 404 (expected)."
+}

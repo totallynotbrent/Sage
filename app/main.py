@@ -5,7 +5,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -76,22 +76,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     static_dir = Path(__file__).parent.parent / "static"
     if static_dir.exists():
 
-        @app.middleware("http")
-        async def no_cache_static(request: Request, call_next):
-            response = await call_next(request)
-            if request.url.path in ("/", "/index.html", "/sage-workspace.html",
-                                    "/sage-sessions.html", "/sage-library.html",
-                                    "/sage-settings.html", "/sage-health.html",
-                                    "/app.js", "/style.css"):
-                response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-            return response
-
         @app.get("/", include_in_schema=False)
         async def serve_ui():
-            return FileResponse(
-                str(static_dir / "index.html"),
-                headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
-            )
+            return FileResponse(str(static_dir / "index.html"))
 
         app.mount("/", StaticFiles(directory=str(static_dir)), name="static")
 

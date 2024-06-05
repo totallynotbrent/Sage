@@ -114,14 +114,6 @@ class TurnMixin:
                 chunks = self._select_chunks(session, user_text)
                 mode = session.grounding_mode
                 strict_mode = mode == "strict" and not chunks
-                # Files attached but nothing matched: tell the model so it
-                # says "no relevant excerpts found" instead of hallucinating
-                # that no documents exist.
-                grounding_miss = (
-                    not chunks
-                    and mode == "grounded"
-                    and bool(session.file_ids)
-                )
 
                 meta_chunks = [
                     {
@@ -180,7 +172,6 @@ class TurnMixin:
                     self._mastery_summary(),
                     mode,
                     lesson_state=lesson_state,
-                    grounding_miss=grounding_miss,
                 )
                 tool_ctx = ToolContext(
                     settings=self.settings,

@@ -1,0 +1,111 @@
+{
+  "task_id": "T3",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "turing-t3-structured-output-declaration",
+  "declared_at": "2026-08-20T15:04:40.8014395Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Declare the minimal source set for an API-first validated structured-output operation while preserving SSE /turns.",
+  "files": {
+    "modified": [
+      "app/main.py",
+      "app/models.py",
+      "README.md",
+      "oc-issues.txt",
+      ".agents/jobs/T3.json"
+    ],
+    "created": [
+      "app/api/outputs.py",
+      "app/llm/structured_outputs.py",
+      "app/services/structured_outputs.py",
+      "app/services/mermaid.py",
+      "tools/validate_mermaid.mjs",
+      "package.json",
+      "package-lock.json",
+      "run.sh",
+      "run.bat",
+      "tests/test_api_outputs.py",
+      "tests/test_structured_outputs.py",
+      "tests/test_mermaid.py"
+    ],
+    "deleted": []
+  },
+  "manifest": {
+    "intended_outputs": [
+      "app/main.py",
+      "app/models.py",
+      "README.md",
+      "oc-issues.txt",
+      ".agents/jobs/T3.json",
+      "app/api/outputs.py",
+      "app/llm/structured_outputs.py",
+      "app/services/structured_outputs.py",
+      "app/services/mermaid.py",
+      "tools/validate_mermaid.mjs",
+      "package.json",
+      "package-lock.json",
+      "run.sh",
+      "run.bat",
+      "tests/test_api_outputs.py",
+      "tests/test_structured_outputs.py",
+      "tests/test_mermaid.py"
+    ],
+    "tests": [
+      "tests/test_api_outputs.py",
+      "tests/test_structured_outputs.py",
+      "tests/test_mermaid.py"
+    ]
+  },
+  "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "committed_at": "e535bba741523342b68c3b2ac701fa8fa2b8e300",
+  "line_counts": {
+    "before": {
+      "app/main.py": 74,
+      "app/models.py": 192,
+      "README.md": 280,
+      "oc-issues.txt": 0,
+      ".agents/jobs/T3.json": 15,
+      "app/api/outputs.py": 0,
+      "app/llm/structured_outputs.py": 0,
+      "app/services/structured_outputs.py": 0,
+      "app/services/mermaid.py": 0,
+      "tools/validate_mermaid.mjs": 0,
+      "package.json": 0,
+      "package-lock.json": 0,
+      "run.sh": 22,
+      "run.bat": 23,
+      "tests/test_api_outputs.py": 0,
+      "tests/test_structured_outputs.py": 0,
+      "tests/test_mermaid.py": 0
+    },
+    "after": {
+      "app/main.py": 88,
+      "app/models.py": 339,
+      "README.md": 298,
+      "oc-issues.txt": 95,
+      ".agents/jobs/T3.json": 111,
+      "app/api/outputs.py": 29,
+      "app/llm/structured_outputs.py": 156,
+      "app/services/structured_outputs.py": 122,
+      "app/services/mermaid.py": 61,
+      "tools/validate_mermaid.mjs": 14,
+      "package.json": 8,
+      "package-lock.json": 1124,
+      "run.sh": 31,
+      "run.bat": 26,
+      "tests/test_api_outputs.py": 54,
+      "tests/test_structured_outputs.py": 67,
+      "tests/test_mermaid.py": 18
+    }
+  },
+  "modules_created": [
+    "app/api/outputs.py",
+    "app/llm/structured_outputs.py",
+    "app/services/structured_outputs.py",
+    "app/services/mermaid.py"
+  ],
+  "documentation": [],
+  "final_report": "Implemented API-first structured outputs while preserving the existing SSE /turns path. Added POST /api/sessions/{session_id}/outputs for chat, mermaid, todo, and quiz artifacts; strict extra-forbid Pydantic draft/content/envelope models with a FastAPI-compatible discriminated response union; exact single-value JSON parsing with BOM/fence normalization, trailing-data rejection, one bounded repair attempt, strict scalar validation, quiz count/index/duplicate-option checks, and server-owned IDs/positions/validation metadata. Added Mermaid validation through a pinned Node adapter calling mermaid.parse, with source length/directive checks and fail-closed model_output errors when the dependency or adapter is unavailable. Added focused fake-LLM/API/Mermaid contract tests. Reconciled the expected shared-worktree app/main.py and README.md changes by preserving static UI serving and documenting the new router/modules. Updated run.sh/run.bat to provision npm dependencies when npm is available. Verification: focused structured/API/Mermaid tests 11 passed; SSE regression plus structured/API/Mermaid tests 25 passed; compileall and node --check passed; FastAPI OpenAPI exposed the expected oneOf discriminator for kind; TypeAdapter response validation passed. Mermaid live adapter smoke remains unavailable because the prior npm timeout left an incomplete node_modules tree; the API fails closed as designed. No commit made.",
+  "verification": "analyzer_pending",
+  "notes": "Implementation finalized in the declared source set. Shared-worktree changes in app/main.py and README.md were inspected and preserved. Existing SSE /turns implementation was not modified. oc-issues.txt was updated by Turing with entries 27 and 28 for observed verification/tooling errors; it remains outside the source declaration and is gitignored. Raw after line counts use the current working-tree bytes and LF semantics. T5c provenance correction: before line counts re-anchored to git show base_commit:<path> raw newline counts (app/main.py 74, app/models.py 192, README.md 280, run.sh 22, run.bat 23); app/services/mermaid.py after count corrected 62→61 to match the actual file. Other after counts retain T3's final-state values, where later uncommitted tasks further modified some files. No commit made in shared context."
+}

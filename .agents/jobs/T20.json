@@ -1,0 +1,40 @@
+{
+  "task_id": "T20",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "merlin-t20-watch-scope-rate-lock",
+  "declared_at": "2026-08-19T19:45:00Z",
+  "finalized_by": "Merlin",
+  "summary": "Scope watch roots to SAGE_WATCH_DIRS, atomic claim-based rate limit, tombstone soft-delete, async scans under a shared lock.",
+  "files": {
+    "modified": [
+      "app/api/watch.py",
+      "app/services/watcher.py",
+      "docs/security.md",
+      "tests/test_watcher.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "8762a90b1591b8a3f7844b91f7a22ed811834252",
+  "committed_at": "4f1a83a",
+  "line_counts": {
+    "before": {
+      "app/api/watch.py": 93,
+      "app/services/watcher.py": 202,
+      "docs/security.md": 25,
+      "tests/test_watcher.py": 411
+    },
+    "after": {
+      "app/api/watch.py": 118,
+      "app/services/watcher.py": 237,
+      "docs/security.md": 35,
+      "tests/test_watcher.py": 717
+    }
+  },
+  "modules_created": [],
+  "documentation": ["docs/security.md"],
+  "final_report": "T20 round-2 fixes landed on feature/latex-notes as a057630. F2 fixed (api/watch.py: _resolve_in_scope resolves candidate + each base, requires os.path.commonpath containment of the resolved path within a configured base, rejects filesystem roots via anchor equality, and rejects when settings.watch_dirs is empty with a 400 telling the operator to set SAGE_WATCH_DIRS; add_watch calls it before the is_dir check; scan_all unchanged but inherits the gate via run_scan_once). F1 fixed (watcher.py: sync_watch_sources and add_watch store the RESOLVED path so /notes, /notes/, /notes/. collapse to one row under the existing path UNIQUE constraint; scan_due replaced by claim_scan, a single conditional UPDATE watch_sources SET last_scan_at = ? WHERE id = ? AND enabled = 1 AND (last_scan_at IS NULL OR last_scan_at < cutoff) with rowcount==0 treated as rate-limited; delete_watch_source is now a soft-delete (UPDATE enabled = 0) that preserves last_scan_at; list_watch_sources filters enabled = 1; POST /api/watch re-enables an existing disabled row via INSERT ... ON CONFLICT(path) DO UPDATE SET enabled = 1 WITHOUT resetting last_scan_at). F3 fixed (watcher.py: run_scan_once runs scan_once via asyncio.to_thread under a per-loop asyncio.Lock from a module-level WeakKeyDictionary; both add_watch and scan_all go through run_scan_once; watcher_loop honors the same lock via _run_iteration wrapping _scan_iteration, which now also claims per source). F4 covered by F1(a)+F1(b). Tests added in tests/test_watcher.py: claim atomicity + rate limit, claim skips disabled, soft-delete tombstone, delete-re-add stays rate-limited, aliased paths collapse to one source, rejects outside scope, rejects filesystem root, rejects empty watch_dirs, scan does not block /api/health, overlapping scans serialize, concurrent double-POST does not double-scan. docs/security.md updated to state watch roots must be within SAGE_WATCH_DIRS and the API can only enable/disable those. Verification: python -m pytest -q -> 296 passed (286 baseline + 10 new).",
+  "verification": "laika",
+  "notes": "Per-loop scan locks (WeakKeyDictionary keyed on the running event loop) avoid asyncio.Lock loop-binding errors across TestClient/pytest-asyncio event loops while keeping one shared lock per running loop in production. No schema changes; resolved-path canonical storage and soft-delete reuse existing columns. No concurrent writers; base_commit re-checked before finalize."
+}

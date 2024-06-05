@@ -1,0 +1,25 @@
+{
+  "task_id": "T17.1",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ses_t17_1_sage_writer",
+  "declared_at": "2026-08-18T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Schema v2 migration: SCHEMA_VERSION=2, new watch_sources table, new nullable columns (files.paired_file_id/subject/source_path, chunks.unicode_text/environment/label, quiz_questions.source_ref), _ensure_column migration helper + guarded indexes, db tests for the v1->v2 upgrade path.",
+  "files": {
+    "modified": ["app/db.py", "tests/test_db.py"],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "b13ff71518f933902c6d5c28b648b82ddfdfd3c3",
+  "committed_at": "3a029de",
+  "line_counts": {
+    "before": { "app/db.py": 186, "tests/test_db.py": 180 },
+    "after": { "app/db.py": 227, "tests/test_db.py": 243 }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T17.1 done. app/db.py: SCHEMA_VERSION 1->2; files gains paired_file_id/subject/source_path, chunks gains unicode_text/environment/label, quiz_questions gains source_ref (all nullable) in the fresh-DB DDL; new watch_sources table (id PK, path UNIQUE, enabled, last_scan_at, last_error, created_at, updated_at); _V2_COLUMNS + _ensure_column(conn, table, name, ddl) helper drives ALTER TABLE ADD COLUMN for every new column on existing DBs (mirroring the nodes_since_check precedent); guarded CREATE INDEX IF NOT EXISTS for idx_files_subject and idx_files_source_path run after the column ensures (kept out of the static _DDL so old-DB executescript never fails). tests/test_db.py: watch_sources added to TABLES; new test_init_migrates_v1_db_to_v2 builds a v1-shaped DB (old files/chunks/quiz_questions DDL only) then runs init_db and asserts all new columns present, watch_sources exists, both new indexes exist, and schema_version == 2 (asserts both the constant and the literal to prove no stale v1 pin). Verified: tests/test_db.py 12 passed; full offline suite 212 passed. Commit 3a029de on feature/latex-notes. TASK STATUS: T17.1 -> done.",
+  "verification": "laika",
+  "notes": "pylatexenc installed into the dev box Python 3.11.9 env (v2.11) so tex extractor tests execute; baseline suite green (211 passed) before any edit; 212 after (new migration test). Solo commit on feature/latex-notes; job log .agents/jobs/T17.1.json."
+}

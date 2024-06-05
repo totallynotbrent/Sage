@@ -1,0 +1,77 @@
+{
+  "task_id": "T52",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": null,
+  "declared_at": "2026-08-21T23:50:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Final live probe of generate_mermaid round-trip vs restarted Pi server http://192.168.1.57:8000/ (with T51 hardening). One API session, two turns. Verdict FAIL: T50 failure mode reproduced - both generate_mermaid attempts (repair fired) returned {\"error\":\"missing\"} and the model apologized in deltas.",
+  "files": {
+    "modified": [],
+    "created": [".agents/jobs/T52.json"],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
+  "line_counts": {},
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "FAIL. Live probe against restarted Pi server (health: model_configured=true, endpoint_reachable=true). Created session c4faa0b75ee84debab223be46768f662 {goal:'teach me about recursion', file_ids:[], grounding_mode:'grounded'}. Turn A ('Explain recursion in one sentence.') clean: meta -> delta x21 -> done, done_arrived=true, text 'Recursion is a programming technique where a function calls itself to solve a smaller version of the same problem.' Turn B ('Now show me that as a mermaid diagram.') FAILED: meta -> tool_call(generate_mermaid) -> tool_result(generate_mermaid, summary='error: missing') -> tool_call(generate_mermaid) -> tool_result(generate_mermaid, summary='error: missing') -> delta x223 (apology + inline recursion fallback lesson) -> tool_call(record_step_actions) -> tool_result(record_step_actions,'2 actions') -> done. This matches the task's FAIL criterion verbatim: tool_result carrying error followed by apology deltas (T50 failure mode). Repair evidence: attempts=2 IS visible - two generate_mermaid call/result pairs, so the T51 bounded repair fired; both attempts failed identically. Code attribution (read-only): app/llm/tools.py _issue_code returns str(errors[0].type) for pydantic ValidationError, so 'missing' = model returned parseable JSON missing a required field on BOTH attempts (not empty_output, not transport). Topic grounding could not be confirmed from arguments (tool args not persisted in GET /api/sessions/{id}; deltas were recursion-framed, no off-topic diagram occurred since none was produced). Thought-leak scan: zero hits across all Turn A/B events for <think>, </think>, <thinking>, chain of thought, internal monologue, reasoning trace, system prompt. Probe script: C:\\Users\\Brent\\AppData\\Local\\Temp\\opencode\\t52_probe.py. No source modified. Next fix direction for Turing: 'missing' twice suggests schema mismatch or field naming drift between the prompt's stated schema and validate_output expectations in _run_generate, not flaky upstream - worth dumping the model's raw JSON on attempt 1 server-side.",
+  "verification": "merlin",
+  "notes": "Read-only live HTTP/SSE probe; no source files touched. Event sequences recorded names-only with consecutive deltas compressed; previews capped at 100 chars. Server was freshly restarted per task brief; single run performed (no retries) to keep it one-session/two-turns tight.",
+  "probe": {
+    "server": "http://192.168.1.57:8000/",
+    "health_status": 200,
+    "create_session_status": 200,
+    "session_id": "c4faa0b75ee84debab223be46768f662",
+    "turn_a": {
+      "message": "Explain recursion in one sentence.",
+      "http_status": 200,
+      "sequence_names_only": ["meta", "delta x21", "done"],
+      "done_arrived": true,
+      "previews_100": [
+        "[0] meta: {\"chunks\": [], \"insufficient\": false, \"web_sources\": []}",
+        "[1] delta: Recurs",
+        "[21] delta: ."
+      ],
+      "leak_hits": []
+    },
+    "turn_b": {
+      "message": "Now show me that as a mermaid diagram.",
+      "http_status": 200,
+      "sequence_names_only": [
+        "meta",
+        "tool_call(generate_mermaid)",
+        "tool_result(generate_mermaid)",
+        "tool_call(generate_mermaid)",
+        "tool_result(generate_mermaid)",
+        "delta x223",
+        "tool_call(record_step_actions)",
+        "tool_result(record_step_actions)",
+        "done"
+      ],
+      "done_arrived": true,
+      "previews_100": [
+        "[0] meta: {\"chunks\": [], \"insufficient\": false, \"web_sources\": []}",
+        "[2] tool_result: {\"name\": \"generate_mermaid\", \"summary\": \"error: missing\"}",
+        "[4] tool_result: {\"name\": \"generate_mermaid\", \"summary\": \"error: missing\"}",
+        "[5] delta: I",
+        "[6] delta:  apologize",
+        "[16] delta:  generating",
+        "[18] delta:  diagram"
+      ],
+      "attempts_visible": 2,
+      "repair_fired": true,
+      "leak_hits": [],
+      "attempt_or_repair_mentions_in_events": []
+    },
+    "verdict": "FAIL",
+    "verdict_reason": "T50 failure mode reproduced: generate_mermaid tool_result carried {\"error\":\"missing\"} on both attempts (T51 repair fired once, still failed), followed by apology deltas ('I apologize, but I'm having some technical trouble generating the diagram right now'). Neither PASS-A (no source/diagram_type delivered) nor PASS-B (apology-after-error-card pattern, explicitly listed under FAIL).",
+    "code_attribution_readonly": {
+      "file": "app/llm/tools.py",
+      "line_73_85": "_issue_code: pydantic ValidationError -> str(errors[0].type); '' -> empty_output; known transport codes kept else invalid_output",
+      "interpretation": "'missing' = parseable JSON missing a required field on both attempts; rules out empty_output and transport errors",
+      "tools_py_lines": "108: return {'error': _issue_code(exc)} | 159: stable_code = _issue_code(exc) | 179: return {'error': 'invalid_output'}"
+    }
+  }
+}

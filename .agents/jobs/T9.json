@@ -1,0 +1,45 @@
+{
+  "task_id": "T9",
+  "agent": "merlin",
+  "status": "done",
+  "summary": "Fix warden review defects: M-1 regrade phase guard, M-2 duplicate node_key 500, M-3 skipped-question re-answer, M-4 skip_node dangling current_node_id, M-5 preferences default drift",
+  "files": {
+    "modified": [
+      "app/services/learning.py",
+      "app/llm/structured.py",
+      "app/services/plans.py",
+      "static/data.js",
+      "tests/test_learning.py",
+      "tests/test_structured.py",
+      "tests/test_plans.py",
+      "tests/test_api_plans.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "line_counts": {
+    "before": {
+      "app/services/learning.py": 251,
+      "app/llm/structured.py": 346,
+      "app/services/plans.py": 229,
+      "static/data.js": 133,
+      "tests/test_learning.py": 362,
+      "tests/test_structured.py": 239,
+      "tests/test_plans.py": 205,
+      "tests/test_api_plans.py": 292
+    },
+    "after": {
+      "app/services/learning.py": 257,
+      "app/llm/structured.py": 357,
+      "app/services/plans.py": 237,
+      "static/data.js": 133,
+      "tests/test_learning.py": 461,
+      "tests/test_structured.py": 260,
+      "tests/test_plans.py": 255,
+      "tests/test_api_plans.py": 310
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "notes": "M-1: check-question transitions now gate on the session phase read after the claim; set_phase('teach')+advance only run when phase is 'check' or 'remediate', and 'remediate' is only set when phase is 'check'. Evidence is still recorded for every answer. M-2: duplicate node_keys are rejected in both validate_plan (returns None, feeding the existing corrective-retry + ModelOutputError path) and _plan_from_fragments (returns None when a duplicate is seen), so a dup-key plan degrades into a clean 422 model_output error (retryable) instead of hitting the UNIQUE(session_id, node_key) IntegrityError 500. M-3: answer_quiz rejects status='skipped' with a ValueError (400). M-5: data.js style fallbacks aligned to the backend 'analogy-first' default; PATCH semantics left as-is (notes COALESCE accepted). M-4 choice (documented): when the skipped node is the current node and phase != 'teach', clear current_node_id (and only bump updated_at) rather than pointing it at the next pending node. Rationale: advance() marks the current node done, so pointing at the next pending node would cause a later correct answer to that node's stale check question to mark the next node done without it ever being taught; clearing lets the next advance()/approve() re-establish the correct first pending node and keeps the state machine consistent. Phase and nodes_since_check are untouched. NITs (CHECK_EVERY_NODES duplication, stale app.js comment, .pytest_cache ignore) intentionally left unfixed per review. Verification: python -m pytest tests/ -q -> 211 passed (202 baseline + 9 new: 4 in test_learning.py, 2 in test_structured.py, 2 in test_plans.py, 1 in test_api_plans.py); node --check static/data.js OK."
+}

@@ -1,0 +1,43 @@
+{
+  "task_id": "T31a",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "unknown",
+  "declared_at": "2026-08-21T16:22:32.636125Z",
+  "summary": "provider switch to Ollama cloud (https://ollama.com/v1, gemma4:31b-cloud), SearXNG config, thought filtering + timeout tuning",
+  "files": {
+    "modified": [
+      "app/config.py",
+      "app/llm/client.py",
+      ".env.example",
+      "docs/environment.md",
+      "README.md"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "b26e53da5a5dc758860440faac02a26d99f9f3d2",
+  "line_counts": {
+    "before": {
+      "app/config.py": 83,
+      "app/llm/client.py": 213,
+      ".env.example": 17,
+      "docs/environment.md": 24,
+      "README.md": 301
+    },
+    "after": {
+      "app/config.py": 113,
+      "app/llm/client.py": 310,
+      ".env.example": 18,
+      "docs/environment.md": 25,
+      "README.md": 301
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "notes": "Declared files per spec; nothing outside declared set modified by this task. Other dirty files (app/api/sessions.py etc) pre-existed from other in-flight jobs, not touched by T31a. Verified compileall, normalization, and streaming scrubber with split-marker tests.",
+  "finalized_by": "Turing (batch committer)",
+  "verification": "analyzer_pending",
+  "committed_at": "fbb72e9dc1b82e74ace514c705f46a9bcc07c208",
+  "final_report": "T31a provider switch complete.\n\napp/config.py: defaults updated to https://ollama.com/v1 and gemma4:31b-cloud; added searxng_url Field(SEARXNG_URL) and model_validator _normalize_urls that case-insensitive checks ollama.com host, strips trailing slash, appends /v1 when path empty/\"/\" (handles https://ollama.com -> https://ollama.com/v1, case-insensitive, strips trailing slash), strips searxng_url trailing slash. validation_problems wording updated to BROT_API_KEY / OLLAMA_API_KEY and appends Get a key at https://ollama.com/settings/keys when key missing and host is ollama.com; placeholder message updated to mention Ollama key.\n\n.env.example: header updated to Ollama cloud (OpenAI-compatible) — https://ollama.com/v1, BROT_BASE_URL/MODEL set to new defaults, added commented SEARXNG_URL=http://192.168.1.57:8080/.\n\ndocs/environment.md: BROT_BASE_URL/MODEL rows updated to mention Ollama cloud defaults and keys URL; added SEARXNG_URL row.\n\napp/llm/client.py: GENERATION_TIMEOUT changed to httpx.Timeout(connect=30, read=300, write=60, pool=30) (was 900 read); added _strip_thought helper using re.sub for <|channel|>thought and <|think|> blocks and helper constants; stream_chat now ignores delta.reasoning_content/reasoning/thinking fields, implements streaming scrubber with in_thought flag and buf buffering up to longest marker (18) handling split markers across deltas, yields only non-thought content, discards thought blocks, handles StopAsyncIteration flushing; complete_json strips thought via _strip_thought after fetch. Scrubber <40 lines, no comments.\n\nREADME.md: updated summary and mermaid B node from local BROT http://127.0.0.1:8877/v1 deepseek/deepseek-v4-pro to Ollama cloud https://ollama.com/v1 gemma4:31b-cloud, preserved ASCII logo/structure.\n\nChecks: python -m compileall -q app (exit 0), manual normalization and thought-filter tests passed (ollama.com variants, searxng strip, validation messages, split-marker streaming, complete_json stripping). BROT_* names preserved. No static/* touched. No commit per spec.\n\nNote: tests/test_config.py will fail expectedly (asserts old defaults 127.0.0.1/deepseek) — needs update separate to T31a."
+}

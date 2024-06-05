@@ -1,0 +1,49 @@
+{
+  "task_id": "T50",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": null,
+  "declared_at": "2026-08-21T00:00:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Final live confirmation of tool calling against http://192.168.1.57:8000/ (T45 code). web_search round-trip fully PASS; generate_mermaid fired but executor failed on upstream complete_json, no valid card.",
+  "files": { "modified": [], "created": [], "deleted": [] },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
+  "line_counts": {},
+  "modules_created": [],
+  "documentation": [],
+  "verification": "merlin",
+  "step1_code_evidence": {
+    "file": "app/llm/tools.py (read-only, no source modified)",
+    "TOOL_SCHEMAS": "lines 50-62: six tools — web_search L51, generate_mermaid L52, generate_quiz L53, generate_todo L54, generate_latex L55-61, record_step_actions L56-61",
+    "available_tools": "lines 65-69: generators + record_step_actions always enabled; web_search gated on settings.searxng_url non-empty (L67-68)"
+  },
+  "live_test": {
+    "server": "http://192.168.1.57:8000/",
+    "session_id": "7a6565b28da54b2c857725aa0f3f32b7",
+    "created_via": "POST /api/sessions {goal:'Help me learn', file_ids:[], grounding_mode:'grounded'}",
+    "raw_sse_evidence": ["%TEMP%/opencode/t50_A.sse", "%TEMP%/opencode/t50_B.sse"]
+  },
+  "turn_a_sequence": [
+    "meta (chunks=[], insufficient=false, web_sources=[])",
+    "tool_call name=web_search args={query:'definition of recursion in computer science reliable…'}",
+    "tool_result name=web_search summary=[{title:'Recursion (computer science) - Wikipedia', url…}]",
+    "delta x~110 ('Based on the search results, recursion in CS is a method of solving a problem where the solution depends on solutions to smaller instances of the same problem… [cit:wikipedia:recursion_(computer_science)].' + nesting-dolls analogy + comprehension check)",
+    "tool_call name=record_step_actions args={actions:[{id:'continue', label:'Explain Base…'}]}",
+    "tool_result name=record_step_actions summary='2 actions'",
+    "done message_id=c797901a9eaa4445b94667afd700cbfc web_sources_count=5 (non-empty, per T45 design)"
+  ],
+  "turn_b_sequence": [
+    "meta (chunks=[], insufficient=false, web_sources=[])",
+    "tool_call name=generate_mermaid args={topic:'Breadth-First Search (BFS) traversal process s…'} (note: model picked BFS topic instead of recursion — model quirk)",
+    "tool_result name=generate_mermaid summary='error: missing' (executor error, NOT a valid card)",
+    "delta x~70 (honest inline apology: 'I apologize, but I encountered an error while trying to generate the diagram… which part of BFS you would like to see visualized?')",
+    "done message_id=09e350655aac42f4914b0758fea7e660 actions=[] web_sources=[]"
+  ],
+  "turn_b_root_cause": "app/llm/tools.py:138-140 _run_generate: ctx.llm.complete_json returned text=None with error_text starting 'missing' -> raise ValueError('missing') -> caught tools.py:103 -> _issue_code fallthrough str(exc).split(':',1)[0]='missing'. Upstream LLM JSON-completion failure; dispatch/SSE/error-degradation mechanics all worked as designed.",
+  "leak_markers": { "turn_a": "none", "turn_b": "none" },
+  "verdict": "failed",
+  "verdict_detail": "Step1 schemas confirmed (PASS). TurnA full web_search round-trip with matching query/result and web_sources=5 on done (PASS). TurnB generate_mermaid tool_call DID fire but no valid card: tool_result carried 'error: missing' (upstream complete_json failure), model answered inline honestly about the error — neither acceptance branch (valid card | clean decline) was met. Concrete defect remains only on the mermaid live path; recommend retry/re-dispatch if upstream flakiness is suspected, since offline T45/T46 coverage passed.",
+  "notes": "No source files modified. Single fresh grounded session, exactly two turns as instructed.",
+  "final_report": "See verdict fields."
+}

@@ -1,0 +1,78 @@
+{
+  "task_id": "T57",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "opencode-merlin-t57-live-dompurify-verify",
+  "declared_at": "2026-08-22T01:20:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Live end-to-end verification of the T56 DOMPurify shim fix against running Pi server http://192.168.1.57:8000 (no restart; adapter spawns per-request). One grounded session 'teach me about recursion', two turns consumed fully over SSE. Turn B produced generate_mermaid on first attempt with a successful tool_result carrying the FULL labeled flowchart source + diagram_type - verdict PASS-A. Zero thought-leak markers in all events of both turns.",
+  "files": {
+    "modified": [],
+    "created": [".agents/jobs/T57.json"],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
+  "line_counts": {
+    "before": {},
+    "after": {
+      ".agents/jobs/T57.json": 78
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "probe": {
+    "base_url": "http://192.168.1.57:8000",
+    "health": {"status_code": 200, "status": "ok", "model_configured": true, "endpoint_reachable": true, "dependency_errors": []},
+    "create_session_status": 200,
+    "session_id": "fef1ba92740e4435a6132dbfce4d1804",
+    "goal": "teach me about recursion",
+    "file_ids": [],
+    "grounding_mode": "grounded",
+    "turn_A_message": "Explain recursion in one sentence.",
+    "turn_B_message": "Now show me that as a mermaid diagram.",
+    "method_note": "Probe scripts kept outside repo at %TEMP%/opencode/t57_probe.py (+inspect/seq helpers); no source files touched, nothing restarted. Server code state at test time: tools/validate_mermaid.mjs modified-uncommitted (T56 shim) on base 28e2e37; app/services/mermaid.py clean."
+  },
+  "event_sequences_previews_max_100_chars": {
+    "turn_A_http_200_elapsed_0.7s_events_23": [
+      "meta chunks=0 insufficient=False",
+      "delta x21 (one-sentence definition of recursion)",
+      "done replayed=False message_id=488c1e224b2d4ed3a47c4235d887092d actions=0"
+    ],
+    "turn_B_http_200_elapsed_17.0s_events_164": [
+      "meta chunks=0 insufficient=False",
+      "tool_call(generate_mermaid) arguments='{\"topic\": \"recursion concept\"}'",
+      "tool_result(generate_mermaid) summary='mermaid ok'",
+      "tool_call(record_step_actions) arguments='{\"actions\": [{\"id\": \"continue\", \"label\": \"Explain Base Case vs Recursi'",
+      "tool_result(record_step_actions) summary='1 actions'",
+      "delta x158 (explains base case vs recursive step, references the diagram)",
+      "done replayed=False message_id=420a9ef05a274441930b6077a954a2aa actions=1"
+    ]
+  },
+  "money_evidence_full_tool_result_payload": {
+    "summary": "mermaid ok",
+    "kind": "mermaid",
+    "title": "Basic Recursion Flow",
+    "source_full_verbatim": "graph TD\n    A[Start Function] --> B{Base Case Reached?}\n    B -- Yes --> C[Return Final Value]\n    B -- No --> D[Recursive Call: Call Self with Smaller Input]\n    D --> A",
+    "diagram_type_full_verbatim": "{'diagramType': 'flowchart-v2', 'config': {}}"
+  },
+  "attempts_generate_mermaid_call_result_pairs": 1,
+  "verdict_checks": {
+    "tool_call_generate_mermaid_present": true,
+    "tool_result_no_error": true,
+    "tool_result_carries_source_and_diagram_type": true,
+    "diagram_type_non_empty_string": true,
+    "topic_on_recursion": true,
+    "then_deltas_and_done_with_actions": true,
+    "zero_error_cards_both_turns": true,
+    "thought_leak_markers_all_turns": {},
+    "thought_leak_markers_scanned": ["<|channel|>thought", "<|channel|>", "<|think|>", "channel|>"],
+    "thought_leak_scan_scope": "every raw byte of both SSE streams (all event JSON payloads incl. deltas and heartbeats)"
+  },
+  "verdict": "PASS-A",
+  "before_after_proof": "The delivered source is exactly the shape that failed pre-fix in T55-probe: labeled nodes A[Start Function]/B{Base Case Reached?} plus edge labels '-- Yes -->' crashed with DOMPurify.addHook is not a function and surfaced as error:mermaid_invalid on ALL FOUR attempts then; post-shim it passes on attempt #1 of this run with kind/title/source/diagram_type attached to the wire event (turn.py L233-L241 path taken, i.e. result had no error).",
+  "cosmetic_finding_not_blocking": "Wire diagram_type is a Python repr string of the adapter's parse-result object ('{'diagramType': 'flowchart-v2', 'config': {}}') instead of a bare 'flowchart-v2': app/services/mermaid.py L62 does str(result.get('diagram_type')) while the shimmed adapter emits mermaid.parse's object {diagramType, config}. Non-empty string identifying flowchart-v2, so it satisfies the PASS-A rule as written, but recommend a follow-up to normalize (adapter emit result.diagram_type?.diagramType, or mermaid.py unwrap dict.diagramType before str()). UI display would show the dict repr today.",
+  "final_report": "T57 done - verdict PASS-A. Live verified the T56 DOMPurify shim fix on http://192.168.1.57:8000 without restart (adapter runs per-request via subprocess.run). Health ok. Session fef1ba92740e4435a6132dbfce4d1804 (grounded, goal 'teach me about recursion'). Turn A ('Explain recursion in one sentence.', consumed fully, 0.7s): meta -> delta x21 -> done replayed=False actions=0. Turn B ('Now show me that as a mermaid diagram.', consumed fully, 17.0s): meta -> tool_call(generate_mermaid topic='recursion concept') [attempt 1 of 1] -> tool_result summary='mermaid ok' carrying kind='mermaid', title='Basic Recursion Flow', FULL source='graph TD\\n    A[Start Function] --> B{Base Case Reached?}\\n    B -- Yes --> C[Return Final Value]\\n    B -- No --> D[Recursive Call: Call Self with Smaller Input]\\n    D --> A', diagram_type=\"{'diagramType': 'flowchart-v2', 'config': {}}\" -> record_step_actions '1 actions' -> delta x158 -> done replayed=False actions=1. This source has labeled nodes AND edge labels - the exact class T55-probe proved crashed environmentally pre-fix ('DOMPurify.addHook is not a function' -> mermaid_invalid on 4/4 attempts); it now parses and reaches the wire with source+type attached on the FIRST attempt. No {'error':...} card anywhere; zero thought-leak markers (<|channel|>thought / <|channel|> / <|think|> / channel|>) across all raw bytes of both turns. One non-blocking cosmetic finding recorded: wire diagram_type is str() of the parse-result dict (mermaid.py L62) rather than bare 'flowchart-v2' - recommend follow-up normalization. No source modified; probe artifacts at %TEMP%/opencode/t57_*.py|json.",
+  "verification": "merlin",
+  "notes": "Read-only live verification; only artifact written inside the repo is this job log. Raw captures preserved outside repo: %TEMP%/opencode/t57_results.json (full parsed events + raw stream text), t57_probe.py, t57_inspect.py, t57_seq.py. Pre-existing LSP type noise in app/* (TurnMixin attrs, duplicated httpx stubs) observed during file reads is unrelated to this task and untouched."
+}

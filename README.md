@@ -9,7 +9,7 @@
 
 ## Summary
 
-Sage is a local-first web application that acts as a personalized AI tutor: attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches automatically, and Sage chunks them, probes what you already know, builds a learning plan rendered as a mermaid dependency graph, teaches each node one Socratic step at a time, and checks understanding with two-answer button questions (yes/no · higher/lower · increasing/decreasing · true/false) plus grounded MCQs citing the exact excerpts used — remediating weak spots automatically. All turns stream token-by-token with inline `[cit:file:chunk]` citations; quiz artifacts render in a right-hand rail with typewriter and staggered-reveal animations. The Python 3.11 FastAPI service serves the static web UI from `/` alongside JSON/SSE endpoints, talks to Ollama cloud at `https://ollama.com/v1` with `gemma4:31b-cloud` (any OpenAI-compatible endpoint), can search the web via SearXNG when `SEARXNG_URL` is configured for grounded turns, provides structured outputs for chat/mermaid/todo/quiz plus teach (Socratic one-step lesson + follow-up actions) and latex (standalone snippet), and stores everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads kept outside any served path. On kincsem it runs as `sage.service` on port 8015, reachable on the LAN and via Tailscale.
+Sage is a local-first web application that acts as a personalized AI tutor: attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches automatically, and Sage chunks them, probes what you already know, builds a learning plan, teaches each node, checks understanding with quiz questions — including questions grounded in your LaTeX theorem/definition environments — and remediates weak spots, all through a grounded, streaming chat that cites the exact excerpts it used. The Python 3.11 FastAPI service serves the static web UI from `/` alongside JSON/SSE endpoints, talks to Ollama cloud at `https://ollama.com/v1` with `gemma4:31b-cloud` (any OpenAI-compatible endpoint), can search the web via SearXNG when `SEARXNG_URL` is configured for grounded turns, provides structured outputs for chat/mermaid/todo/quiz plus new teach (Socratic one-step lesson + follow-up actions: continue/ask_question/practice/example/deeper/next_topic) and latex (standalone LaTeX snippet), and stores everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads kept outside any served path.
 
 ## Project structure
 
@@ -63,16 +63,11 @@ sage/
 │       └── extraction/              # base · pdf · docx · pptx · md · txt · tex → plain text
 ├── static/                           # browser UI served at `/` by app/main.py
 │   ├── index.html                    # home chat and session creation
-│   ├── sage-workspace.html            # persisted session workspace (artifacts rail)
+│   ├── sage-workspace.html            # persisted session workspace
 │   ├── sage-health.html               # health dashboard
 │   ├── sage-library.html              # file library
 │   ├── sage-sessions.html             # session list
-│   ├── sage-settings.html             # preferences and settings
-│   └── js/
-│       ├── leaked-call-guard.js       # strips text-embedded tool-call markup from streams
-│       └── binary-check.js            # yes/no · higher/lower · increasing/decreasing · true/false buttons
-├── deploy/
-│   └── sage.service                   # systemd unit (kincsem: port 8015, enabled at boot)
+│   └── sage-settings.html             # preferences and settings
 ├── tools/
 │   ├── check_wheels.py              # ARM64 wheel preflight check
 │   ├── smoke_chat.py                # live endpoint smoke test
@@ -84,8 +79,7 @@ sage/
 │                                    #   extraction_tex, math_tokens, watcher, notes_quiz…
 ├── docs/                            # operational docs + mermaid diagram sources
 │   ├── README.md                    #   index
-│   ├── setup.md                     #   install · run · systemd · LAN + Tailscale access · notes watch
-│   ├── ui.md                        #   streaming · leaked-call guard · animations · two-answer buttons
+│   ├── setup.md                     #   install · run · LAN access · notes watch
 │   ├── security.md                  #   trusted-network-only warning
 │   ├── environment.md               #   env var reference
 │   ├── testing.md                   #   tests · wheel preflight · smoke test
@@ -166,7 +160,7 @@ stateDiagram-v2
 
 ### SSE streaming chat
 
-`POST /api/sessions/{id}/turns` streams `meta` → `delta`* → `citation`* → `done` over one SSE response; `POST /api/sessions/{id}/stop` cancels an inflight generation; `POST /api/sessions/{id}/retry` replays the last user message under the same `client_msg_id`. A `: ping` heartbeat fires whenever the stream is idle for 15s (`app/sse.py`). The browser renders deltas into a fading streaming bubble, shows tool activity as a status pill, and strips text-embedded `<call:...>` markup (`static/js/leaked-call-guard.js`) in case the model leaks a tool call as plain text.
+`POST /api/sessions/{id}/turns` streams `meta` → `delta`* → `citation`* → `done` over one SSE response; `POST /api/sessions/{id}/stop` cancels an inflight generation; `POST /api/sessions/{id}/retry` replays the last user message under the same `client_msg_id`. A `: ping` heartbeat fires whenever the stream is idle for 15s (`app/sse.py`).
 
 ```mermaid
 sequenceDiagram
@@ -257,10 +251,6 @@ sequenceDiagram
     Note over C: renders one-step lesson<br/>buttons: Continue / Ask question / Practice<br/>Example / Deeper / Next topic<br/>latex rendered as standalone snippet
     Note over C,API: Web search grounding — when configured,<br/>grounded turns inject [WEB] blocks;<br/>strict never uses web; failures → file-only
 ```
-
-### Two-answer check questions and UI interaction
-
-Teaching turns end with exactly one scaffolded check question that has exactly two possible answers. The system prompt requires a literal trailing marker — `(yes/no)`, `(higher/lower)`, `(increasing/decreasing)`, or `(true/false)` — which `static/js/binary-check.js` detects in the finished assistant text, strips from the bubble, and replaces with two answer buttons (Yes/No, Higher/Lower, …). Tapping a button submits the answer as a normal chat turn so grading is unchanged; no free-text typing needed for binary checks. Probe quizzes render as cards in the workspace's right-hand artifacts rail with typewriter + staggered-option reveal animations per the opendesign spec; `prefers-reduced-motion` caps durations (200 ms) instead of disabling motion entirely, so desktops with OS animations turned off still animate. See [docs/ui.md](docs/ui.md).
 
 ### SQLite data model
 

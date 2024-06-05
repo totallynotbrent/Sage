@@ -7,6 +7,8 @@ from app.llm.client import LLMClient
 
 
 class fake_stream:
+    """Mimics the async iterator returned by ollama AsyncClient.chat(stream=True)."""
+
     def __aiter__(self):
         return self
 
@@ -14,23 +16,19 @@ class fake_stream:
         raise StopAsyncIteration
 
 
-class fake_completions:
-    async def create(self, **kwargs):
-        return fake_stream()
-
-
-class fake_chat:
-    completions = fake_completions()
-
-
-class fake_client:
-    chat = fake_chat()
+class fake_ollama_client:
+    async def chat(self, **kwargs):
+        if kwargs.get("stream"):
+            return fake_stream()
+        raise AssertionError("non-streaming path not expected in this test")
 
 
 def test_stream_chat_treats_provider_eof_as_normal_completion():
     client = LLMClient.__new__(LLMClient)
-    object.__setattr__(client, "_client", fake_client())
+    object.__setattr__(client, "_client", fake_ollama_client())
     object.__setattr__(client, "_settings", Settings(brot_api_key="test-key"))
+    object.__setattr__(client, "_probe_cache", None)
+    object.__setattr__(client, "_inflight", {})
 
     async def collect_chunks():
         return [chunk async for chunk in client.stream_chat([])]

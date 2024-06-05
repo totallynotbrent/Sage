@@ -1,0 +1,35 @@
+{
+  "task_id": "T17.4",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ses_t17_4_sage_writer",
+  "declared_at": "2026-08-18T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Math-aware retrieval: new app/services/math_tokens.py (Greek/LaTeX/unicode canonical maps + tokenize_math, collision-free with STOPWORDS), retrieval.tokenize gains math_text param, select() indexes chunk unicode_text, session._select_chunks expands ready file ids through pairings; tests.",
+  "files": {
+    "modified": ["app/services/retrieval.py", "app/services/sessions/session.py", "tests/test_retrieval.py"],
+    "created": ["app/services/math_tokens.py", "tests/test_math_tokens.py"],
+    "deleted": []
+  },
+  "base_commit": "359b54a",
+  "committed_at": "aa00f45",
+  "line_counts": {
+    "before": {
+      "app/services/retrieval.py": 86,
+      "app/services/sessions/session.py": 278,
+      "tests/test_retrieval.py": 73
+    },
+    "after": {
+      "app/services/retrieval.py": 143,
+      "app/services/sessions/session.py": 279,
+      "app/services/math_tokens.py": 186,
+      "tests/test_retrieval.py": 137,
+      "tests/test_math_tokens.py": 70
+    }
+  },
+  "modules_created": ["app/services/math_tokens.py"],
+  "documentation": [],
+  "final_report": "T17.4 done. math_tokens.py (186 lines): _GREEK_NAMES (lowercase α..ω + common uppercase Γ..Ω), _LATEX_MATH (~90 commands incl. Greek command forms, int→integral, sum, frac, sqrt, partial, le/leq→le, ge/geq→ge, ne/neq→ne, to/rightarrow/mapsto→maps_to, in→member_of, notin→not_member_of, subset/subseteq→subset_of, supset/supseteq→superset_of, infty→infinity, nabla, forall, exists, approx, equiv, oplus, otimes, cup→union, cap→intersection, wedge→and_op, vee→or_op, implies, iff, cdot, times, pm), _UNICODE_MATH (∫ ∬ ∮ ∑ ∏ √ ∂ ∈ ∉ ⊂ ⊆ ⊃ ⊇ ≤ ⩽ ≥ ⩾ ≠ ∞ → ↦ ⟶ ∇ ∀ ∃ ≈ ≡ ⊕ ⊗ ∪ ∩ ∧ ∨ ⟹ ⇒ ⟺ ⇔ ⋅ × ±); tokenize_math emits Greek/unicode canonical per char plus one canonical per LaTeX command (unknown commands fall through to their name). CRITICAL constraint held: every canonical is disjoint from retrieval.STOPWORDS (asserted by test_all_canonicals_collision_free_with_stopwords; 'in'/'to' avoided via member_of/maps_to; the stopword set was NOT modified). retrieval.py: tokenize(text, math_text='') = word tokens + tokenize_math(text) + tokenize_math(math_text); select() indexes chunk text AND chunk.get('unicode_text') defensively. session.py _select_chunks: ready_ids = files.expand_pairings(ready_ids) before get_chunks_for_files. tests: test_math_tokens.py 8 tests (Greek map, LaTeX map, unicode map, in/to never stopwords, unknown-command fallthrough, empty/plain text, stopword-collision disjointness, Greek command==unicode Greek); test_retrieval.py +4 tests ('∫ x dx' query matches a chunk whose unicode_text holds ∫ while text holds \\int; α↔\\alpha both directions; \\in survives as member_of while 'in' is dropped; determinism) with the _chunk helper extended (unicode_text kwarg, default None — existing 7 tests untouched and green). Verified: test_math_tokens + test_retrieval + test_api_chat_sse 32 passed; full offline suite 241 passed (229 + 12 new). Commit aa00f45 on feature/latex-notes. format_on_edit reformatted STOPWORDS one-per-line (cosmetic). TASK STATUS: T17.4 -> done.",
+  "verification": "laika",
+  "notes": "Canonical names checked against retrieval.STOPWORDS: alpha..omega, integral, sum, frac, sqrt, partial, le, ge, ne, maps_to, member_of, subset_of, not_member_of, superset_of, infinity, implies, iff, for_all, exists, approx, equiv, oplus, otimes, union, intersection, and_op, or_op, nabla, cdot, times, pm, prod — none collide with the stopword set. format_on_edit normalized retrieval.STOPWORDS formatting (one entry per line) and removed one blank line — cosmetic only."
+}

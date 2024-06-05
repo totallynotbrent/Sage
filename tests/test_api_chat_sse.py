@@ -432,18 +432,18 @@ def test_second_turn_system_prompt_carries_lesson_state(client, override_llm, se
     first_system = next(
         m["content"] for m in stream_calls[0]["messages"] if m["role"] == "system"
     )
-    assert "[LESSON STATE]" in first_system
+    assert "[PRIVATE PLANNING NOTES" in first_system
     assert "Greeting: not yet given." in first_system
 
     second_system = next(
         m["content"] for m in stream_calls[1]["messages"] if m["role"] == "system"
     )
-    assert "[LESSON STATE]" in second_system
-    assert "Teaching turns completed so far: 1." in second_system
+    assert "[PRIVATE PLANNING NOTES" in second_system
+    assert "Turns completed: 1." in second_system
     assert "Greeting: already delivered." in second_system
-    assert "Core definition of the topic:" in second_system
+    assert "Core definition:" in second_system
     assert (
-        'Learner\'s most recent message: "How does the identity element work?"'
+        'Learner\'s latest message: "How does the identity element work?"'
         in second_system
     )
 
@@ -545,7 +545,7 @@ def test_second_turn_system_prompt_carries_lesson_state(client, override_llm, se
     fourth_system = next(
         m["content"] for m in answer_call["messages"] if m["role"] == "system"
     )
-    assert "[PENDING QUESTIONS]" in fourth_system
+    assert "still owes answers to these" in fourth_system
     assert (
         "Grade each reply against these EXACT ids (copy id "
         "character-for-character):" in fourth_system

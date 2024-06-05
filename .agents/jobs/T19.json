@@ -1,0 +1,67 @@
+{
+  "task_id": "T19",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "merlin-t19-watcher-hardening",
+  "declared_at": "2026-08-19T00:00:00Z",
+  "finalized_by": "Merlin",
+  "summary": "Harden watch API and scan path: symlink containment, rate-bounded scans, size-bounded reads, safe re-ingest, LIKE escaping, label stripping, seed exhaustion, loop threading; doc the security posture.",
+  "files": {
+    "modified": [
+      "app/services/watcher.py",
+      "app/services/files.py",
+      "app/api/watch.py",
+      "app/api/files.py",
+      "app/llm/notes.py",
+      "app/services/learning.py",
+      "app/services/extraction/tex.py",
+      "docs/security.md",
+      "tests/test_watcher.py",
+      "tests/test_files.py",
+      "tests/test_api_files.py",
+      "tests/test_extraction_tex.py",
+      "tests/test_notes_quiz.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "7dfed3cbbd9cd850fa5a1c4e39480cdf55b9ed48",
+  "committed_at": "3337a88",
+  "line_counts": {
+    "before": {
+      "app/services/watcher.py": 150,
+      "app/services/files.py": 388,
+      "app/api/watch.py": 76,
+      "app/api/files.py": 114,
+      "app/llm/notes.py": 161,
+      "app/services/learning.py": 339,
+      "app/services/extraction/tex.py": 307,
+      "docs/security.md": 9,
+      "tests/test_watcher.py": 191,
+      "tests/test_files.py": 268,
+      "tests/test_api_files.py": 143,
+      "tests/test_extraction_tex.py": 190,
+      "tests/test_notes_quiz.py": 339
+    },
+    "after": {
+      "app/services/watcher.py": 202,
+      "app/services/files.py": 423,
+      "app/api/watch.py": 93,
+      "app/api/files.py": 118,
+      "app/llm/notes.py": 163,
+      "app/services/learning.py": 339,
+      "app/services/extraction/tex.py": 308,
+      "docs/security.md": 25,
+      "tests/test_watcher.py": 411,
+      "tests/test_files.py": 319,
+      "tests/test_api_files.py": 160,
+      "tests/test_extraction_tex.py": 192,
+      "tests/test_notes_quiz.py": 378
+    }
+  },
+  "modules_created": [],
+  "documentation": ["docs/security.md"],
+  "final_report": "T19 fix-watcher-hardening batch landed on feature/latex-notes as commit 3337a88. All 11 Warden findings fixed. Per finding: S1 fixed (watcher.py: os.walk(followlinks=False) + is_symlink() file skip; files.py ingest_from_disk rejects is_symlink before resolve and verifies containment via os.path.commonpath against the passed root, rejecting outside targets). S2 fixed (api/watch.py: empty-after-strip -> 400, resolved path must be an existing directory -> 400, per-source scan rate bound SCAN_MIN_INTERVAL_SECONDS=30 enforced on both POST /api/watch and POST /api/watch/scan via scan_due()/rate_limited_summary(), reusing last_scan_at, no schema change; docs/security.md documents that the watch API reads server-local files of allowed extensions). S3 fixed (files.py ingest_from_disk stats before read and raises FileTooLargeError without read_bytes; watcher.py scan stats before hashing and warns+skips oversized). S4 docs-only (security.md prompt-injection note: untrusted .tex/.pdf content flows into prompts with [DOC]/[/DOC] delimiting as the only control). S5 fixed (sanitize_display_name rejects [DOC]/[/DOC] case-insensitively on the raw filename, raising ValueError -> 400 via handle_value_error in api/files.py; watcher ingest failure recorded in scan summary; unit + API tests). C1 fixed with S2a (400). C2 fixed (tex.py _raw_text excludes LatexMacroNode 'label'; tests assert no \\label in theorem/equation unit text). C3 fixed (watcher.py updated flow re-ingests first via new FileService.replace_from_disk, deletes the old row only after success, then re-pairs; failure keeps the old row and is recorded in scan warnings + watch_sources.last_error; regression test). C4 fixed (LIKE prefix escapes \\, %, _ with ESCAPE '\\\\'; test: root notes_v2 does not match notes_v2_extra subtree). C5 fixed (llm/notes.py iterates ALL seed chunks until count accepted or exhausted; learning.py raises only when fewer than count accepted; new test: 5 seeds, 2 early unsupported, count=3 returns 3 questions from later seeds). C6 fixed (watcher_loop runs each scan iteration in a worker thread via asyncio.to_thread with a bounded wait_for; loop start/stop test added; main.py shutdown already bounded by its 10s wait_for+cancel). Deviation: C5 changes user-facing semantics so a partial (<count) answerable seed pool now 422s with model_output instead of returning fewer questions; three existing tests updated (happy_path/drops_unsupported/idempotent now pass count explicitly). Verification: python -m pytest -q -> 286 passed (269 baseline + 17 new).",
+  "verification": "laika",
+  "notes": "No schema changes (rate bound reuses watch_sources.last_scan_at). No concurrent writers; base_commit re-checked before commit. Windows Path()/posixpath mangles '[/doc]...' filenames (literal '/' splits basename), so the S5 marker check runs on the raw submitted filename. LSP 'possibly unbound'/None-attribute diagnostics in tex.py, test_extraction_tex.py, test_learning.py are pre-existing and untouched."
+}

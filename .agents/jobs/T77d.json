@@ -1,0 +1,174 @@
+{
+  "task_id": "T77d",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "opencode-merlin-t77d-live-arc-final",
+  "declared_at": "2026-08-23T01:50:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "VERDICT: FAILED - one narrow link remains: F2 probe-presentation completeness. A2-FIXED IS CONFIRMED LIVE (the primary target): with T77c's [PENDING QUESTIONS] re-injection, natural ordinal answers are graded with verbatim uuids, real outcomes, non-empty summaries. Session 4000e560f81c43cc9f3d72f885105827 {goal 'learn recursion', grounded} on http://raspberrypi.local:8000/, 7 learner turns of 10 budget. A1 PASS (run_probe before teaching); F1 CLOSED (zero placeholder ids across all 5 grade_answer calls - every id verbatim 32-hex); F2 FAIL (turn-1 tool_result 'probe ready: 3 questions' vs 2 presented items - q3 tail-recursion never shown as a probe question; surfaced sideways in turn 3 when pending-block cleanup made the model grade the learner's UNRELATED call-stack answer against it, recording spurious outcome=incorrect on c90a8aaad556462dab6b1066e5dfcc9f for a question the learner never saw); A3 PASS (build_plan 5 nodes -> generate_mermaid 'mermaid ok' flowchart-v2 graph matching plan keys, summarized); A4 PASS (advance_lesson{passed_check:true} same reply into node 1, ONE step + ONE check); A5 PASS (wrong answer -> remediation with fresh non-verbatim check, no advance; correct answer -> advance_lesson{passed_check:true} SAME REPLY before prose, server state moved node1->node2). Globals clean: 0 SSE type:error events, 0 leak markers, statuses present on all 15 tool_calls, mojibake disproven as harness artifact.",
+  "files": {
+    "modified": [],
+    "created": [
+      ".agents/jobs/T77d.json"
+    ],
+    "deleted": []
+  },
+  "base_commit": null,
+  "committed_at": "43203343d774e7013d154e76e095ba3eab1bf66f",
+  "line_counts": {},
+  "modules_created": [],
+  "documentation": [],
+  "server_and_session": {
+    "base_url": "http://raspberrypi.local:8000/",
+    "health": "GET /api/health -> status ok, model_configured true, endpoint_reachable true (T77c auto-reload live)",
+    "session_id": "4000e560f81c43cc9f3d72f885105827",
+    "grounding_mode": "grounded",
+    "turns_used": 7,
+    "budget": 10,
+    "raw_transcripts": "%TEMP%/opencode/t77d/turn01..07.json + session.json"
+  },
+  "per_turn_table": [
+    {
+      "turn": 1,
+      "learner_msg": "teach me recursion",
+      "tools_fired": [
+        "run_probe(ok, summary='probe ready: 3 questions')"
+      ],
+      "preview": "Greeting + probe presented conversationally. PRESENTED ONLY 2 of 3 returned questions ('Let's start with these first two questions:') - both numbered MCQs with A)-E) options incl. E) I don't know. No teaching before probe.",
+      "problems": 1,
+      "problem_note": "F2 count mismatch: 3 returned vs 2 presented."
+    },
+    {
+      "turn": 2,
+      "learner_msg": "1: B; 2: I don't know",
+      "tools_fired": [
+        "grade_answer x2 (both ok: 'graded correct', 'graded idk')"
+      ],
+      "preview": "A2-FIXED LANDS: ordinals mapped to VERBATIM uuids bc9d555fdace4a1eabc5aa45f50f6b0a (choice_index=1) and 9aea8e406d7b4005bac5f4aa38e9f4b6 (idk=true); real outcomes recorded; non-empty SSE summaries; then remedial teaching of Q2 topic ending in own check ('larger or smaller?').",
+      "problems": 0
+    },
+    {
+      "turn": 3,
+      "learner_msg": "larger, right? each call adds a new frame on top",
+      "tools_fired": [
+        "grade_answer x1 (ok: 'graded incorrect' on c90a8aaad556462dab6b1066e5dfcc9f)"
+      ],
+      "preview": "Pending-block cleanup fired: model graded the NEVER-PRESENTED q3 (tail recursion, visible from status 'Checking your understanding of tail recursion...') against the learner's unrelated call-stack answer -> spurious incorrect; then confirmed the call-stack answer was right and taught tail recursion, ending with own Yes/No check.",
+      "problems": 1,
+      "problem_note": "q3 graded without ever having been presented (F2 downstream symptom)."
+    },
+    {
+      "turn": 4,
+      "learner_msg": "no - if the compiler reuses the frame it should use LESS memory, not more",
+      "tools_fired": [],
+      "preview": "Conversational confirmation loop: agreed, clarified standard-vs-tail recursion memory, asked another Yes/No check. No tools, no errors.",
+      "problems": 0
+    },
+    {
+      "turn": 5,
+      "learner_msg": "yes, that makes sense now. so what's the overall learning plan to master recursion?",
+      "tools_fired": [
+        "build_plan(ok, 'plan ready: 5 nodes')",
+        "generate_mermaid(ok, 'mermaid ok', flowchart-v2)",
+        "advance_lesson{passed_check:true}(ok, 'advanced to The Concept of Recursion')"
+      ],
+      "preview": "A3+A4 in one reply: 5-node plan (rec_basics->call_stack->rec_patterns->rec_optimization->rec_advanced), validated mermaid title 'Recursion Mastery Plan' matching plan keys, graph summarized; entered node 1; taught exactly ONE small step (nesting dolls analogy + base case) ending with ONE Yes/No check.",
+      "problems": 0
+    },
+    {
+      "turn": 6,
+      "learner_msg": "no (DELIBERATELY WRONG)",
+      "tools_fired": [
+        "grade_answer x2 (both error:not_found on invented conversational id e66451536fe74df3b844d39de795fedd)"
+      ],
+      "preview": "Remediation without advancing: base case re-explained from new angle ('stop sign', countdown example); retry check asked with FRESH wording. not_found here is the known conversational-check caveat (no server-side row exists), cleanly surfaced as 'error: not_found' summary, zero SSE type:error events.",
+      "problems": 0
+    },
+    {
+      "turn": 7,
+      "learner_msg": "yes (correct answer to remediation check)",
+      "tools_fired": [
+        "grade_answer(error:not_found, same invented id)",
+        "advance_lesson{passed_check:true}(ok, 'advanced to The Call Stack & Execution')"
+      ],
+      "preview": "A5 order exact: meta -> grade_answer(not_found) -> advance_lesson{passed_check:true} -> deltas starting 'Since you've got the basics...' i.e. advance fired SAME REPLY immediately after correct answer BEFORE prose; taught Call Stack node (node 2). Server final: phase teach, current_node_id 017fa94dac7d40b2ba6c8f570e2f4abf, nodes_since_check 1.",
+      "problems": 0
+    }
+  ],
+  "assertion_table": {
+    "A1_run_probe_before_teaching": {
+      "result": "PASS",
+      "evidence": "turn01 event order meta(0) -> tool_call run_probe(1) -> tool_result(2) -> deltas; greeting + MCQs only, zero teaching prose before probe."
+    },
+    "F1_grade_uses_verbatim_uuid_ids_not_display_ordinals": {
+      "result": "PASS_CLOSED",
+      "fixed_confirmed": true,
+      "evidence": "All 5 grade_answer calls across turns 2/3 carried verbatim 32-hex uuids (bc9d555f..., 9aea8e40..., c90a8aaa...); ZERO placeholder strings (no q1_id_placeholder/q1_abc123-style fabrications anywhere); ZERO error:not_found on any real probe id. Ordinal answers mapped correctly to choice_index/idk fields."
+    },
+    "F2_ALL_returned_questions_presented": {
+      "result": "FAIL",
+      "fixed_confirmed": false,
+      "evidence_failure": "turn01 tool_result summary='probe ready: 3 questions' (server-derived count via T77c _summarize) vs 2 numbered items presented ('these first two questions'). Q3 (tail recursion) never appeared as a presented probe item in ANY turn; its content reached the learner only as spontaneous re-teaching after it had already been mis-graded.",
+      "downstream_symptom": "turn03: pending-block cleanup made the model grade the learner's unrelated call-stack reply against unpresented q3 -> outcome=incorrect recorded server-side on c90a8aaad556462dab6b1066e5dfcc9f although the learner never saw or answered it - semantically wrong mastery signal.",
+      "improvement_vs_T77b": "Not the T77b catastrophic form: q3 was NOT silently lost (it was eventually surfaced AND graded before plan build, because the A2 fix keeps pending rows in context until resolved). Residual defect is presentation completeness/playbook adherence, not id plumbing.",
+      "residual_risk_note": "The playbook clause 'Present EVERY question returned by run_probe' is prompt-level guidance and stays probabilistic; deterministic presentation would need structural change (e.g. run_probe tool_result carrying the question list for verbatim echo, or server-side rendering of the probe)."
+    },
+    "A2_FIXED_verbatim_uuid_ids_real_outcomes_nonempty_summaries": {
+      "result": "PASS",
+      "fixed_confirmed": true,
+      "evidence": "Natural-flow turn02 (ordinal answer, no uuid hints): 2x grade_answer, both verbatim uuids, outcomes correct + idk, SSE tool_result summaries 'graded correct' / 'graded idk' (non-empty - closes T77b minor obs #2); assistant replied with targeted feedback, no silent turn. Persistence proven again on turn03 (third distinct uuid accepted one turn later)."
+    },
+    "A3_build_plan_generate_mermaid_validated_graph_summary": {
+      "result": "PASS",
+      "evidence": "turn05: build_plan summary='plan ready: 5 nodes' -> generate_mermaid summary='mermaid ok', kind=mermaid, diagram_type=flowchart-v2, title='Recursion Mastery Plan', source graph TD with 5 nodes exactly matching plan keys rec_basics/call_stack/rec_patterns/rec_optimization/rec_advanced; reply references 'the path I've mapped out in the diagram above'."
+    },
+    "A4_advance_into_first_node_one_step_one_check": {
+      "result": "PASS",
+      "evidence": "turn05 same reply: advance_lesson{passed_check:true} -> 'advanced to The Concept of Recursion'; reply teaches exactly one small step (analogy + definition + base case) and ends with exactly ONE check ('if a recursive function lacked a base case, would it run forever...? (Yes/No)')."
+    },
+    "A5_wrong_remediates_with_fresh_check_correct_advances_same_reply": {
+      "result": "PASS",
+      "fixed_confirmed": true,
+      "evidence_wrong": "turn06 deliberate wrong 'no': correction + re-teach from different angle, NO advance_lesson, fresh-worded retry check offered.",
+      "evidence_correct": "turn07 plain 'yes': meta -> grade_answer(not_found, invented conversational id - known caveat, cleanly surfaced) -> advance_lesson{passed_check:true} -> deltas; advance in SAME REPLY before prose; server state really moved node 1 -> node 2 (The Call Stack & Execution).",
+      "remediation_pair_not_verbatim": true
+    }
+  },
+  "verbatim_grade_answer_arguments_sample": {
+    "success_case_turn02_call_1_full_dict": {
+      "choice_index": 1,
+      "question_id": "bc9d555fdace4a1eabc5aa45f50f6b0a",
+      "status": "Grading your first answer..."
+    },
+    "success_case_turn02_call_2_full_dict": {
+      "idk": true,
+      "question_id": "9aea8e406d7b4005bac5f4aa38e9f4b6",
+      "status": "Grading your second answer..."
+    },
+    "leftover_cleanup_case_turn03_full_dict": {
+      "choice_index": 0,
+      "question_id": "c90a8aaad556462dab6b1066e5dfcc9f",
+      "status": "Checking your understanding of tail recursion..."
+    }
+  },
+  "remediation_question_pair": {
+    "original_check_turn05": "Based on this, if a recursive function lacked a base case, would it run forever (or until the computer runs out of memory)? (Yes/No)",
+    "remediation_check_turn06": "Does a recursive function always need a base case to prevent it from running forever? (Yes/No)",
+    "verbatim_repeat": false
+  },
+  "globals_per_turn": {
+    "leak_markers": "zero across all 7 turns (checked <|channel|>thought, <|think|>, channel|> against events AND assembled text)",
+    "tool_call_statuses": "present and non-empty on every tool_call event (15 total)",
+    "sse_errors": "zero type:error events, zero non-data lines, zero bad json, zero trailing bytes across all 7 turns; tool-level failures surface as 'error: not_found' tool_result summaries only",
+    "mojibake": "RESOLVED as harness/console artifact: byte-buffered v2 reader shows clean UTF-8; saved transcripts contain 0 x U+FFFD (closes T77b minor obs #3)"
+  },
+  "minor_observations": [
+    "turn06 model framed a confident wrong 'no' as uncertainty ('Since you're not quite sure') - cosmetic mislabel of answer stance.",
+    "turn03-04 consumed 2 budget turns on conversational-check loops partly caused by F2 (unpresented q3 kept the model in probe phase); F2 therefore also costs budget headroom.",
+    "Plan node set differs between sessions (5 nodes this run vs 6 in T77b) - plans are model-generated per session; noted, not a defect.",
+    "Grounded-mode transparency working: turn07 included '(Note: This is general model knowledge as no specific source document was provided...)'."
+  ],
+  "final_report": "T77d done - VERDICT: FAILED (single narrow link left: F2 presentation completeness; everything else including the primary target A2-FIXED is live-confirmed).\n\nNo source modified. Raw SSE transcripts: %TEMP%/opencode/t77d/turn01..07.json + session.json.\n\nServer http://raspberrypi.local:8000/ healthy (auto-reload applied; /api/health ok, model_configured true). Session 4000e560f81c43cc9f3d72f885105827, goal 'learn recursion', grounded; 7 of 10 learner-turn budget used.\n\nCONFIRMED FIXED LIVE:\n(1) A2/F1 - the T77c root-cause fix works end-to-end in the NATURAL flow. Learner answered purely by ordinals ('1: B; 2: I don't know'); the model mapped them via the re-injected [PENDING QUESTIONS] block and called grade_answer with VERBATIM uuids bc9d555fdace4a1eabc5aa45f50f6b0a / 9aea8e406d7b4005bac5f4aa38e9f4b6 -> outcomes correct + idk, summaries 'graded correct'/'graded idk'. Zero fabricated placeholders anywhere in the arc (vs 8 failed attempts in T77b). The third distinct uuid was still correctly resolvable a full turn later (turn03), proving durable cross-turn injection.\n(2) A5 - wrong answer -> remediation with a genuinely fresh check (wordings recorded, not verbatim), no advance; correct answer -> advance_lesson{passed_check:true} fired in the SAME reply immediately after the answer and BEFORE prose; server state verifiably moved node 1 -> node 2 (phase teach, current_node_id 017fa94dac7d40b2ba6c8f570e2f4abf).\n(3) A1/A3/A4 all PASS again (probe-first; plan 5 nodes; mermaid flowchart-v2 validated artifact whose nodes match the plan keys exactly and is summarized to the learner; entry into node 1 with one small step + one check).\n(4) Globals clean on all 7 turns: zero SSE type:error events, statuses present on every tool_call, zero leak markers; tool-level failures surface properly as 'error: not_found' summaries (conversational checks have no server-side row - known caveat, gracefully recovered each time). T77b's mojibake observation disproven as harness/console artifact via byte-clean capture.\n\nTHE REMAINING BROKEN LINK (F2): turn01 run_probe returned THREE questions (server-derived summary 'probe ready: 3 questions') but presented only TWO ('these first two questions'). The tail-recursion question was never shown as a probe item; the new pending-questions machinery later made the model close it out by grading the learner's UNRELATED free-text reply against it (turn03, spurious outcome=incorrect on c90a8aaad556462dab6b1066e5dfcc9f). So the T77b catastrophic form (silent drop, never shown nor graded) did NOT recur and ids now always resolve, but the playbook-only presentation rule remains probabilistic and this run violated its letter. Recommended next fix shape (for Zenyatta/Turing): make presentation structural, not promptable - e.g. have run_probe's tool_result carry the full question list so the model echoes it verbatim, or render the probe deterministically server-side.\n\nVerdict per brief: not everything passed within budget -> FAILED naming the link: F2 (probe-presentation completeness).",
+  "verification": "merlin",
+  "notes": "Verification-only task: zero source files touched (brief constraint honored). Jobs folder read first; T77d was unused. Harness adapted from T77's at %TEMP%/opencode/t77d/ (v1 = T77b copy; v2 adds byte-buffered SSE reading to kill per-line UTF-8 decode artifacts, prints full args minus status, flags trailing bytes). Server-side DB unreachable over SMB/SSH (~/.local/share/sage/sage.db not shared); ground-truth counts therefore taken from server-derived SSE summaries (T77c _summarize emits len(questions)) plus successful-vs-not_found grading behavior as existence proof for each uuid. Turn budget: 7 used, all assertions exercised."
+}

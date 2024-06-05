@@ -42,17 +42,16 @@ interval so it never races an explicit `POST /api/watch/scan`.
 
 ## LAN access
 
-On kincsem, Sage runs as a systemd service (`sage.service`) on port **8015**
-(`deploy/sage.service` — `sudo systemctl enable --now sage.service`):
+The app binds to `0.0.0.0:8000` by default, so any device on your local
+network can reach it at:
 
 ```
-http://192.168.50.8:8015        # LAN
-http://100.103.215.91:8015      # Tailscale (remote)
+http://<pi-ip>:8000
 ```
 
-Port 8015 is opened in firewalld's `homelan` zone (LAN) and `public` zone;
-Tailscale traffic bypasses zones via its own iptables chain. `HOST`/`PORT`
-environment variables override the bind address and port for manual runs.
+Find the Pi's address with `hostname -I`, its mDNS hostname, or your router's
+DHCP client list. `HOST`/`PORT` environment variables override the bind address
+and port; the defaults remain LAN-reachable.
 
 See [environment.md](environment.md) for the full environment variable
 reference, and [security.md](security.md) before exposing the service on a

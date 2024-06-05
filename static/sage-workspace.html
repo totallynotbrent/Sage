@@ -11,8 +11,6 @@
   <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},startup:{pageReady:()=>MathJax.startup.defaultPageReady()}}</script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-  <script src="js/leaked-call-guard.js"></script>
-  <script src="js/binary-check.js"></script>
   <style>
 :root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:180ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -202,20 +200,6 @@ textarea{font:inherit;color:inherit}
 .typing-indicator{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0}
 .typing-indicator__bar{width:80px;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;animation:gradientSweep 1.2s ease infinite}
 @keyframes gradientSweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.typing-indicator__status{font-size:13px;color:var(--muted);animation:statusFadeIn var(--dur-slow) var(--ease) both;transition:opacity var(--dur) var(--ease)}
-.typing-indicator__status.swapping{opacity:0}
-@keyframes statusFadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-/* Binary check-question answer buttons */
-.binary-answer-row{display:flex;gap:var(--space-3);margin-top:var(--space-4);animation:binaryRowIn 350ms var(--ease) both}
-@keyframes binaryRowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.binary-answer-btn{flex:1;padding:var(--space-3) var(--space-5);border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:14px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all var(--dur) var(--ease);text-transform:uppercase;letter-spacing:0.05em}
-.binary-answer-btn:hover:not(:disabled){background:var(--accent-dim);border-color:var(--accent);color:var(--accent-hover)}
-.binary-answer-btn.selected{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-.binary-answer-btn:disabled{opacity:0.35;cursor:default}
-/* Smooth per-block fade for streaming text (markdown renders p/li/pre
- * directly into the bubble - animate those children). */
-.msg__bubble.streaming > *{animation:streamLineIn 320ms var(--ease) both}
-@keyframes streamLineIn{from{opacity:.25}to{opacity:1}}
 
 .artifact-card[data-kind="mermaid"]{opacity:0;transform:translateX(30px)}
 .artifact-card[data-kind="mermaid"].visible{animation:artSlideRight 500ms var(--ease) forwards}
@@ -234,13 +218,7 @@ textarea{font:inherit;color:inherit}
 .artifact-card[data-kind="quiz"]{opacity:0;transform:translateY(8px)}
 .artifact-card[data-kind="quiz"].visible{animation:artifactReveal 500ms var(--ease) forwards}
 @keyframes artifactReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes artType{to{width:100%}}
-@keyframes artCursorBlink{50%{border-color:transparent}}
-@keyframes borderWipe{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@keyframes msgIn{from{opacity:0;transform:translateY(12px)}}
-.artifact-card[data-kind="quiz"] .artifact-card__quiz-question{overflow:hidden;white-space:nowrap;border-right:2px solid var(--accent);width:0}
-.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-question{animation:artType 1s steps(30) forwards,artCursorBlink .8s step-end infinite}
-.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-question.typed{overflow:visible;white-space:normal;border-right-color:transparent;width:auto}
+.artifact-card[data-kind="quiz"] .artifact-card__quiz-qtext{overflow:visible;white-space:normal;border-right:none;width:auto}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option{opacity:0;animation:artifactReveal 300ms var(--ease) forwards}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(1){animation-delay:1100ms}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(2){animation-delay:1300ms}
@@ -299,7 +277,7 @@ textarea{font:inherit;color:inherit}
 .btn_primary:disabled{opacity:0.5;cursor:not-allowed}
 .btn_ghost{background:var(--overlay);color:var(--muted)}
 .btn_ghost:hover{background:var(--surface-warm);color:var(--fg)}
-@media(prefers-reduced-motion:reduce){*{animation-duration:200ms !important;transition-duration:120ms !important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}.word{animation:none !important;opacity:1 !important;transform:none !important}}
   </style>
 </head>
 <body>
@@ -349,7 +327,19 @@ textarea{font:inherit;color:inherit}
       <div class="chat" id="chat">
         <div class="chat__messages" id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
         <div class="input-bar">
-          <div class="composer-toolbar" role="toolbar" aria-label="Composer status">
+          <div class="composer-toolbar" role="toolbar" aria-label="Artifact composer">
+            <button class="composer-toolbar__btn" id="composer-diagram" type="button" aria-label="Generate diagram" title="Generate diagram from current input">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5.5v3M10.5 5.5v3M5.5 3.5h3M5.5 10.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Diagram
+            </button>
+            <button class="composer-toolbar__btn" id="composer-quiz" type="button" aria-label="Generate quiz" title="Generate quiz from current input">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 3a1.5 1.5 0 011.5-1.5h7A1.5 1.5 0 0112 3v6a1.5 1.5 0 01-1.5 1.5H6.5L4 13v-2.5h-.5A1.5 1.5 0 012 9V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 5.5h4M5 7.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Quiz
+            </button>
+            <button class="composer-toolbar__btn" id="composer-todo" type="button" aria-label="Generate todo list" title="Generate todo list from current input">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="2.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6.5l1.5 1.5 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 9.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Todo
+            </button>
             <span class="composer-toolbar__spacer"></span>
             <span class="composer-toolbar__status" id="composer-status" aria-live="polite"></span>
           </div>
@@ -549,7 +539,7 @@ function renderChatMermaid(root) {
 }
 function wrapWords(container){
   try{
-    if(!container)return;
+    if(!container||reduced_motion.matches)return;
     if(container.dataset.wordWrapped==='1')return;
     let word_idx=0;
     function walk(node){
@@ -605,7 +595,7 @@ function wrapWords(container){
 function animateWords(element){try{wrapWords(element)}catch(e){}}
 function wrapQuizWords(card){
   try{
-    if(!card)return;
+    if(!card||reduced_motion.matches)return;
     card.querySelectorAll('.artifact-card__quiz-qtext,.artifact-card__quiz-question').forEach(qtext=>{
       if(qtext.dataset.wordWrapped==='1')return;
       if(qtext.querySelector('.word'))return;
@@ -635,22 +625,15 @@ function addMessage(role, content, options = {}) {
   return d;
 }
 
-function addTypingIndicator(statusText) {
+function addTypingIndicator() {
   removeTypingIndicator();
   const d = document.createElement('div');
   d.className = 'msg msg--assistant';
   d.id = 'typing-indicator';
-  d.innerHTML = `<div class="msg__role">Sage</div><div class="msg__bubble"><div class="typing-indicator"><div class="typing-indicator__bar"></div>${statusText ? `<span class="typing-indicator__status"></span>` : ''}</div></div>`;
+  d.innerHTML = `<div class="msg__role">Sage</div><div class="msg__bubble"><div class="typing-indicator"><div class="typing-indicator__bar"></div></div></div>`;
   box.appendChild(d);
-  if (statusText) setTypingStatus(statusText);
   box.scrollTop = box.scrollHeight;
   return d;
-}
-function setTypingStatus(text) {
-  const el = document.querySelector('#typing-indicator .typing-indicator__status');
-  if (!el || el.textContent === text) return;
-  el.classList.add('swapping');
-  setTimeout(() => { el.textContent = text; el.classList.remove('swapping'); }, 150);
 }
 function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
 
@@ -658,7 +641,7 @@ function addStreamingMessage() {
   const d = document.createElement('div');
   d.className = 'msg msg--assistant';
   d.id = 'streaming-msg';
-  d.innerHTML = `<div class="msg__role">Sage</div><div class="msg__bubble streaming" id="streaming-bubble"></div>`;
+  d.innerHTML = `<div class="msg__role">Sage</div><div class="msg__bubble" id="streaming-bubble"></div>`;
   box.appendChild(d);
   box.scrollTop = box.scrollHeight;
   return document.getElementById('streaming-bubble');
@@ -866,7 +849,7 @@ function buildQuizCard(envelope, artifact) {
     const qtext = document.createElement('div');
     qtext.className = 'artifact-card__quiz-qtext';
     qtext.textContent = `${qi + 1}. ${q.question}`;
-    wrap.addEventListener('animationend', () => wrap.classList.add('typed'), { once: true });
+    qtext.addEventListener('animationend', () => qtext.classList.add('typed'), { once: true });
     const options = document.createElement('div');
     options.className = 'artifact-card__quiz-options';
     options.setAttribute('role', 'radiogroup');
@@ -1160,7 +1143,7 @@ function build_probe_card(question, ordinal, marker_text, on_select) {
   const qtext = document.createElement('div');
   qtext.className = 'artifact-card__quiz-qtext';
   qtext.textContent = String(question.question || '');
-  wrap.addEventListener('animationend', () => wrap.classList.add('typed'), { once: true });
+  qtext.addEventListener('animationend', () => qtext.classList.add('typed'), { once: true });
   const options_el = document.createElement('div');
   options_el.className = 'artifact-card__quiz-options';
   options_el.setAttribute('role', 'radiogroup');
@@ -1242,11 +1225,11 @@ function start_probe_batch(items, kind_label) {
   send_btn.onclick = submit;
   actions.appendChild(send_btn);
   wrap.appendChild(actions);
-  // Probe quizzes render in the artifacts rail (right side), per the design spec.
-  if (diagramBody.querySelector('.diagram-panel__empty')) diagramBody.innerHTML = '';
-  diagramBody.appendChild(wrap);
-  openArtifactsRail();
+  const anchor = document.getElementById('streaming-msg') || box.lastElementChild;
+  if (anchor && anchor.parentElement === box) anchor.after(wrap);
+  else box.appendChild(wrap);
   entries.forEach(entry => show_card(entry.card));
+  box.scrollTop = box.scrollHeight;
 }
 
 function queue_probe_reply(text) {
@@ -1337,7 +1320,7 @@ async function sendMessage() {
 
   const first_turn = !box.querySelector('.msg');
   addMessage('user', text);
-  addTypingIndicator('Thinking…');
+  addTypingIndicator();
   let fullText = '';
   let bubble = null;
   let bubble_started = false;
@@ -1375,13 +1358,7 @@ async function sendMessage() {
         if (ev.type === 'delta') {
           if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
           fullText += ev.delta || '';
-          // Some models leak tool calls as inline text (<call:name .../>).
-          // Strip them from the visible text; surface their status instead.
-          const leaked = LEAKED_CALL_OPEN_RE.test(fullText) || LEAKED_CALL_RE.test(fullText);
-          const statusText = leaked_call_status(fullText);
-          if (leaked && statusText) setComposerStatus(statusText);
-          else if (leaked) setComposerStatus('Preparing your assessment…');
-          bubble.innerHTML = sanitize_html(renderMd(strip_leaked_calls(fullText, { streaming: true })));
+          bubble.innerHTML = sanitize_html(renderMd(fullText));
           render_math(false);
           box.scrollTop = box.scrollHeight;
         } else if (ev.type === 'meta') {
@@ -1392,10 +1369,6 @@ async function sendMessage() {
           if (cid !== undefined && cid !== null && !citation_ids.some(existing => existing === cid)) citation_ids.push(cid);
         } else if (ev.type === 'tool_call') {
           setComposerStatus(tool_status_text(ev));
-          // Keep the typing indicator (if still visible) in sync with what
-          // Sage is doing - e.g. "Assessing your current knowledge..."
-          setTypingStatus(tool_status_text(ev));
-          if (bubble) bubble.classList.add('streaming');
         } else if (ev.type === 'tool_result') {
           setComposerStatus('');
           if (ev.name === 'run_probe' && Array.isArray(ev.questions) && ev.questions.length) {
@@ -1456,20 +1429,6 @@ async function sendMessage() {
     append_web_source_chips(assistant_msg, done_web_sources);
     append_action_chips(assistant_msg, done_actions);
     render_math(true);
-    // Binary/two-option check question: replace the trailing marker
-    // ("(yes/no)", "(higher/lower)", ...) with buttons that submit the
-    // answer as a normal chat turn.
-    const binary = detect_binary_question(fullText);
-    if (binary) {
-      assistant_msg.querySelector('.msg__bubble').innerHTML =
-        sanitize_html(renderMd(binary.question));
-      assistant_msg.__binary_labels = binary.labels;
-      render_math(true);
-      append_binary_buttons(assistant_msg, (answer) => {
-        input.value = answer;
-        sendMessage();
-      });
-    }
     if (pendingDiagramAuto) {
       const envelope = await requestArtifact(ARTIFACT_KIND.DIAGRAM, text, 3);
       if (envelope && envelope.kind === ARTIFACT_KIND.DIAGRAM) {

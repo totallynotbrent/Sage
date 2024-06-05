@@ -1,28 +1,30 @@
-/* Leaked tool-call guard + smooth status animations for Sage workspace.
- *
- * Some models emit tool invocations as inline text (<call:name .../>) in
- * the delta stream instead of through the proper tool_calls channel.
- * Left as-is, the user sees raw markup and no quiz cards. These helpers
- * strip leaked calls out of the visible text and expose a small event
- * hook so the composer can show what is actually happening.
- */
+// Client-side guard: strips leaked text-form tool calls (e.g. <call:run_probe/>,
+// [call:name], bare "call:name/") from rendered assistant messages. The server
+// also strips these; this is the last line of defense for anything that slips
+// through before sanitize_html/renderMd see the text.
+(function () {
+  'use strict';
 
-/* Matches <call:name attr="value" ... /> possibly spanning buffered
- * fragments. Kept permissive: any tag starting with <call: that closes. */
-const LEAKED_CALL_RE = /<call:\s*[a-zA-Z_][\w-]*\b[^>]*\/?>(?:\s*<\/call:\s*[a-zA-Z_][\w-]*>)?/g;
+  const LEAKED_CALL_RE = /<call:\\w+\\b[^>]*>?|\\[?call:\\w+\\b\\/?\\]?(?:\\s*\\([^)]*\\))?/g;
+  const LEAKED_CALL_OPEN_RE = /<call:[^<]*$|\\[?call:\\w+$/;
 
-/* Partial trailing "<call:..." fragment while the stream is mid-tag. */
-const LEAKED_CALL_OPEN_RE = /<call:[^>]*$/;
+  function strip_leaked_calls(text, opts) {
+    opts = opts || {};
+    let out = text.replace(LEAKED_CALL_RE, '');
+    if (!opts.streaming) {
+      // Final render: also drop any dangling open tag remnant.
+      out = out.replace(LEAKED_CALL_OPEN_RE, '');
+    }
+    return out;
+  }
 
-function strip_leaked_calls(text, { streaming = false } = {}) {
-  let cleaned = text.replace(LEAKED_CALL_RE, "");
-  if (streaming) cleaned = cleaned.replace(LEAKED_CALL_OPEN_RE, "");
-  return cleaned;
-}
+  function leaked_call_status(text) {
+    if (/<call:/.test(text)) return 'Preparing your assessment\u2026';
+    return '';
+  }
 
-/* Extract a human-readable status from a leaked run_probe-style call:
- * <call:run_probe status="Assessing your knowledge..."/> -> "Assessing..." */
-function leaked_call_status(text) {
-  const m = text.match(/<call:\s*[a-zA-Z_][\w-]*\s+status="([^"]{0,120})"/);
-  return m ? m[1] : null;
-}
+  window.strip_leaked_calls = strip_leaked_calls;
+  window.LEAKED_CALL_RE = LEAKED_CALL_RE;
+  window.LEAKED_CALL_OPEN_RE = LEAKED_CALL_OPEN_RE;
+  window.leaked_call_status = leaked_call_status;
+})();
