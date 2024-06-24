@@ -458,6 +458,10 @@ async def _run_advance_lesson(arguments: dict, ctx) -> dict:
                     pending[0], ("id", "question", "options")
                 )
         return payload
+    current_phase = service.sessions.get(ctx.session_id).phase
+    if current_phase == "remediate":
+        # Check was passed during remediation — clear the flag so advance() can proceed.
+        service.sessions.set_phase(ctx.session_id, "teach")
     if service.sessions.get(ctx.session_id).phase == "plan":
         approved = PlansService(ctx.conn, ctx.settings).approve(ctx.session_id)
         current = next(

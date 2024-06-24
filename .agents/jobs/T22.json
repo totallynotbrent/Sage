@@ -1,0 +1,25 @@
+{
+  "task_id": "T22",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "turing-t22-committer-latex-notes",
+  "declared_at": "2026-08-19T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Promote feature/latex-notes to release: staging squash merge (1b1a231), master fast-forward, v0.2.0 tag, push to origin",
+  "files": {
+    "modified": [],
+    "created": [".agents/jobs/T22.json"],
+    "deleted": []
+  },
+  "base_commit": "8f81538078d6ce0705038e1689ee6ce22ed4dd2e",
+  "committed_at": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "line_counts": {
+    "before": {},
+    "after": {}
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "Promoted feature/latex-notes to release. Starting state confirmed: working tree clean, HEAD 8f81538, master at b13ff71 (pre-feature base), no staging branch, origin = https://github.com/brentebarle/sage, existing tag v0.1.0. Created staging from master, squash-merged the feature as ONE commit 1b1a231 (feat: latex-notes integration, 58 files, +4312/-155, parent b13ff71; 17 individual feature commits NOT copied; feature/latex-notes branch preserved at 8f81538). Fast-forwarded master to 1b1a231 (linear history, no merge commit). Tagged v0.2.0 (annotated, hash 7e19e3f, minor bump per version rule). Pushed with OPENCODE_ALLOW_MAIN_PUSH=1: master 00b6732..1b1a231, staging (new branch), v0.2.0 (new tag) — all pushed, nothing skipped. Offline suite on final master state: 297 passed in 33.05s. Final branches: staging and master both at 1b1a231, feature/latex-notes at 8f81538.",
+  "verification": "review_only",
+  "notes": "git ops only, no source files changed. refs touched: refs/heads/staging (created), refs/heads/master (b13ff71 -> 1b1a231), refs/tags/v0.2.0 (created). SMB unlink flakiness: the first `git switch -c staging master` checkout hit intermittent 'unable to unlink old' errors on .agents/jobs and a few source files, which left the worktree partially updated; the first `git merge --squash` consequently aborted (exit 1, 0 staged). Recovered by `git restore --staged --worktree .`, removing stranded untracked feature files, and retrying — second squash attempt succeeded (exit 0, 58 staged). Re-verified the staged set matches `git diff master feature/latex-notes --name-status` exactly (58 files, nothing extra/missing). Origin note: remote master was at 00b6732 (14 commits behind local) before push; push was a clean fast-forward, no force needed. Job log T22.json intentionally left untracked (not part of the feature's file set)."
+}

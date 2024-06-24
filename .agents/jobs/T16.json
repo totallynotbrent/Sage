@@ -100,5 +100,18 @@
     "Model constraints: keep LaTeX in source blocks only; emit question/option text in unicode math to dodge JSON backslash-escaping failures; keep relying on the existing fence-stripping parse_json + retry notes. No vision capability needed for LaTeX-compiled PDFs.",
     "Read the existing jobs (none exist yet — this is the first task in .agents/jobs/); the jobs dir was created by writing this log."
   ],
-  "notes": "PyPI pages were JS-blocked; all library facts verified from GitHub primary sources instead. arXiv IDs verified via the arXiv search interface (two guessed IDs were wrong and replaced). The canonical pi-agent-harness repo URL could not be verified; ecosystem evidence (c4pt0r/pie, omnigent) confirms the harness's existence. PyMuPDF math-extraction quality is marked inferred (widely documented pdflatex/Computer-Modern ToUnicode issue; MinerU's garbled-PDF auto-detection feature corroborates it)."
+  "notes": "PyPI pages were JS-blocked; all library facts verified from GitHub primary sources instead. arXiv IDs verified via the arXiv search interface (two guessed IDs were wrong and replaced). The canonical pi-agent-harness repo URL could not be verified; ecosystem evidence (c4pt0r/pie, omnigent) confirms the harness's existence. PyMuPDF math-extraction quality is marked inferred (widely documented pdflatex/Computer-Modern ToUnicode issue; MinerU's garbled-PDF auto-detection feature corroborates it).",
+  "test_run": {
+    "timestamp": "2026-08-19",
+    "runner": "pytest 9.1.1",
+    "command": "python -m pytest tests/ -q",
+    "total": 297,
+    "passed": 297,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration_s": 28.52,
+    "blocked": [],
+    "verdict": "ALL PASS — full offline suite green, no environment blockers"
+  }
 }

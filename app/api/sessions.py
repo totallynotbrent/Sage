@@ -37,10 +37,45 @@ async def create_session(
 
 @router.get("/api/sessions", response_model=list[Session])
 async def list_sessions(
+    limit: int | None = None,
     conn: sqlite3.Connection = Depends(get_conn),
     settings: Settings = Depends(get_app_settings),
 ) -> list[Session]:
-    return SessionService(conn, settings).list()
+    sessions = SessionService(conn, settings).list()
+    if limit is not None and limit > 0:
+        sessions = sessions[:limit]
+    return sessions
+
+
+@router.post("/api/sessions/bulk-delete")
+async def bulk_delete_sessions(
+    payload: dict,
+    llm: LLMClient = Depends(get_llm_client),
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> dict:
+    """Delete many sessions at once. Body: {"ids": [...]} for specific ones,
+    or {"keep": [...]} to delete everything EXCEPT the given ids."""
+    ids = payload.get("ids")
+    keep = payload.get("keep")
+    service = SessionService(conn, settings)
+    all_ids = [s.id for s in service.list()]
+    if isinstance(keep, list):
+        to_delete = [i for i in all_ids if i not in keep]
+    elif isinstance(ids, list):
+        to_delete = [i for i in ids if i in all_ids]
+    else:
+        from fastapi import HTTPException
+        raise HTTPException(422, "provide 'ids' or 'keep'")
+    deleted = 0
+    for sid in to_delete:
+        try:
+            llm.cancel_inflight(sid)
+            service.delete(sid)
+            deleted += 1
+        except Exception:
+            pass
+    return {"deleted": deleted}
 
 
 @router.get("/api/sessions/{session_id}")

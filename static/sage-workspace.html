@@ -8,140 +8,99 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},startup:{pageReady:()=>MathJax.startup.defaultPageReady()}}</script>
+  <script src="sage.js"></script>
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},startup:{pageReady:()=>MathJax.startup.defaultPageReady()}}</script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <!-- shared design system -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sage.css">
   <style>
-:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:180ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:var(--r)}
-a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
-button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
-textarea{font:inherit;color:inherit}
-:where(a,button,[role="radio"],[role="option"],[tabindex],summary):focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:4px}
 .visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-
-.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
-.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
-.layout{display:flex;flex:1;min-height:0;overflow:hidden}
-.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
-.logo span{color:var(--muted)}
 .topbar__title{font-family:var(--font-mono);font-size:12px;color:var(--muted);letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw;margin-left:var(--space-2)}
 .phase-badge{font-size:11px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:3px 10px;border-radius:var(--r);background:var(--accent-dim);color:var(--accent);flex-shrink:0}
-.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
-.icon-btn:hover{background:var(--overlay);color:var(--fg)}
-
-.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform var(--dur-slow) var(--ease),opacity var(--dur-slow) var(--ease)}
-.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
-.sidebar-backdrop.open{display:block}
-.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
-.sidebar:not(.collapsed){transform:translateX(0)}
 .sidebar__close{display:none;margin:var(--space-2) var(--space-2) 0 auto;width:28px;height:28px}
-.sidebar__section{border-bottom:1px solid var(--border)}
-.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
-.sidebar__header:hover{color:var(--muted)}
-.sidebar__chevron{transition:transform var(--dur) var(--ease)}
-.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
-.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
-.sidebar__section.open .sidebar__list{display:block}
-.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
-.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
-.sidebar__item.active{background:var(--overlay);color:var(--fg)}
-.sidebar__item-dot{width:6px;height:6px;border-radius:50%;background:var(--meta);flex-shrink:0}
-.sidebar__item-dot.ready{background:var(--foam)}
-.sidebar__item-dot.error{background:var(--love)}
-.sidebar__item-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sidebar__item-meta{font-size:11px;color:var(--meta);flex-shrink:0}
-.sidebar__item-badge{font-size:10px;font-weight:500;letter-spacing:0.03em;padding:2px 7px;border-radius:var(--r);background:var(--overlay);color:var(--meta);flex-shrink:0}
-.sidebar__item-badge[data-phase="teach"]{color:var(--accent)}
-.sidebar__item-badge[data-phase="plan"]{color:var(--gold)}
-.sidebar__item-badge[data-phase="complete"]{color:var(--foam)}
 .sidebar__action{display:flex;align-items:center;gap:var(--space-2);width:100%;padding:var(--space-2) var(--space-4) var(--space-3);font-size:13px;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
 .sidebar__action:hover{color:var(--accent)}
 .plan-artifacts{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-2) var(--space-2) var(--space-3)}
 .plan-artifacts:empty{display:none}
 .plan-artifacts .artifact-card{padding:var(--space-3)}
-
 .main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:var(--bg)}
-.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
-.chat__messages{flex:1;overflow-y:auto;padding:var(--space-6) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2)}
-.msg{display:flex;flex-direction:column;max-width:760px;width:100%;margin:0 auto;padding:var(--space-4) 0}
-.msg--user{align-items:flex-end}
-.msg--assistant{align-items:flex-start}
-.msg__role{font-size:12px;font-weight:500;color:var(--meta);margin-bottom:6px;padding:0 var(--space-4);letter-spacing:0.01em}
-.msg__bubble{padding:var(--space-4) var(--space-5);border-radius:var(--r);line-height:1.7;word-wrap:break-word;overflow-wrap:break-word;max-width:100%}
-.msg--user .msg__bubble{background:var(--surface-raised);color:var(--fg)}
-.msg--assistant .msg__bubble{background:transparent;color:var(--fg)}
-.msg__bubble p{margin:0 0 var(--space-3)}.msg__bubble p:last-child{margin-bottom:0}
-.msg__bubble ul,.msg__bubble ol{margin:var(--space-3) 0;padding-left:var(--space-6)}
-.msg__bubble li{margin:var(--space-1) 0}.msg__bubble li>p{margin:0}
-.msg__bubble strong{font-weight:600;color:var(--fg)}.msg__bubble em{color:var(--muted);font-style:italic}
-.msg__bubble code{font-family:var(--font-mono);font-size:13px;background:var(--overlay);padding:2px 6px;border-radius:var(--r)}
-.msg__bubble pre{background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);overflow-x:auto;margin:var(--space-3) 0}
-.msg__bubble pre code{background:none;padding:0;font-size:13px;line-height:1.6}
-.msg__bubble blockquote{border-left:2px solid var(--accent);padding-left:var(--space-4);color:var(--muted);margin:var(--space-3) 0;font-style:italic}
-.msg__bubble h1,.msg__bubble h2,.msg__bubble h3{font-family:var(--font-display);color:var(--fg);margin:var(--space-4) 0 var(--space-2);line-height:1.3}
-.msg__bubble h1{font-size:22px}.msg__bubble h2{font-size:18px}.msg__bubble h3{font-size:16px}
+.msg__bubble li>p{margin:0}
+.msg__bubble h1{font-size:22px}
+.msg__bubble h2{font-size:18px}
+.msg__bubble h3{font-size:16px}
 .msg__bubble table{width:100%;border-collapse:collapse;margin:var(--space-3) 0;font-size:14px}
 .msg__bubble th,.msg__bubble td{padding:var(--space-2) var(--space-3);border:1px solid var(--border);text-align:left}
 .msg__bubble th{background:var(--overlay);font-weight:500}
-
-.cite{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--r);background:var(--overlay);color:var(--accent);cursor:pointer;vertical-align:middle;transition:all var(--dur) var(--ease);text-decoration:none}
-.cite:hover{background:var(--surface-warm);text-decoration:none}
-.cite-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:var(--space-2);max-width:100%}
-
 .input-bar{padding:var(--space-3) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom));flex-shrink:0;min-height:0}
+
+/* Inline tool-activity status shown where Sage types */
+.tool-status-line{font-family:var(--font-mono);font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent);padding:var(--space-1) 0}
+
+/* Yes/No inline answer buttons under assistant check questions */
+.yesno-row{display:flex;gap:var(--space-2);margin-top:var(--space-2)}
+.yesno-row .quick-chip{padding:7px 18px}
+
+/* Collapsed repeat counter for identical consecutive user messages */
+.repeat-counter{margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--accent-dim);color:var(--accent);font-size:10px;font-weight:600}
+
+/* Probe section inside the right rail */
+.rail-probe{display:none;flex-direction:column;gap:var(--space-3);padding:var(--space-3);border-bottom:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+.rail-probe.active{display:flex}
+.rail-probe__title{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--meta);padding-bottom:var(--space-1)}
+.rail-probe .artifact-card{padding:var(--space-3)}
+.rail-probe .probe-actions{justify-content:center}
+
+/* Completion state: CTA replaces composer, summary cards in rail */
+.completion-cta{display:none;flex-direction:row;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-4) var(--space-6)}
+.completion-cta.visible{display:flex}
+.completion-cta h3{font-family:var(--font-display);font-size:16px;font-weight:500;color:var(--fg);margin-right:var(--space-2)}
+.btn-hub{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:var(--r);background:var(--accent);color:#1a1a19;font-weight:600;font-size:14px;border:none;cursor:pointer;transition:opacity var(--dur) var(--ease)}
+.btn-hub:hover{opacity:0.85}
+.summary-card{border:1px solid var(--border);border-left:3px solid var(--foam);border-radius:var(--r);padding:var(--space-3);margin-bottom:var(--space-2);background:var(--surface)}
+.summary-card h4{font-family:var(--font-display);font-size:14px;margin:0 0 var(--space-1);color:var(--fg)}
+.summary-card ul{margin:0;padding-left:var(--space-5);font-size:12.5px;color:var(--fg);line-height:1.9;list-style:none;padding-left:var(--space-2)}
+.summary-card li::before{content:'✓ ';color:var(--foam);font-weight:600;margin-right:4px}
+/* Thinking block: collapsible model reasoning */
+/* Thinking line: darker, slightly smaller — model reasoning inline while streaming */
+.thinking-line{font-size:13px;line-height:1.6;color:var(--meta);background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2)}
+
+.thinking-body{padding:var(--space-3);font-size:12.5px;line-height:1.6;color:var(--meta);white-space:pre-wrap;max-height:220px;overflow-y:auto}
+
+/* Button-first UI: persistent quick-reply chips above the composer */
+.quick-chips{display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2)}
+.quick-chips:empty{display:none}
+.quick-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:18px;font-size:13px;font-weight:500;color:var(--fg);background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all var(--dur) var(--ease);animation:chip-in 220ms var(--ease) both}
+.quick-chip:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.quick-chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.quick-chip--primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.quick-chip--primary:hover{opacity:0.85;color:var(--bg)}
+.quick-chip.chip-out{opacity:0;transform:translateY(4px);transition:opacity 160ms var(--ease),transform 160ms var(--ease)}
+@keyframes chip-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .composer-toolbar{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2)}
-.composer-toolbar__btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--meta);background:none;border:none;cursor:pointer;transition:all var(--dur) var(--ease)}
-.composer-toolbar__btn:hover{color:var(--fg);background:var(--overlay)}
-.composer-toolbar__btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .composer-toolbar__btn:disabled{opacity:0.5;cursor:not-allowed}
-.composer-toolbar__btn svg{width:14px;height:14px;flex-shrink:0}
-.composer-toolbar__spacer{flex:1}
-.composer-toolbar__status{font-family:var(--font-mono);font-size:10px;color:var(--meta);letter-spacing:0.04em}
 .input-bar__wrapper{display:flex;align-items:flex-end;gap:var(--space-2);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-3) var(--space-2) var(--space-2) var(--space-4);transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)}
-.input-bar__wrapper:focus-within{border-color:var(--accent);background:var(--surface-raised)}
-.input-bar__textarea{flex:1;min-width:0;resize:none;border:none;background:transparent;font-size:15px;font-family:var(--font-body);line-height:1.5;max-height:120px;min-height:22px;padding:6px 0;color:var(--fg)}
-.input-bar__textarea::placeholder{color:var(--meta)}
-.input-bar__actions{display:flex;align-items:center;gap:var(--space-1);flex-shrink:0}
-.input-bar__send{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--r);background:var(--accent);color:var(--bg);border:none;cursor:pointer;transition:opacity var(--dur) var(--ease),transform 120ms var(--ease)}
-.input-bar__send:hover{opacity:0.85}
-.input-bar__send:active{transform:scale(0.9)}
-.input-bar__stop{display:none;place-items:center;width:32px;height:32px;border-radius:var(--r);background:var(--love);color:#fff;border:none;cursor:pointer;transition:opacity var(--dur) var(--ease),transform 120ms var(--ease)}
-.input-bar__stop:hover{opacity:0.85}
 .composer-error{font-size:12px;color:var(--love);padding:var(--space-2) var(--space-4);font-family:var(--font-body);line-height:1.5}
 .composer-toast{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2) var(--space-3);background:var(--surface);border-left:3px solid var(--foam);padding:var(--space-3) var(--space-4);font-size:13px;color:var(--fg-2);font-family:var(--font-body);line-height:1.5;border-radius:0 var(--r) var(--r) 0;margin-top:var(--space-2)}
-.composer-toast[hidden]{display:none}
-.composer-toast__btn{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--foam);color:var(--foam);background:transparent;transition:all var(--dur) var(--ease)}
-.composer-toast__btn:hover{background:rgba(156,207,216,0.12)}
-.toast-in{animation:toastIn var(--dur-slow) var(--ease)}
-@keyframes toastIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:reduce){.toast-in{animation:none}}
 .phase-badge[data-grounding="strict"]::after{content:" \00b7 strict";color:var(--foam)}
-
-.diagram-panel{width:min(var(--diagram-w),42vw);min-width:320px;border-left:1px solid var(--border);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:transform var(--dur-slow) var(--ease),margin-right var(--dur-slow) var(--ease)}
+.diagram-panel{width:clamp(320px, calc((100vw - var(--sidebar-w)) / 2), calc((100vw - var(--sidebar-w)) - 380px));border-left:1px solid var(--border);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:transform var(--dur-slow) var(--ease),margin-right var(--dur-slow) var(--ease),width var(--dur-slow) var(--ease),max-width var(--dur-slow) var(--ease)}
 .diagram-panel.closed{transform:translateX(100%);margin-right:calc(-1 * min(var(--diagram-w),42vw));pointer-events:none}
+.layout:has(.sidebar.collapsed) > .diagram-panel{width:min(50vw, 1600px);max-width:min(50vw, 1600px)}
 .diagram-panel__header{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border);flex-shrink:0;gap:var(--space-3)}
 .diagram-panel__title{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--fg);display:flex;align-items:baseline;gap:var(--space-2);flex:1;min-width:0}
 .diagram-panel__count{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em}
 .diagram-panel__body{flex:1;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)}
 .diagram-panel__empty{color:var(--meta);font-size:13px;text-align:center;padding:var(--space-8) var(--space-4)}
-
 .artifact-card{position:relative;background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
 .artifact-card[data-kind="mermaid"]{border-left-color:var(--foam)}
-.artifact-card[data-kind="quiz"]{border-left-color:var(--gold)}
 .artifact-card[data-kind="todo"]{border-left-color:var(--rose)}
-.artifact-card[data-kind="chat"]{border-left-color:var(--accent)}
 .artifact-card__header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
-.artifact-card__marker{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--meta);flex-shrink:0}
 .artifact-card__title{font-family:var(--font-display);font-style:italic;font-size:16px;font-weight:500;color:var(--fg);line-height:1.3;flex:1;min-width:140px}
 .artifact-card__badge{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--accent-dim);color:var(--accent);flex-shrink:0;display:inline-flex;align-items:center;gap:4px}
 .artifact-card__badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--foam)}
-.artifact-card__content{display:flex;flex-direction:column;gap:var(--space-3);min-width:0}
 .artifact-card__type{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em;text-transform:lowercase}
 .artifact-card__diagram{display:flex;align-items:center;justify-content:center;background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);min-height:120px}
-.artifact-card__diagram svg{max-width:100%;height:auto}
 .artifact-card__diagram-error{color:var(--love);font-size:13px;text-align:center;padding:var(--space-4)}
 .artifact-card__source-toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--meta);cursor:pointer;background:none;border:none;padding:6px 0;letter-spacing:0.04em}
 .artifact-card__source-toggle:hover{color:var(--fg)}
@@ -160,10 +119,12 @@ textarea{font:inherit;color:inherit}
 .artifact-card__quiz-question{padding:var(--space-3) 0;border-top:1px solid var(--border-soft)}
 .artifact-card__quiz-question:first-child{border-top:0}
 .artifact-card__quiz-qtext{font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--fg);margin-bottom:var(--space-3);line-height:1.4}
+/* Spec quiz typing: question types in with blinking cursor; .typed unwraps to normal flow */
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-qtext:not(.typed){overflow:hidden;white-space:nowrap;border-right:2px solid var(--accent);width:0;max-width:100%;animation:sageTypewriter 900ms steps(28) .15s forwards,sageCursor .8s step-end infinite}
+@keyframes sageTypewriter{to{width:100%}}
+@keyframes sageCursor{50%{border-color:transparent}}
 .artifact-card__quiz-qtext.typed{overflow:visible;white-space:normal;border-right-color:transparent;width:auto}
-.artifact-card__quiz-options{display:flex;flex-direction:column;gap:var(--space-2)}
 .artifact-card__quiz-option{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--r);font-size:13px;cursor:pointer;background:var(--overlay);border:1px solid transparent;transition:all var(--dur) var(--ease);text-align:left;width:100%;font-family:inherit;color:inherit}
-.artifact-card__quiz-option:hover{background:var(--surface-warm)}
 .artifact-card__quiz-option.selected{border-color:var(--accent);background:var(--accent-dim)}
 .artifact-card__quiz-option.correct{background:rgba(156,207,216,0.1);border-color:var(--foam)}
 .artifact-card__quiz-option.incorrect{background:rgba(235,111,146,0.1);border-color:var(--love)}
@@ -177,30 +138,12 @@ textarea{font:inherit;color:inherit}
 .artifact-card__quiz-btn{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:6px 12px;border-radius:5px;background:var(--overlay);color:var(--muted);border:1px solid var(--border);cursor:pointer;transition:all var(--dur) var(--ease)}
 .artifact-card__quiz-btn:hover{background:var(--surface-warm);color:var(--fg)}
 .artifact-card__fallback{font-size:13px;color:var(--muted);line-height:1.5;padding:var(--space-2) 0}
-.probe-wrap{display:flex;flex-direction:column;gap:var(--space-3);max-width:760px;width:100%;margin:0 auto;padding:var(--space-2) 0}
-.probe-actions{display:flex;justify-content:flex-end}
-.probe-send{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:8px 16px;border-radius:var(--r);background:var(--accent);color:var(--bg);transition:opacity var(--dur) var(--ease)}
-.probe-send:hover{opacity:0.85}
-.probe-send:disabled{opacity:0.5;cursor:not-allowed}
-.artifact-card.sent{opacity:0.5;pointer-events:none}
-
 .illustrated-card{margin:var(--space-3) auto 0;max-width:680px;padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--r);display:flex;flex-direction:column;gap:var(--space-2)}
 .illustrated-card__label{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--meta);display:flex;align-items:center;gap:6px}
 .illustrated-card__label::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--foam)}
 .illustrated-card__diagram{background:var(--surface-sunken);border-radius:5px;padding:var(--space-3);display:flex;align-items:center;justify-content:center}
 .illustrated-card__diagram svg{max-width:100%;height:auto;max-height:240px}
 .illustrated-card__fallback{font-size:12px;color:var(--muted);font-style:italic}
-
-@keyframes msgCascade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.msg{animation:msgCascade 700ms var(--ease) both}
-.msg:nth-child(1){animation-delay:0ms}.msg:nth-child(2){animation-delay:250ms}.msg:nth-child(3){animation-delay:500ms}.msg:nth-child(4){animation-delay:750ms}.msg:nth-child(5){animation-delay:1000ms}
-@keyframes hamburgerMorph1{to{transform:translateY(7px) rotate(45deg)}}
-@keyframes hamburgerMorph2{to{opacity:0}}
-@keyframes hamburgerMorph3{to{transform:translateY(-7px) rotate(-45deg)}}
-.typing-indicator{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0}
-.typing-indicator__bar{width:80px;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;animation:gradientSweep 1.2s ease infinite}
-@keyframes gradientSweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
 .artifact-card[data-kind="mermaid"]{opacity:0;transform:translateX(30px)}
 .artifact-card[data-kind="mermaid"].visible{animation:artSlideRight 500ms var(--ease) forwards}
 @keyframes artSlideRight{to{opacity:1;transform:translateX(0)}}
@@ -214,12 +157,11 @@ textarea{font:inherit;color:inherit}
 .artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg circle,.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg text{animation:artFadeIn 400ms var(--ease) forwards}
 @keyframes artDrawLine{to{stroke-dashoffset:0}}
 @keyframes artFadeIn{to{opacity:1}}
-
 .artifact-card[data-kind="quiz"]{opacity:0;transform:translateY(8px)}
 .artifact-card[data-kind="quiz"].visible{animation:artifactReveal 500ms var(--ease) forwards}
 @keyframes artifactReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.artifact-card[data-kind="quiz"] .artifact-card__quiz-qtext{overflow:visible;white-space:normal;border-right:none;width:auto}
-.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option{opacity:0;animation:artifactReveal 300ms var(--ease) forwards}
+@keyframes sageOptSlide{to{opacity:1;transform:translateX(0)}}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option{opacity:0;transform:translateX(12px);animation:sageOptSlide 350ms var(--ease) forwards}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(1){animation-delay:1100ms}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(2){animation-delay:1300ms}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(3){animation-delay:1500ms}
@@ -229,7 +171,6 @@ textarea{font:inherit;color:inherit}
 .artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.correct::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(156,207,216,0.2),transparent);animation:artColorSweep 600ms var(--ease) forwards}
 @keyframes artColorSweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.incorrect{opacity:0.4}
-
 .artifact-card[data-kind="todo"]{opacity:0}
 .artifact-card[data-kind="todo"].visible{animation:artifactReveal 500ms var(--ease) forwards}
 .artifact-card[data-kind="todo"] .artifact-card__todo-item{opacity:0;transform:perspective(400px) rotateX(90deg)}
@@ -241,9 +182,6 @@ textarea{font:inherit;color:inherit}
 .artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(5){animation-delay:560ms}
 .artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(6){animation-delay:680ms}
 @keyframes artFlipTodo{to{opacity:1;transform:perspective(400px) rotateX(0)}}
-.word{display:inline-block;opacity:0;transform:translateY(4px);animation:wordIn 350ms var(--ease) forwards}
-@keyframes wordIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-
 @media(max-width:1023px){
 .sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}
 .sidebar__close{display:grid}
@@ -253,16 +191,8 @@ textarea{font:inherit;color:inherit}
 .composer-toolbar{flex-wrap:wrap}
 .topbar__title{max-width:32vw}
 }
-.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
-.modal.open{display:flex}
-.modal_backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.6)}
-.modal_dialog{position:relative;width:90%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5);z-index:1;display:flex;flex-direction:column;gap:var(--space-3)}
-.modal_head{display:flex;align-items:center;justify-content:space-between}
-.modal_title{font-family:var(--font-display);font-size:20px;font-weight:500}
-.modal_hint{font-size:12px;color:var(--meta);line-height:1.5}
 .modal_actions{display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-2)}
 .upload_zone{border:2px dashed var(--border);border-radius:var(--r);padding:var(--space-6) var(--space-4);text-align:center;cursor:pointer;transition:border-color 150ms var(--ease),background 150ms var(--ease)}
-.upload_zone:hover,.upload_zone.dragover{border-color:var(--accent);background:var(--accent-dim)}
 .upload_zone_title{font-size:14px;font-weight:500;margin-bottom:4px}
 .upload_zone_hint{font-size:11px;color:var(--meta);font-family:var(--font-mono)}
 .upload_list{display:flex;flex-direction:column;gap:var(--space-2);max-height:180px;overflow-y:auto}
@@ -272,27 +202,31 @@ textarea{font:inherit;color:inherit}
 .upload_item_remove{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;color:var(--meta)}
 .upload_item_remove:hover{background:var(--surface-warm);color:var(--fg)}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease)}
-.btn_primary{background:var(--accent);color:var(--bg)}
-.btn_primary:hover{background:var(--accent-hover)}
 .btn_primary:disabled{opacity:0.5;cursor:not-allowed}
 .btn_ghost{background:var(--overlay);color:var(--muted)}
 .btn_ghost:hover{background:var(--surface-warm);color:var(--fg)}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}.word{animation:none !important;opacity:1 !important;transform:none !important}}
   </style>
 </head>
-<body>
+<body data-sage-animate>
 <div class="app">
   <h1 class="visually-hidden">Sage workspace</h1>
   <div class="topbar">
-    <button class="icon-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <button class="icon-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h10M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     <a href="index.html" class="logo">S<span>a</span>ge</a>
     <span class="topbar__title" id="session-title"> - Loading...</span>
     <span class="phase-badge" id="phase-badge">setup</span>
+    <button class="icon-btn" id="rail-btn" aria-label="Toggle artifacts" style="margin-left:auto"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M17 5H3M13 10H3M17 15H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
   </div>
   <div class="layout">
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
     <aside class="sidebar" id="sidebar" aria-label="Study plan">
       <button class="sidebar__close icon-btn" id="closeSidebar" type="button" aria-label="Close study plan"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+      <div class="sidebar__section open" id="plan-section">
+        <button class="sidebar__header" id="plan-toggle" aria-expanded="true" aria-controls="plan-nodes plan-artifacts"><span>Plan</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list" id="plan-nodes"></div>
+        <div class="plan-artifacts" id="plan-artifacts" aria-label="Generated quizzes and todo lists"></div>
+      </div>
+
       <div class="sidebar__section open">
         <button class="sidebar__header" aria-expanded="true" aria-controls="nav-list"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
         <div class="sidebar__list" id="nav-list">
@@ -316,31 +250,19 @@ textarea{font:inherit;color:inherit}
           Upload file
         </button>
       </div>
-      <div class="sidebar__section open" id="plan-section">
-        <button class="sidebar__header" id="plan-toggle" aria-expanded="true" aria-controls="plan-nodes plan-artifacts"><span>Plan</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
-        <div class="sidebar__list" id="plan-nodes"></div>
-        <div class="plan-artifacts" id="plan-artifacts" aria-label="Generated quizzes and todo lists"></div>
-      </div>
     </aside>
 
     <main class="main">
       <div class="chat" id="chat">
         <div class="chat__messages" id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
+        <div class="quick-chips" id="quick-chips" aria-label="Quick replies"></div>
+        <div class="completion-cta" id="completion-cta">
+          <h3>Lesson complete</h3>
+          <button class="btn-hub" id="cta-review">Review summary</button>
+          <button class="btn-hub" id="cta-new" style="background:var(--surface-raised);color:var(--fg);border:1px solid var(--muted)">Start a new lesson</button>
+        </div>
         <div class="input-bar">
-          <div class="composer-toolbar" role="toolbar" aria-label="Artifact composer">
-            <button class="composer-toolbar__btn" id="composer-diagram" type="button" aria-label="Generate diagram" title="Generate diagram from current input">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5.5v3M10.5 5.5v3M5.5 3.5h3M5.5 10.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-              Diagram
-            </button>
-            <button class="composer-toolbar__btn" id="composer-quiz" type="button" aria-label="Generate quiz" title="Generate quiz from current input">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 3a1.5 1.5 0 011.5-1.5h7A1.5 1.5 0 0112 3v6a1.5 1.5 0 01-1.5 1.5H6.5L4 13v-2.5h-.5A1.5 1.5 0 012 9V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 5.5h4M5 7.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-              Quiz
-            </button>
-            <button class="composer-toolbar__btn" id="composer-todo" type="button" aria-label="Generate todo list" title="Generate todo list from current input">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="2.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6.5l1.5 1.5 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 9.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-              Todo
-            </button>
-            <span class="composer-toolbar__spacer"></span>
+          <div class="composer-toolbar" role="toolbar" aria-label="Composer">
             <span class="composer-toolbar__status" id="composer-status" aria-live="polite"></span>
           </div>
           <div class="input-bar__wrapper">
@@ -357,7 +279,7 @@ textarea{font:inherit;color:inherit}
       </div>
     </main>
 
-    <aside class="diagram-panel closed" id="diagramPanel" aria-label="Artifacts and support">
+    <aside class="diagram-panel" id="diagramPanel" aria-label="Artifacts and support">
       <div class="diagram-panel__header">
         <div class="diagram-panel__title">
           <span>Artifacts</span>
@@ -365,8 +287,9 @@ textarea{font:inherit;color:inherit}
         </div>
         <button class="icon-btn" id="closeDiagram" aria-label="Close artifacts" style="width:28px;height:28px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
+      <div class="rail-probe" id="rail-probe"></div>
       <div class="diagram-panel__body" id="diagramBody">
-        <div class="diagram-panel__empty">No artifacts yet. Use the composer to generate one.</div>
+        <div class="diagram-panel__empty">Diagrams, quizzes, and checklists Sage generates will appear here.</div>
       </div>
     </aside>
   </div>
@@ -397,7 +320,6 @@ textarea{font:inherit;color:inherit}
 <script>
 const API = '/api';
 const ARTIFACT_KIND = { DIAGRAM: 'mermaid', QUIZ: 'quiz', TODO: 'todo' };
-const DIAGRAM_INTENT = /\b(diagram|flowchart|draw|visualize|visualise|graph|illustrate|schema|architecture|explain\s+with\s+a\s+diagram|show\s+as\s+a\s+diagram|show\s+me\s+a\s+diagram)\b/i;
 const ARTIFACT_LOCAL_PREFIX = 'sage_artifact_';
 const TOOL_STATUS = { web_search: 'searching the web…', generate_mermaid: 'generating mermaid…', generate_quiz: 'generating quiz…', generate_todo: 'generating todo list…', generate_study_plan: 'generating study plan…', record_step_actions: 'recording next steps…' };
 let sessionId = new URLSearchParams(window.location.search).get('session');
@@ -406,7 +328,6 @@ let streaming = false;
 let streamCtrl = null;
 let artifacts = [];
 let artifactCounter = 0;
-let pendingDiagramAuto = false;
 let last_math_typeset = 0;
 let pending_probe_reply = null;
 
@@ -442,7 +363,7 @@ const sidebar = document.getElementById('sidebar');
 const backdrop = document.getElementById('sidebar-backdrop');
 const menu_btn = document.getElementById('menu-btn');
 const mobile_query = window.matchMedia('(max-width: 1023px)');
-const reduced_motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const reduced_motion = { matches: false }; // animations force-enabled
 function reconcile_sidebar() {
   try{
     if (!sidebar || !backdrop || !menu_btn) return;
@@ -477,13 +398,36 @@ function toggleSidebar() {
   }catch(e){}
 }
 try{ reconcile_sidebar(); }catch(e){}
+// Mobile: artifacts rail defaults CLOSED so it never covers the chat (it overlays full-width there).
+// Desktop: rail stays open as a persistent side panel.
+(function(){
+  const mq = window.matchMedia('(max-width:1023px)');
+  const railEl = document.getElementById('diagramPanel');
+  function applyRailDefault(){
+    if(!railEl) return;
+    if(mq.matches){ railEl.classList.add('closed'); }
+    else if (!railEl.dataset.userClosed) { railEl.classList.remove('closed'); }
+  }
+  applyRailDefault();
+  mq.addEventListener('change', e => {
+    if(e.matches) railEl.classList.add('closed');
+    else if (!railEl.dataset.userClosed) railEl.classList.remove('closed');
+  });
+})();
 mobile_query.addEventListener('change', reconcile_sidebar);
 window.addEventListener('resize', reconcile_sidebar);
 menu_btn?.addEventListener('click', toggleSidebar);
 backdrop?.addEventListener('click', close_sidebar);
 document.addEventListener('keydown', event => { if (event.key === 'Escape') { close_sidebar(); closeArtifactsRail(); } });
 document.querySelectorAll('.sidebar__header').forEach(b => b.addEventListener('click', () => { const sec=b.closest('.sidebar__section'); if(!sec) return; const open = sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open)); }));
-document.getElementById('closeDiagram')?.addEventListener('click', () => { closeArtifactsRail(); });
+document.getElementById('closeDiagram')?.addEventListener('click', () => { closeArtifactsRail(); document.getElementById('diagramPanel').dataset.userClosed = '1'; });
+// Right hamburger: toggle the artifacts rail
+document.getElementById('rail-btn')?.addEventListener('click', () => {
+  const panel = document.getElementById('diagramPanel');
+  const closing = !panel.classList.contains('closed');
+  if (closing) { closeArtifactsRail(); panel.dataset.userClosed = '1'; }
+  else { delete panel.dataset.userClosed; openArtifactsRail(); }
+});
 document.getElementById('closeSidebar')?.addEventListener('click', close_sidebar);
 
 function sync_nav_workspace() {
@@ -596,7 +540,8 @@ function animateWords(element){try{wrapWords(element)}catch(e){}}
 function wrapQuizWords(card){
   try{
     if(!card||reduced_motion.matches)return;
-    card.querySelectorAll('.artifact-card__quiz-qtext,.artifact-card__quiz-question').forEach(qtext=>{
+    // qtext uses the typewriter animation — skip word-wrapping to avoid double animation
+    card.querySelectorAll('.artifact-card__quiz-question').forEach(qtext=>{
       if(qtext.dataset.wordWrapped==='1')return;
       if(qtext.querySelector('.word'))return;
       wrapWords(qtext);
@@ -605,6 +550,30 @@ function wrapQuizWords(card){
 }
 
 function addMessage(role, content, options = {}) {
+  // Collapse consecutive identical user messages (e.g. repeated "got it" confirmations)
+  if (role === 'user' && typeof content === 'string') {
+    const allMsgs = box.querySelectorAll('.msg');
+    const last = allMsgs[allMsgs.length - 1];
+    if (last && last.classList.contains('msg--user')) {
+      const bubbleText = last.querySelector('.msg__bubble')?.dataset.rawContent || '';
+      if (bubbleText === content) {
+        let n = parseInt(last.dataset.repeatCount || '1', 10) + 1;
+        last.dataset.repeatCount = String(n);
+        const counter = last.querySelector('.repeat-counter');
+        if (counter) { counter.textContent = `×${n}`; }
+        else {
+          const c = document.createElement('span');
+          c.className = 'repeat-counter';
+          c.textContent = '×2';
+          last.querySelector('.msg__role').appendChild(c);
+        }
+        box.scrollTop = box.scrollHeight;
+        return last;
+      }
+    }
+    // store raw content for future comparisons
+    options = Object.assign({ _raw: content }, options);
+  }
   const d = document.createElement('div');
   d.className = `msg msg--${role}`;
   let html = `<div class="msg__role">${role === 'user' ? 'You' : 'Sage'}</div><div class="msg__bubble">`;
@@ -619,6 +588,7 @@ function addMessage(role, content, options = {}) {
   }
    html += `${role === 'assistant' ? sanitize_html(renderMd(content)) : esc(content)}</div>`;
    d.innerHTML = html;
+  if (options._raw) d.querySelector('.msg__bubble').dataset.rawContent = options._raw;
   box.appendChild(d);
   if (role === 'assistant') { render_math(true); renderChatMermaid(d); const bubble=d.querySelector('.msg__bubble'); if(bubble) wrapWords(bubble); }
   box.scrollTop = box.scrollHeight;
@@ -638,6 +608,10 @@ function addTypingIndicator() {
 function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
 
 function addStreamingMessage() {
+  // Never allow two streaming bubbles: drop a stale one so ids stay unique and
+  // the typer can't append into an old turn's message ("wrong message" bug).
+  const stale = document.getElementById('streaming-msg');
+  if (stale) stale.remove();
   const d = document.createElement('div');
   d.className = 'msg msg--assistant';
   d.id = 'streaming-msg';
@@ -647,7 +621,7 @@ function addStreamingMessage() {
   return document.getElementById('streaming-bubble');
 }
 
-function openArtifactsRail() { close_sidebar(); diagramPanel.classList.remove('closed'); }
+function openArtifactsRail() { if (mobile_query.matches) close_sidebar(); diagramPanel.classList.remove('closed'); }
 function closeArtifactsRail() { diagramPanel.classList.add('closed'); }
 function openPlanSection() {
   const section = document.getElementById('plan-section');
@@ -667,10 +641,15 @@ function focusPlanArtifact(card) {
 function show_card(card) { setTimeout(() => { card.classList.add('visible'); wrapQuizWords(card); }, 60); }
 
 function updateArtifactsCount() {
+  const summaryCards = diagramBody.querySelectorAll('.summary-card').length;
   const supportArtifacts = artifacts.filter(artifact => artifact.kind !== ARTIFACT_KIND.QUIZ && artifact.kind !== ARTIFACT_KIND.TODO);
-  artifactsCount.textContent = String(supportArtifacts.length);
-  if (supportArtifacts.length === 0 && !diagramBody.querySelector('.artifact-card')) {
-    diagramBody.innerHTML = '<div class="diagram-panel__empty">No artifacts yet. Use the composer to generate one.</div>';
+  artifactsCount.textContent = String(supportArtifacts.length + summaryCards);
+  if (
+    supportArtifacts.length === 0 &&
+    !diagramBody.querySelector('.artifact-card') &&
+    !diagramBody.querySelector('.summary-card')
+  ) {
+    diagramBody.innerHTML = '<div class="diagram-panel__empty">Diagrams, quizzes, and checklists Sage generates will appear here.</div>';
   }
 }
 
@@ -1017,6 +996,8 @@ function appendPlanDiagramCard(plan_diagram) {
   show_card(element);
   updateArtifactsCount();
   openArtifactsRail();
+  // Button-first: also pop open the sidebar plan section so the node list is visible
+  try { openPlanSection(); if (mobile_query.matches && sidebar.classList.contains('collapsed')) toggleSidebar(); } catch (_) {}
 }
 
 function appendIllustratedCard(envelope, parentMessage) {
@@ -1196,6 +1177,9 @@ function start_probe_batch(items, kind_label) {
     if (!parts.length) return;
     entries.forEach(entry => entry.card.classList.add('sent'));
     send_btn.disabled = true;
+    // Collapse the rail section once sent — results/teaching continue in chat
+    const rail = document.getElementById('rail-probe');
+    if (rail) setTimeout(() => { rail.classList.remove('active'); rail.innerHTML = ''; }, 1200);
     queue_probe_reply(parts.join('; '));
   };
   const update_state = () => {
@@ -1225,15 +1209,31 @@ function start_probe_batch(items, kind_label) {
   send_btn.onclick = submit;
   actions.appendChild(send_btn);
   wrap.appendChild(actions);
-  const anchor = document.getElementById('streaming-msg') || box.lastElementChild;
-  if (anchor && anchor.parentElement === box) anchor.after(wrap);
-  else box.appendChild(wrap);
+  // Button-first layout: probe lives in the RIGHT RAIL so chat stays a clean
+  // scrollback of messages/explanations.
+  openArtifactsRail();
+  const rail = document.getElementById('rail-probe');
+  rail.innerHTML = `<div class="rail-probe__title">${kind_label === 'check' ? 'Check question' : 'Knowledge probe'}</div>`;
+  rail.appendChild(wrap);
+  rail.classList.add('active');
   entries.forEach(entry => show_card(entry.card));
-  box.scrollTop = box.scrollHeight;
+  rail.scrollTop = 0;
 }
 
 function queue_probe_reply(text) {
-  if (streaming) { pending_probe_reply = text; return; }
+  if (streaming) {
+    // Race-safe: poll until the current turn fully finishes, then send.
+    // (The pending_probe_reply flush inside sendMessage can miss if submit()
+    // fires after its finally block has already run.)
+    const waiter = setInterval(() => {
+      if (!streaming) {
+        clearInterval(waiter);
+        input.value = text;
+        sendMessage();
+      }
+    }, 250);
+    return;
+  }
   input.value = text;
   sendMessage();
 }
@@ -1299,24 +1299,50 @@ function artifactContext() {
   return 'the current learning topic';
 }
 
-async function generateFromComposer(kind) {
-  const prompt = artifactContext();
-  const count = kind === ARTIFACT_KIND.QUIZ ? 5 : 3;
-  const envelope = await requestArtifact(kind, prompt, count);
-  if (envelope && envelope.kind === kind) {
-    appendArtifact(envelope);
-  }
+/* Yes/No quick-answer buttons: when Sage ends with a yes/no check question,
+   render two tappable buttons instead of making the user type. */
+function append_yes_no_buttons(message_el, text) {
+  if (!message_el || !text) return;
+  const tail = text.slice(-80).toLowerCase();
+  if (!/\(yes\/no\)|\(y\/n\)|\?\s*$/.test(tail) || !/\(yes\/no\)|\(y\/n\)/.test(tail)) return;
+  const row = document.createElement('div');
+  row.className = 'yesno-row';
+  [['Yes', 'yes'], ['No', 'no']].forEach(([label, val]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'quick-chip';
+    b.textContent = label;
+    b.onclick = () => { if (!streaming) { input.value = val; sendMessage(); } };
+    row.appendChild(b);
+  });
+  message_el.appendChild(row);
 }
 
-document.getElementById('composer-diagram')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.DIAGRAM));
-document.getElementById('composer-quiz')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.QUIZ));
-document.getElementById('composer-todo')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.TODO));
+let activeTyper = null, activeTyperDone = null;
 
 async function sendMessage() {
   const text = input.value.trim();
-  if (!text || streaming || !sessionId) return;
+  if (!text || streaming) return;
   input.value = '';
   input.style.height = 'auto';
+
+  // Fresh visit without a session: create one on the fly, then continue in place.
+  if (!sessionId) {
+    try {
+      const sr = await fetch(`${API}/sessions`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({goal: text, grounding_mode: 'grounded'})});
+      if (!sr.ok) throw new Error('session create failed');
+      const sd = await sr.json();
+      sessionId = sd.id || sd.session?.id;
+      if (!sessionId) throw new Error('no session id returned');
+      history.replaceState(null, '', `?session=${encodeURIComponent(sessionId)}`);
+      document.getElementById('session-title').textContent = ' - ' + (sd.title || text.slice(0, 40));
+      loadSessionsList();
+    } catch (e) {
+      set_status('Could not create a session. Please try again.');
+      input.value = text;
+      return;
+    }
+  }
 
   const first_turn = !box.querySelector('.msg');
   addMessage('user', text);
@@ -1335,7 +1361,6 @@ async function sendMessage() {
   sendBtn.style.display = 'none';
   if (stopBtn) stopBtn.style.display = 'grid';
   document.getElementById('attach-btn').style.display = 'none';
-  pendingDiagramAuto = DIAGRAM_INTENT.test(text);
 
   const ctrl = new AbortController();
   streamCtrl = ctrl;
@@ -1356,7 +1381,12 @@ async function sendMessage() {
       try {
         const ev = JSON.parse(line.slice(5).trim());
         if (ev.type === 'delta') {
-          if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
+          if (!bubble_started) {
+            removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true;
+            // Real answer streaming now — drop the transient thinking line
+            const tl = bubble.querySelector('.thinking-line'); if (tl) tl.remove();
+            const sl = bubble.querySelector('.tool-status-line'); if (sl) sl.remove();
+          }
           fullText += ev.delta || '';
           bubble.innerHTML = sanitize_html(renderMd(fullText));
           render_math(false);
@@ -1367,17 +1397,97 @@ async function sendMessage() {
         } else if (ev.type === 'citation') {
           const cid = ev.chunk_id !== undefined ? ev.chunk_id : ev.id;
           if (cid !== undefined && cid !== null && !citation_ids.some(existing => existing === cid)) citation_ids.push(cid);
+        } else if (ev.type === 'thinking') {
+          // Thinking: darker, slightly smaller text in the same streaming bubble.
+          // One sentence shown per stream update — no dropdown.
+          if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
+          const thinkText = String(ev.thinking || '');
+          if (thinkText) {
+            let t_el = bubble.querySelector('.thinking-line');
+            if (!t_el) {
+              t_el = document.createElement('div');
+              t_el.className = 'thinking-line';
+              bubble.prepend(t_el);
+            }
+            const buf = (t_el.dataset.buf || '') + thinkText;
+            t_el.dataset.buf = buf;
+            const sentEnd = Math.max(buf.lastIndexOf('. '), buf.lastIndexOf('.\n'), buf.lastIndexOf('? '));
+            if (sentEnd !== -1) {
+              t_el.textContent = buf.slice(0, sentEnd + 1).trim();
+              t_el.dataset.buf = buf.slice(sentEnd + 1);
+            } else {
+              t_el.textContent = buf.trim();
+            }
+          }
         } else if (ev.type === 'tool_call') {
           setComposerStatus(tool_status_text(ev));
+          // Show tool activity inline where Sage types — easier to read than composer corner
+          if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
+          let statusLine = bubble.querySelector('.tool-status-line');
+          if (!statusLine) {
+            statusLine = document.createElement('div');
+            statusLine.className = 'tool-status-line';
+            bubble.prepend(statusLine);
+          }
+          statusLine.textContent = '\u2699 ' + tool_status_text(ev);
         } else if (ev.type === 'tool_result') {
           setComposerStatus('');
+          const sl = bubble && bubble.querySelector('.tool-status-line');
+          if (sl) sl.remove();
           if (ev.name === 'run_probe' && Array.isArray(ev.questions) && ev.questions.length) {
             start_probe_batch(ev.questions, 'probe');
           } else if (ev.name === 'advance_lesson' && ev.check_question && ev.check_question.question) {
             start_probe_batch([ev.check_question], 'check');
           } else if (ev.name === 'build_plan' && ev.plan_diagram && ev.plan_diagram.source) {
             appendPlanDiagramCard(ev.plan_diagram);
+            // Refresh sidebar plan list immediately (don't wait for page reload)
+            if (ev.nodes || ev.plan_nodes) {
+              const nodes = ev.nodes || ev.plan_nodes;
+              const el = document.getElementById('plan-nodes');
+              if (el && Array.isArray(nodes)) {
+                el.innerHTML = nodes.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+              }
+            } else { loadSession(sessionId).catch(()=>{}); }
+          } else if (ev.name === 'generate_mermaid' && ev.source) {
+            appendArtifact({ kind: ARTIFACT_KIND.DIAGRAM, output_id: `tr-diag-${++artifactCounter}`,
+              content: { title: ev.title || sessionGoal || 'Diagram', source: ev.source, diagram_type: ev.diagram_type || 'flowchart' },
+              validation: { status: 'validated' } });
+          } else if (ev.artifact) {
+            const a = ev.artifact;
+            if (a.kind === 'quiz' && Array.isArray(a.questions)) {
+              appendArtifact({ kind: ARTIFACT_KIND.QUIZ, output_id: `tr-quiz-${++artifactCounter}`,
+                content: { title: a.title || 'Quiz', questions: a.questions } });
+            } else if (a.kind === 'todo' && Array.isArray(a.items)) {
+              appendArtifact({ kind: ARTIFACT_KIND.TODO, output_id: `tr-todo-${++artifactCounter}`,
+                content: { title: a.title || 'Checklist', items: a.items } });
+            } else if (a.kind === 'latex') {
+              appendArtifact({ kind: ARTIFACT_KIND.DIAGRAM, output_id: `tr-latex-${++artifactCounter}`,
+                content: { title: a.title || 'LaTeX', source: a.latex || '', diagram_type: 'latex' },
+                validation: { status: 'validated' } });
+            }
           }
+        } else if (ev.type === 'buffered_text') {
+          // Server buffered the full reply; simulate typing client-side.
+          // Non-blocking: words are appended on a timer so consume_line stays sync.
+          if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
+          const words = String(ev.text || '').split(/(\s+)/).filter(Boolean);
+          let wi = 0;
+          fullText = ev.text || '';   // mark text present for persistence
+          activeTyper = new Promise(resolve => { activeTyperDone = resolve; });
+          const streamSpan = (w) => {
+            // plain append — no per-word animation (user request)
+            bubble.appendChild(document.createTextNode(w));
+          };
+          const typer = setInterval(() => {
+            if (wi >= words.length) {
+              clearInterval(typer);
+              if (activeTyperDone) activeTyperDone();
+              return;
+            }
+            streamSpan(words[wi]);
+            box.scrollTop = box.scrollHeight;
+            wi++;
+          }, 40);
         } else if (ev.type === 'done') {
           stream_done = true;
           if (Array.isArray(ev.actions)) done_actions = ev.actions;
@@ -1406,6 +1516,11 @@ async function sendMessage() {
     }
   }
 
+  // Let the fake-typing animation finish before swapping to the final rendered message,
+  // otherwise the word-entrance animations get wiped mid-play.
+  if (activeTyper) { try { await Promise.race([activeTyper, new Promise(r => setTimeout(r, 8000))]); } catch (_) {} }
+  activeTyper = null;
+
   streaming = false;
   streamCtrl = null;
   sendBtn.style.display = '';
@@ -1415,6 +1530,11 @@ async function sendMessage() {
   removeTypingIndicator();
   const streamingEl = document.getElementById('streaming-msg');
   if (streamingEl) streamingEl.remove();
+  // Safety: strip any leftover per-word animation spans from live messages
+  box.querySelectorAll('.stream-word').forEach(sp => {
+    const txt = document.createTextNode(sp.textContent);
+    sp.replaceWith(txt);
+  });
   let assistant_msg = null;
   if (fullText) {
     assistant_msg = addMessage('assistant', fullText);
@@ -1425,16 +1545,15 @@ async function sendMessage() {
     assistant_msg = addMessage('assistant', 'Sage could not produce a response. Please try again.');
   }
   if (assistant_msg) {
+    append_yes_no_buttons(assistant_msg, fullText);
     append_citation_chips(assistant_msg, citation_ids, meta_chunks);
     append_web_source_chips(assistant_msg, done_web_sources);
     append_action_chips(assistant_msg, done_actions);
-    render_math(true);
-    if (pendingDiagramAuto) {
-      const envelope = await requestArtifact(ARTIFACT_KIND.DIAGRAM, text, 3);
-      if (envelope && envelope.kind === ARTIFACT_KIND.DIAGRAM) {
-        appendIllustratedCard(envelope, assistant_msg);
-      }
+    // Button-first: when the model supplied record_step_actions, promote them to the pinned chip row
+    if (Array.isArray(done_actions) && done_actions.length) {
+      setQuickChips(chipsFromActions(done_actions));
     }
+    render_math(true);
   }
   if (pending_probe_reply) {
     const reply = pending_probe_reply;
@@ -1442,9 +1561,148 @@ async function sendMessage() {
     queue_probe_reply(reply);
   }
   if (sessionId && first_turn) { fetch(`${API}/sessions/${sessionId}/title`, { method: 'POST' }).then(loadSessionList_safe).catch(() => {}); }
+  // Sync sidebar plan checklist + completion UI with the server after every turn
+  refreshSessionUI();
+}
+
+/* Pull latest session state and sync phase badge, plan checklist and completion UI */
+async function refreshSessionUI() {
+  if (!sessionId) return;
+  try {
+    const res = await fetch(`${API}/sessions/${sessionId}`);
+    const data = await res.json();
+    const sess = data.session || data;
+    const badge = document.getElementById('phase-badge');
+    if (badge && sess.phase) { badge.textContent = sess.phase; badge.dataset.phase = sess.phase; }
+    if (Array.isArray(data.plan) && data.plan.length) {
+      const el = document.getElementById('plan-nodes');
+      if (el) {
+        el.innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+      }
+    }
+    updateCompletionState();
+  } catch (e) {}
 }
 
 sendBtn?.addEventListener('click', sendMessage);
+
+/* ---- Button-first UI: phase-aware quick chips pinned above the composer ---- */
+const QUICK_CHIPS_EL = document.getElementById('quick-chips');
+let currentQuickChips = [];
+function setQuickChips(chips) {
+  if (!QUICK_CHIPS_EL || !Array.isArray(chips)) return;
+  // Exit animation: fade existing chips out before replacing
+  const existing = QUICK_CHIPS_EL.querySelectorAll('.quick-chip');
+  if (existing.length && chips.length) {
+    existing.forEach(b => b.classList.add('chip-out'));
+    setTimeout(() => { renderChips(chips); }, 180);
+    return;
+  }
+  renderChips(chips);
+}
+function renderChips(chips) {
+  if (!QUICK_CHIPS_EL) return;
+  currentQuickChips = chips;
+  QUICK_CHIPS_EL.innerHTML = '';
+  chips.forEach((c, i) => {
+    if (!c || !c.label) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quick-chip' + (c.primary ? ' quick-chip--primary' : '');
+    btn.textContent = c.label;
+    if (i === 0 && chips.length > 1) btn.classList.add('quick-chip--primary');
+    btn.onclick = () => {
+      if (streaming) return;
+      if (c.action === 'focus') { input.focus(); return; }
+      input.value = c.prompt || c.label;
+      sendMessage();
+    };
+    QUICK_CHIPS_EL.appendChild(btn);
+  });
+}
+function chipsFromActions(actions) {
+  // Bot-driven only: render exactly what the model supplies via record_step_actions.
+  if (!Array.isArray(actions) || !actions.length) return [];
+  return actions.map((a) => ({
+    label: a.label || a.id || 'continue',
+    prompt: a.prompt || '',
+    action: String(a.id || '').toLowerCase().includes('ask_question') ? 'focus' : 'send',
+  }));
+}
+function refreshChipsForPhase() {
+  // Chips are bot-driven only — nothing hardcoded by phase. Cleared after each turn
+  // until the model emits new record_step_actions.
+  setQuickChips([]);
+}
+
+/* Completion state: swap composer for a call-to-action hub */
+function updateCompletionState() {
+  const phase = (document.getElementById('phase-badge')?.textContent || '').toLowerCase();
+  const cta = document.getElementById('completion-cta');
+  const inputBar = document.querySelector('.input-bar');
+  if (!cta) return;
+  if (phase === 'complete') {
+    cta.classList.add('visible');
+    if (inputBar) inputBar.style.display = 'none';
+    buildLessonSummary();
+  } else {
+    cta.classList.remove('visible');
+    if (inputBar) inputBar.style.display = '';
+  }
+}
+async function buildLessonSummary() {
+  // Only build once
+  if (document.getElementById('diagramBody').querySelector('.summary-card')) return;
+  try {
+    const res = await fetch(`${API}/sessions/${sessionId}`);
+    const data = await res.json();
+    const plan = data.plan || [];
+    const doneNodes = plan.filter(n => n.status === 'done').map(n => n.title);
+    if (!doneNodes.length) return;
+    openArtifactsRail();
+    const card = document.createElement('div');
+    card.className = 'summary-card';
+    card.innerHTML = `<h4>What you learned</h4><ul>${doneNodes.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    const emptyEl = document.getElementById('diagramBody').querySelector('.diagram-panel__empty');
+    if (emptyEl) emptyEl.remove();
+    document.getElementById('diagramBody').prepend(card);
+    updateArtifactsCount();
+  } catch(e) {}
+}
+document.addEventListener('DOMContentLoaded', () => setTimeout(updateCompletionState, 500));
+
+// hook into sendMessage lifecycle so chips dim while streaming
+const _origSendMessage = sendMessage;
+sendMessage = async function () {
+  QUICK_CHIPS_EL?.querySelectorAll('.quick-chip').forEach(b => b.disabled = true);
+  try { await _origSendMessage.apply(this, arguments); }
+  finally {
+    QUICK_CHIPS_EL?.querySelectorAll('.quick-chip').forEach(b => b.disabled = false);
+    refreshChipsForPhase();
+  }
+};
+// initial chips once DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', refreshChipsForPhase);
+} else {
+  refreshChipsForPhase();
+}
+
+// Handoff from home: auto-send the first message once the session is loaded
+(function(){
+  const pending = sessionStorage.getItem('sage_pending_message');
+  if (!pending) return;
+  sessionStorage.removeItem('sage_pending_message');
+  const trySend = (attempts) => {
+    if (sessionId && !streaming) { input.value = pending; sendMessage(); return; }
+    if (attempts <= 0) return;
+    setTimeout(() => trySend(attempts - 1), 300);
+  };
+  const start = () => trySend(40);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(start, 400));
+  else setTimeout(start, 400);
+})();
+
 stopBtn?.addEventListener('click', () => {
   if (!streamCtrl) return;
   streamCtrl.abort();
@@ -1464,6 +1722,11 @@ async function loadSession(id) {
      document.title = `Sage - ${session_title}`;
     document.getElementById('phase-badge').textContent = sess.phase;
     document.getElementById('phase-badge').dataset.phase = sess.phase;
+    // Re-render from scratch: drop anything already in the chat (live-rendered or from a prior
+    // load) so history never duplicates.
+    box.innerHTML = '';
+    artifacts.length = 0;
+    document.getElementById('plan-artifacts')?.querySelectorAll('.artifact-card').forEach(el => el.remove());
     if (data.messages) data.messages.forEach(m => addMessage(m.role, m.content));
     if (data.selected_files) document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
     if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
@@ -1475,10 +1738,16 @@ async function loadSessionsList() {
   try {
     const res = await fetch(`${API}/sessions`);
     const sessions = await res.json();
-    document.getElementById('sessions-list').innerHTML = sessions.map(s => `<div class="sidebar__item${s.id === sessionId ? ' active' : ''}" onclick="window.location.href='?session=${encodeURIComponent(s.id)}'" role="link" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='?session=${encodeURIComponent(s.id)}'}"><span class="sidebar__item-badge" data-phase="${esc(s.phase)}">${esc(s.phase)}</span><span class="sidebar__item-text">${esc(s.title || s.goal || 'Untitled')}</span></div>`).join('');
+    const SIDEBAR_CAP = 10;
+    const shown = sessions.slice(0, SIDEBAR_CAP);
+    const overflow = sessions.length - shown.length;
+    document.getElementById('sessions-list').innerHTML = shown.map(s => `<div class="sidebar__item${s.id === sessionId ? ' active' : ''}" onclick="window.location.href='?session=${encodeURIComponent(s.id)}'" role="link" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='?session=${encodeURIComponent(s.id)}'}"><span class="sidebar__item-badge" data-phase="${esc(s.phase)}">${esc(s.phase)}</span><span class="sidebar__item-text">${esc(s.title || s.goal || 'Untitled')}</span></div>`).join('')
+      + (overflow > 0 ? `<a href="sage-sessions.html" class="sidebar__item" style="color:var(--meta);font-style:italic">+${overflow} more — view all</a>` : '');
   } catch (e) {}
 }
 function loadSessionList_safe() { return loadSessionsList(); }
+// Always populate the sidebar sessions list on page load (not just when a session loads)
+document.addEventListener('DOMContentLoaded', () => setTimeout(loadSessionsList, 300));
 
 if (window.mermaid) window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', themeVariables: { primaryColor: '#383835', primaryTextColor: '#f0efe8', primaryBorderColor: '#c4a7e7', lineColor: '#7a7872', secondaryColor: '#2f2f2c', tertiaryColor: '#1a1a19', fontFamily: "'Newsreader', Georgia, serif" } });
 

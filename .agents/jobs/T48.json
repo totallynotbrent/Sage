@@ -1,0 +1,31 @@
+{
+  "task_id": "T48",
+  "agent": "Turing",
+  "status": "in_progress",
+  "session_id": "opencode-turing-t48-dolls-scrub",
+  "declared_at": "2026-08-21T23:59:00Z",
+  "summary": "Deterministic dolls-analogy dedup: sentence-level scrubber + history replay scrub in app/llm/messages.py, persisted-output guard in turn.py, focused SSE test.",
+  "files": {
+    "modified": [
+      "app/llm/messages.py",
+      "app/services/sessions/turn.py",
+      "tests/test_api_chat_sse.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": null,
+  "line_counts": {
+    "before": {
+      "app/llm/messages.py": 216,
+      "app/services/sessions/turn.py": 362,
+      "tests/test_api_chat_sse.py": 398
+    },
+    "after": {}
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "analyzer_pending",
+  "notes": "Declared set fixed to the four files above; no overlap with any in-flight writer (jobs folder scanned, zero status=in_progress). Working tree carries the landed-but-uncommitted T45/T46 batch (their logs show committed_at empty); line_counts.before are raw wc -l of the working tree I edit from (HEAD counts for reference: messages.py 199, turn.py 264, test_api_chat_sse.py 395). No commit per task spec - batch committer owns it. Naming deviation from task text: markers constant exported public as DOLLS_MARKERS and predicate mentions_dolls_analogy() because turn.py needs cross-module detection without importing underscore-private names; scrub function public as scrub_analogy_sentencewise exactly as instructed. Live-stream caveat accepted by design: the first dolls sentence may still echo in streamed deltas before prior use is known; the guard applies to persisted content and citation extraction only."
+}

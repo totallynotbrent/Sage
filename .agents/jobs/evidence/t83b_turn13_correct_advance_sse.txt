@@ -1,0 +1,338 @@
+data: {"type": "meta", "chunks": [], "insufficient": false, "web_sources": []}
+
+data: {"type": "tool_call", "name": "grade_answer", "arguments": {"choice_index": 2, "question_id": "861974a992414b77832d85e3b2373997", "status": "Grading your answer..."}, "status": "Grading your answer..."}
+
+data: {"type": "tool_result", "name": "grade_answer", "summary": "graded correct"}
+
+data: {"type": "tool_call", "name": "advance_lesson", "arguments": {"passed_check": true, "status": "Moving on to the Call Stack..."}, "status": "Moving on to the Call Stack..."}
+
+data: {"type": "tool_result", "name": "advance_lesson", "summary": "advanced to Winding and Unwinding"}
+
+data: {"type": "delta", "delta": "Since"}
+
+data: {"type": "delta", "delta": " you"}
+
+data: {"type": "delta", "delta": "'"}
+
+data: {"type": "delta", "delta": "ve"}
+
+data: {"type": "delta", "delta": " mastered"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " recursive"}
+
+data: {"type": "delta", "delta": " step"}
+
+data: {"type": "delta", "delta": ","}
+
+data: {"type": "delta", "delta": " let"}
+
+data: {"type": "delta", "delta": "'"}
+
+data: {"type": "delta", "delta": "s"}
+
+data: {"type": "delta", "delta": " look"}
+
+data: {"type": "delta", "delta": " at"}
+
+data: {"type": "delta", "delta": " how"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " computer"}
+
+data: {"type": "delta", "delta": " actually"}
+
+data: {"type": "delta", "delta": " keeps"}
+
+data: {"type": "delta", "delta": " track"}
+
+data: {"type": "delta", "delta": " of"}
+
+data: {"type": "delta", "delta": " all"}
+
+data: {"type": "delta", "delta": " those"}
+
+data: {"type": "delta", "delta": " calls"}
+
+data: {"type": "delta", "delta": "."}
+
+data: {"type": "delta", "delta": "\n\n"}
+
+data: {"type": "delta", "delta": "When"}
+
+data: {"type": "delta", "delta": " a"}
+
+data: {"type": "delta", "delta": " function"}
+
+data: {"type": "delta", "delta": " calls"}
+
+data: {"type": "delta", "delta": " itself"}
+
+data: {"type": "delta", "delta": ","}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " computer"}
+
+data: {"type": "delta", "delta": " doesn"}
+
+data: {"type": "delta", "delta": "'"}
+
+data: {"type": "delta", "delta": "t"}
+
+data: {"type": "delta", "delta": " just"}
+
+data: {"type": "delta", "delta": " \""}
+
+data: {"type": "delta", "delta": "jump"}
+
+data: {"type": "delta", "delta": "\""}
+
+data: {"type": "delta", "delta": " to"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " start"}
+
+data: {"type": "delta", "delta": ";"}
+
+data: {"type": "delta", "delta": " it"}
+
+data: {"type": "delta", "delta": " creates"}
+
+data: {"type": "delta", "delta": " a"}
+
+data: {"type": "delta", "delta": " **"}
+
+data: {"type": "delta", "delta": "Stack"}
+
+data: {"type": "delta", "delta": " Frame"}
+
+data: {"type": "delta", "delta": "**."}
+
+data: {"type": "delta", "delta": " Think"}
+
+data: {"type": "delta", "delta": " of"}
+
+data: {"type": "delta", "delta": " this"}
+
+data: {"type": "delta", "delta": " as"}
+
+data: {"type": "delta", "delta": " a"}
+
+data: {"type": "delta", "delta": " small"}
+
+data: {"type": "delta", "delta": " piece"}
+
+data: {"type": "delta", "delta": " of"}
+
+data: {"type": "delta", "delta": " memory"}
+
+data: {"type": "delta", "delta": " that"}
+
+data: {"type": "delta", "delta": " stores"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " current"}
+
+data: {"type": "delta", "delta": " function"}
+
+data: {"type": "delta", "delta": "'"}
+
+data: {"type": "delta", "delta": "s"}
+
+data: {"type": "delta", "delta": " local"}
+
+data: {"type": "delta", "delta": " variables"}
+
+data: {"type": "delta", "delta": " and"}
+
+data: {"type": "delta", "delta": " where"}
+
+data: {"type": "delta", "delta": " it"}
+
+data: {"type": "delta", "delta": " needs"}
+
+data: {"type": "delta", "delta": " to"}
+
+data: {"type": "delta", "delta": " return"}
+
+data: {"type": "delta", "delta": " to"}
+
+data: {"type": "delta", "delta": " once"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " call"}
+
+data: {"type": "delta", "delta": " is"}
+
+data: {"type": "delta", "delta": " finished"}
+
+data: {"type": "delta", "delta": "."}
+
+data: {"type": "delta", "delta": "\n\n"}
+
+data: {"type": "delta", "delta": "As"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " function"}
+
+data: {"type": "delta", "delta": " calls"}
+
+data: {"type": "delta", "delta": " itself"}
+
+data: {"type": "delta", "delta": " repeatedly"}
+
+data: {"type": "delta", "delta": ","}
+
+data: {"type": "delta", "delta": " these"}
+
+data: {"type": "delta", "delta": " frames"}
+
+data: {"type": "delta", "delta": " are"}
+
+data: {"type": "delta", "delta": " piled"}
+
+data: {"type": "delta", "delta": " on"}
+
+data: {"type": "delta", "delta": " top"}
+
+data: {"type": "delta", "delta": " of"}
+
+data: {"type": "delta", "delta": " each"}
+
+data: {"type": "delta", "delta": " other"}
+
+data: {"type": "delta", "delta": "—"}
+
+data: {"type": "delta", "delta": "this"}
+
+data: {"type": "delta", "delta": " is"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " **"}
+
+data: {"type": "delta", "delta": "Call"}
+
+data: {"type": "delta", "delta": " Stack"}
+
+data: {"type": "delta", "delta": "**."}
+
+data: {"type": "delta", "delta": " The"}
+
+data: {"type": "delta", "delta": " computer"}
+
+data: {"type": "delta", "delta": " can"}
+
+data: {"type": "delta", "delta": " only"}
+
+data: {"type": "delta", "delta": " \""}
+
+data: {"type": "delta", "delta": "see"}
+
+data: {"type": "delta", "delta": "\""}
+
+data: {"type": "delta", "delta": " and"}
+
+data: {"type": "delta", "delta": " work"}
+
+data: {"type": "delta", "delta": " with"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " frame"}
+
+data: {"type": "delta", "delta": " at"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " very"}
+
+data: {"type": "delta", "delta": " top"}
+
+data: {"type": "delta", "delta": "."}
+
+data: {"type": "delta", "delta": "\n\n"}
+
+data: {"type": "delta", "delta": "("}
+
+data: {"type": "delta", "delta": "Based"}
+
+data: {"type": "delta", "delta": " on"}
+
+data: {"type": "delta", "delta": " general"}
+
+data: {"type": "delta", "delta": " model"}
+
+data: {"type": "delta", "delta": " knowledge"}
+
+data: {"type": "delta", "delta": ","}
+
+data: {"type": "delta", "delta": " as"}
+
+data: {"type": "delta", "delta": " no"}
+
+data: {"type": "delta", "delta": " specific"}
+
+data: {"type": "delta", "delta": " document"}
+
+data: {"type": "delta", "delta": " was"}
+
+data: {"type": "delta", "delta": " provided"}
+
+data: {"type": "delta", "delta": " for"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " call"}
+
+data: {"type": "delta", "delta": " stack"}
+
+data: {"type": "delta", "delta": " mechanism"}
+
+data: {"type": "delta", "delta": ")."}
+
+data: {"type": "delta", "delta": "\n\n"}
+
+data: {"type": "delta", "delta": "Does"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " computer"}
+
+data: {"type": "delta", "delta": " process"}
+
+data: {"type": "delta", "delta": " the"}
+
+data: {"type": "delta", "delta": " bottom"}
+
+data: {"type": "delta", "delta": "-"}
+
+data: {"type": "delta", "delta": "most"}
+
+data: {"type": "delta", "delta": " stack"}
+
+data: {"type": "delta", "delta": " frame"}
+
+data: {"type": "delta", "delta": " first"}
+
+data: {"type": "delta", "delta": "?"}
+
+data: {"type": "delta", "delta": " ("}
+
+data: {"type": "delta", "delta": "Yes"}
+
+data: {"type": "delta", "delta": "/"}
+
+data: {"type": "delta", "delta": "No"}
+
+data: {"type": "delta", "delta": ")"}
+
+data: {"type": "done", "message_id": "3976e790496b4f70a58343ba7a4ba1ae", "client_msg_id": "4610b6dd-fa2a-48ac-aec0-5ec513b60ebc", "replayed": false, "actions": [], "web_sources": []}
+

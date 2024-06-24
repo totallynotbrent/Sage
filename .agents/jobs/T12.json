@@ -1,55 +1,75 @@
 {
   "task_id": "T12",
-  "agent": "Turing",
+  "agent": "Hermes",
   "status": "done",
-  "session_id": "ses_t12_sage_writer",
-  "declared_at": "2026-08-18T00:00:00Z",
-  "finalized_by": "Turing",
-  "summary": "Rename pydantic-settings fields BROT_base_url/BROT_api_key/BROT_model to brot_base_url/brot_api_key/brot_model (snake_case convention); env-var names BROT_BASE_URL/BROT_API_KEY/BROT_MODEL unchanged",
-  "files": {
-    "modified": [
-      "app/config.py",
-      "app/llm/client.py",
-      "app/main.py",
-      "tools/smoke_chat.py",
-      "tests/conftest.py",
-      "tests/test_config.py",
-      "tests/test_api_chat_sse.py",
-      "tests/test_api_learning.py",
-      "tests/test_api_plans.py"
-    ],
-    "created": [],
-    "deleted": []
-  },
-  "base_commit": "3603d0117a48a2123e8cdee87c1e30930da51628",
-  "committed_at": "5a326bc",
-  "line_counts": {
-    "before": {
-      "app/config.py": 77,
-      "app/llm/client.py": 207,
-      "app/main.py": 49,
-      "tools/smoke_chat.py": 38,
-      "tests/conftest.py": 81,
-      "tests/test_config.py": 65,
-      "tests/test_api_chat_sse.py": 332,
-      "tests/test_api_learning.py": 257,
-      "tests/test_api_plans.py": 310
+  "summary": "Inspected Sage workspace markup and CSS and researched authoritative landmark, keyboard, responsive grid, dialog, and overflow guidance for a study workspace with plan/quiz, chat, and artifact rails.",
+  "findings": [
+    {
+      "topic": "Current workspace DOM and semantic structure",
+      "conclusion": "static/sage-workspace.html has one static h1 in the header, a div.layout containing an unlabeled aside.sidebar, a main.main containing the chat and an aside.diagram-panel. The plan is currently the third sidebar section after Sessions and Files. The quiz is generated as an article inside the artifact rail, while the composer has a Quiz button. The artifact aside explicitly sets role=complementary even though aside already has the implicit complementary role.",
+      "source": "Local inspection: static/sage-workspace.html lines 203-280 and dynamic artifact construction around lines 580-680",
+      "confidence": "verified"
     },
-    "after": {
-      "app/config.py": 74,
-      "app/llm/client.py": 213,
-      "app/main.py": 58,
-      "tools/smoke_chat.py": 38,
-      "tests/conftest.py": 83,
-      "tests/test_config.py": 67,
-      "tests/test_api_chat_sse.py": 339,
-      "tests/test_api_learning.py": 263,
-      "tests/test_api_plans.py": 328
-    }
-  },
-  "modules_created": [],
-  "documentation": [],
-  "final_report": "T3/T12 done: renamed pydantic-settings fields BROT_base_url/BROT_api_key/BROT_model to brot_base_url/brot_api_key/brot_model across app/config.py (3 field defs + 2 attribute reads in validation_problems), app/llm/client.py (5 reads), app/main.py (3 reads), tools/smoke_chat.py (2 prints), tests/conftest.py (3 kwargs), tests/test_config.py (5 kwargs + 4 asserts), tests/test_api_chat_sse.py (1 kwarg), tests/test_api_learning.py (2 kwargs), tests/test_api_plans.py (2 kwargs). All-caps env-var names BROT_API_KEY/BROT_BASE_URL/BROT_MODEL preserved verbatim in the 4 config message strings and test asserts/setenv. Verification: grep 'BROT_[a-z]' case-sensitive over app+tests+tools = 0 matches; python -m compileall -q app tests tools exit 0; Settings(_env_file=None) smoke prints defaults; env-var override smoke (BROT_BASE_URL/BROT_MODEL/BROT_API_KEY set) maps into brot_* fields proving pydantic-settings case-insensitive matching; python -m pytest tests/test_config.py -q = 7 passed. Committed 5a326bc on feature/conventions-audit-fix. SettingsConfigDict untouched (no case_sensitive, no env_prefix); .env/.env.example untouched. NOTE: format_on_edit plugin rewrapped some long lines in the touched files (black-style) - line counts for client.py/main.py/tests grew accordingly; no semantic changes beyond the rename.",
-  "verification": "laika",
-  "notes": "Renames only Python identifiers (field defs, settings.BROT_* attribute reads, Settings(BROT_*=...) kwargs). All-caps env-var names inside message strings (app/config.py validation_problems lines 59/63/70/72) and test asserts (tests/test_config.py line 30 'BROT_API_KEY' in p) / setenv (lines 55/56) are preserved verbatim - they name the env var, which does not change. pydantic-settings v2 matches env names case-insensitively by default (case_sensitive=False, env_prefix=''), so brot_base_url still reads BROT_BASE_URL from .env - SettingsConfigDict untouched, verified by env-var override smoke. Concurrent-writer check: HEAD at finalize still = base_commit 3603d01; only this task's files plus T2.json (pre-existing dirty, left untouched) differ. T2.json was NOT staged or committed. format_on_edit plugin auto-rewrapped long lines in edited files (black-style); all such changes fall inside the declared file set."
-}
+    {
+      "topic": "Current layout and scroll behavior",
+      "conclusion": "The workspace currently uses nested flex containers: .app and .layout are fixed to the viewport with overflow hidden; .sidebar has overflow-y:auto; .chat has overflow:hidden and .chat__messages has overflow-y:auto; .diagram-panel has overflow:hidden and .diagram-panel__body has overflow:auto. At max-width:1023px, the sidebar is absolutely positioned as an overlay and the diagram panel becomes an absolutely positioned panel up to 60vh. This works as a desktop split/overlay model but creates multiple independent scroll containers and makes mobile rail focus/visibility state dependent on custom class toggles.",
+      "source": "Local inspection: static/sage-workspace.html lines 15-24, 35-63, 105-110, 199-200",
+      "confidence": "verified"
+    },
+    {
+      "topic": "Current responsive thresholds",
+      "conclusion": "The workspace has a single structural breakpoint at max-width:1023px and a reduced mobile padding breakpoint at max-width:767px. Therefore 640 and 768 both receive the overlay behavior, 1024 is the first desktop split width, and 1280 receives the full three-part layout only if the artifact rail is open. The existing 1023 threshold is not inherently wrong, but it should be paired with explicit 640/768/1024/1280 acceptance checks rather than treating 1024 as mobile by accident.",
+      "source": "Local inspection: static/sage-workspace.html lines 199-200; static/style.css lines 803-817",
+      "confidence": "verified"
+    },
+    {
+      "topic": "CSS Grid versus Flexbox",
+      "conclusion": "CSS Grid is the better primitive for the top-level desktop workspace because it expresses a two-dimensional rail/chat/rail relationship with explicit tracks and named areas; Flexbox remains appropriate inside each rail, the chat column, and the composer because those are one-dimensional flows. Use minmax(0, 1fr) for the chat track and min-width:0 on the grid/flex children so message content cannot force horizontal overflow. Keep DOM/source order aligned with the intended reading and focus order; do not use order or grid placement to create a logical order that differs from source order.",
+      "source": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Basic_concepts; https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts; https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Accessibility",
+      "confidence": "verified"
+    },
+    {
+      "topic": "Responsive grid strategy",
+      "conclusion": "Use progressive track changes instead of absolute-positioned desktop rails: at wide desktop, grid-template-columns can be a fixed plan rail, minmax(0,1fr), and a bounded support rail; at medium width, keep the plan rail and hide or make the support rail a triggerable sheet; at narrow widths, collapse to one column with the central chat as the only in-flow primary surface and expose plan/support as dialogs or bottom sheets. The exact pixel tracks should be chosen from content minima, not from a fixed three-column assumption.",
+      "source": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Basic_concepts; https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Accessibility",
+      "confidence": "inferred"
+    },
+    {
+      "topic": "Landmarks and complementary rails",
+      "conclusion": "Use one top-level main landmark for chat. A plan rail is a complementary landmark only when it remains meaningful alongside main; label it uniquely (for example, Study plan). A support/artifact rail is a second complementary landmark only when exposed as an independent persistent region; label it uniquely (for example, Artifacts and support). Avoid adding named region landmarks to every subsection: WAI-ARIA guidance says landmark value diminishes as their number grows and recommends meaningful labels for repeated landmark roles. A sidebar containing navigation links could instead be a nav landmark, but the study plan itself is better treated as complementary unless it is the application's primary navigation.",
+      "source": "https://www.w3.org/WAI/ARIA/apg/patterns/landmarks/; https://www.w3.org/WAI/ARIA/apg/practices/landmark-regions/; https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/aside",
+      "confidence": "verified"
+    },
+    {
+      "topic": "One main h1",
+      "conclusion": "Keep exactly one page-level h1 for the session/workspace title in the header or main introduction. Generated message headings must not create competing page-level h1 elements; map assistant content to h2/h3 or render it inside a scoped article with an appropriate heading level. The main element itself should remain unique; a skip link can target it.",
+      "source": "https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/main; https://www.w3.org/WAI/ARIA/apg/practices/landmark-regions/",
+      "confidence": "verified"
+    },
+    {
+      "topic": "Keyboard focus order and source order",
+      "conclusion": "Place the DOM in the same task order users should tab through: header controls, plan rail, main chat/messages, composer, then support/artifacts, or use an intentional skip link to main and clearly documented rail controls. Do not rely on CSS order/grid placement to change logical order. Every rail toggle must be a native button with an accessible name, aria-expanded, and aria-controls. When a rail is hidden, remove it from the accessibility tree and tab sequence using hidden or inert rather than only opacity, visibility, pointer-events, or a zero width.",
+      "source": "https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html; https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html; https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Grid_layout/Accessibility",
+      "confidence": "verified"
+    },
+    {
+      "topic": "Disclosure behavior for rail sections",
+      "conclusion": "The existing Plan, Sessions, and Files section headers already approximate the disclosure pattern. Preserve native button controls, synchronize aria-expanded with visibility, and add aria-controls pointing at each controlled list. Enter and Space should operate without custom key handling. Keep the plan expanded by default or provide a clearly discoverable toggle because plan context is central to the study workflow.",
+      "source": "https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/",
+      "confidence": "verified"
+    },
+    {
+      "topic": "Scroll container and keyboard access",
+      "conclusion": "Prefer one primary vertical scroll owner for the application surface: the message/content region. Keep the composer in a non-scrolling flex/grid row. Rails should normally fit and scroll only when their own content exceeds the viewport; their scroll containers need a visible accessible name and tabindex=0 if keyboard users must scroll them directly. Avoid making ancestors overflow:hidden solely to suppress scrollbars because hidden overflow can still create scroll containers and can obscure focus behavior; do not use overflow:clip around interactive content.",
+      "source": "https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow; https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html",
+      "confidence": "verified"
+    },
+    {
+      "topic": "Nested competing scroll traps",
+      "conclusion": "Do not allow body/app, layout, chat, messages, rail, panel body, and source previews all to compete as scroll owners. Recommended minimum is: document/app shell clips only the fixed chrome; main chat content owns vertical scrolling; each persistent rail owns a single internal vertical scroller only if needed; diagram/source code gets horizontal overflow locally. Add overscroll-behavior:contain only to intentional rail/panel scrollers to prevent scroll chaining, not as a substitute for clear ownership. Ensure focused controls scroll into view.",
+      "source": "https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow; https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overscroll-behavior; https://www.w3.org/WAI/standards-guidelines/act/rules/0ssw9k/",
+      "confidence": "inferred"
+    },
+    {
+      "topic": "Narrow-screen bottom-sheet behavior",
+      "conclusion": "At 640 and 768, treat Plan and Artifacts/support as one-at-a-time bottom sheets over the chat, not simultaneous absolute sidebars. Use a native modal dialog for a blocking sheet (or a non-modal disclosure/popover only when the user must continue interacting with chat). A modal sheet needs a visible close button, Escape support, focus moved inside on open, focus returned to the invoking button on close, and inert background content. If the product wants to keep chat interactive behind the sheet, use a non-modal sheet and do not claim aria-modal=true. Sheet content should have one internal scroll owner and account for safe-area insets.",
