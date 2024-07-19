@@ -40,3 +40,11 @@ oc-wants.txt
 .pytest_cache/
 .agents/shared/
 docs/.agents/
+# Debug artifacts / screenshots — never commit
+*.png
+*.jpeg
+*.jpg
+.playwright-mcp/
+.agents/jobs/evidence/
+verify_*.py
+script.txt

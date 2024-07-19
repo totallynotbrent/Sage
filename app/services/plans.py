@@ -38,9 +38,15 @@ class PlansService:
             raise error
         self._replace_nodes(session_id, plan)
         self.sessions.set_phase(session_id, "plan")
+        from app.services.plan_graph import plan_to_mermaid
+
+        nodes = self._nodes(session_id)
         return {
             "session": self.sessions.get(session_id).model_dump(),
-            "plan": self._nodes(session_id),
+            "plan": nodes,
+            # Deterministic mermaid graph of the plan: gives the learner a
+            # map and proves the planner reasoned the full dependency chain.
+            "mermaid": plan_to_mermaid(nodes),
         }
 
     def approve(self, session_id: str) -> dict:
