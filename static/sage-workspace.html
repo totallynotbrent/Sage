@@ -39,6 +39,9 @@
 .tool-status-line{font-family:var(--font-mono);font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent);padding:var(--space-1) 0}
 
 /* Yes/No inline answer buttons under assistant check questions */
+.probe-wrap{max-width:min(920px,92%);width:100%;margin:0 auto var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3) 0}
+.probe-wrap .artifact-card{opacity:1;transform:none}
+
 .yesno-row{display:flex;gap:var(--space-2);margin-top:var(--space-2)}
 .yesno-row .quick-chip{padding:7px 18px}
 
@@ -51,6 +54,21 @@
 .rail-probe__title{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--meta);padding-bottom:var(--space-1)}
 .rail-probe .artifact-card{padding:var(--space-3)}
 .rail-probe .probe-actions{justify-content:center}
+
+/* Mastery panel in the right rail */
+.mastery-panel{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);border-bottom:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+.mastery-panel[hidden]{display:none}
+.mastery-panel__title{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--meta);padding-bottom:var(--space-1)}
+.mastery-row{display:flex;flex-direction:column;gap:4px}
+.mastery-row__head{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--fg-2)}
+.mastery-row__label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+.mastery-row__meta{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--meta)}
+.mastery-bar{position:relative;height:6px;border-radius:999px;background:var(--surface);overflow:hidden}
+.mastery-bar__fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--foam);transition:width var(--dur) var(--ease)}
+.mastery-row.fading .mastery-bar__fill{background:var(--gold)}
+.mastery-row.fading .mastery-row__meta{color:var(--gold)}
+.mastery-fade-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);display:inline-block}
+.mastery-empty{font-size:12px;color:var(--meta);padding:var(--space-1) 0}
 
 /* Completion state: CTA replaces composer, summary cards in rail */
 .completion-cta{display:none;flex-direction:row;align-items:center;justify-content:center;gap:var(--space-3);padding:var(--space-4) var(--space-6)}
@@ -288,6 +306,10 @@
         <button class="icon-btn" id="closeDiagram" aria-label="Close artifacts" style="width:28px;height:28px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
       <div class="rail-probe" id="rail-probe"></div>
+      <section class="mastery-panel" id="mastery-panel" hidden>
+        <div class="mastery-panel__title">Mastery</div>
+        <div class="mastery-panel__body" id="masteryBody"></div>
+      </section>
       <div class="diagram-panel__body" id="diagramBody">
         <div class="diagram-panel__empty">Diagrams, quizzes, and checklists Sage generates will appear here.</div>
       </div>
@@ -1177,9 +1199,6 @@ function start_probe_batch(items, kind_label) {
     if (!parts.length) return;
     entries.forEach(entry => entry.card.classList.add('sent'));
     send_btn.disabled = true;
-    // Collapse the rail section once sent — results/teaching continue in chat
-    const rail = document.getElementById('rail-probe');
-    if (rail) setTimeout(() => { rail.classList.remove('active'); rail.innerHTML = ''; }, 1200);
     queue_probe_reply(parts.join('; '));
   };
   const update_state = () => {
@@ -1209,13 +1228,17 @@ function start_probe_batch(items, kind_label) {
   send_btn.onclick = submit;
   actions.appendChild(send_btn);
   wrap.appendChild(actions);
-  // Button-first layout: probe lives in the RIGHT RAIL so chat stays a clean
-  // scrollback of messages/explanations.
-  openArtifactsRail();
-  const rail = document.getElementById('rail-probe');
-  rail.innerHTML = `<div class="rail-probe__title">${kind_label === 'check' ? 'Check question' : 'Knowledge probe'}</div>`;
-  rail.appendChild(wrap);
-  rail.classList.add('active');
+  // Checks render inline in the chat as part of Sage's message flow.
+  const streamEl = document.getElementById('streaming-msg');
+  if (streamEl) streamEl.remove();
+  if (!box.querySelector('.probe-wrap')) {
+    const role = document.createElement('div');
+    role.className = 'msg__role';
+    role.textContent = 'Sage';
+    box.appendChild(role);
+  }
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
   entries.forEach(entry => show_card(entry.card));
   rail.scrollTop = 0;
 }
@@ -1303,8 +1326,10 @@ function artifactContext() {
    render two tappable buttons instead of making the user type. */
 function append_yes_no_buttons(message_el, text) {
   if (!message_el || !text) return;
-  const tail = text.slice(-80).toLowerCase();
-  if (!/\(yes\/no\)|\(y\/n\)|\?\s*$/.test(tail) || !/\(yes\/no\)|\(y\/n\)/.test(tail)) return;
+  const tail = text.slice(-160).toLowerCase();
+  // Show buttons when the message ends with any question — covers "(yes/no)",
+  // "Yes/No", bare questions ending in "?", etc.
+  if (!/\?\s*$/.test(tail.trim())) return;
   const row = document.createElement('div');
   row.className = 'yesno-row';
   [['Yes', 'yes'], ['No', 'no']].forEach(([label, val]) => {
@@ -1398,38 +1423,10 @@ async function sendMessage() {
           const cid = ev.chunk_id !== undefined ? ev.chunk_id : ev.id;
           if (cid !== undefined && cid !== null && !citation_ids.some(existing => existing === cid)) citation_ids.push(cid);
         } else if (ev.type === 'thinking') {
-          // Thinking: darker, slightly smaller text in the same streaming bubble.
-          // One sentence shown per stream update — no dropdown.
-          if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
-          const thinkText = String(ev.thinking || '');
-          if (thinkText) {
-            let t_el = bubble.querySelector('.thinking-line');
-            if (!t_el) {
-              t_el = document.createElement('div');
-              t_el.className = 'thinking-line';
-              bubble.prepend(t_el);
-            }
-            const buf = (t_el.dataset.buf || '') + thinkText;
-            t_el.dataset.buf = buf;
-            const sentEnd = Math.max(buf.lastIndexOf('. '), buf.lastIndexOf('.\n'), buf.lastIndexOf('? '));
-            if (sentEnd !== -1) {
-              t_el.textContent = buf.slice(0, sentEnd + 1).trim();
-              t_el.dataset.buf = buf.slice(sentEnd + 1);
-            } else {
-              t_el.textContent = buf.trim();
-            }
-          }
+          // Thinking is intentionally NOT displayed — single clean output per turn.
+          void ev;
         } else if (ev.type === 'tool_call') {
           setComposerStatus(tool_status_text(ev));
-          // Show tool activity inline where Sage types — easier to read than composer corner
-          if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
-          let statusLine = bubble.querySelector('.tool-status-line');
-          if (!statusLine) {
-            statusLine = document.createElement('div');
-            statusLine.className = 'tool-status-line';
-            bubble.prepend(statusLine);
-          }
-          statusLine.textContent = '\u2699 ' + tool_status_text(ev);
         } else if (ev.type === 'tool_result') {
           setComposerStatus('');
           const sl = bubble && bubble.querySelector('.tool-status-line');
@@ -1586,6 +1583,171 @@ async function refreshSessionUI() {
 
 sendBtn?.addEventListener('click', sendMessage);
 
+/* ---- Spaced-repetition review (FSRS) ---- */
+let reviewActive = false;
+
+async function startReview() {
+  if (reviewActive || !sessionId) return;
+  reviewActive = true;
+  try {
+    const res = await fetch(`${API}/sessions/${sessionId}/review/due`, { method: 'POST' });
+    const data = await res.json().catch(() => ({ cards: [] }));
+    const cards = Array.isArray(data.cards) ? data.cards : [];
+    if (!cards.length) {
+      // Nothing due right now — surface a friendly toast instead of an empty deck.
+      showComposerToast('No review cards due right now. Sage will surface them as they mature.');
+      return;
+    }
+    // Render each due card's original question inline, reusing the probe card UI.
+    const items = cards.map(c => {
+      const q = (c.question && c.question.question) ? c.question : { question: '(question unavailable)', options: ['I do not know'] };
+      // Normalize: ensure an "I don't know" trailing option for grading.
+      const opts = Array.isArray(q.options) ? q.options.slice() : [];
+      if (!opts.some(o => /don'?t know/i.test(String(o)))) opts.push("I don't know");
+      return { question: q.question, options: opts, _card_id: c.card_id, _topic: c.topic };
+    });
+    startReviewBatch(items);
+  } catch (e) {
+    showComposerToast('Could not load review cards.');
+  } finally {
+    reviewActive = false;
+  }
+}
+
+function startReviewBatch(items) {
+  if (!Array.isArray(items) || !items.length) return;
+  const entries = [];
+  let send_btn = null;
+  const submit = () => {
+    if (!send_btn || send_btn.disabled) return;
+    const grades = [];
+    entries.forEach(entry => {
+      const sel = entry.card.dataset.selected;
+      if (sel === '') return;
+      const isIdk = /don'?t know/i.test(String(entry.item.options[Number(sel)] || ''));
+      const isCorrect = Number(sel) === entry.item._correct_index;
+      const outcome = isIdk ? 'idk' : (isCorrect ? 'correct' : 'incorrect');
+      grades.push({ card_id: entry.item._card_id, outcome });
+    });
+    entries.forEach(entry => entry.card.classList.add('sent'));
+    send_btn.disabled = true;
+    gradeReviewBatch(grades);
+  };
+  const update_state = () => {
+    if (!send_btn) return;
+    const open = entries.filter(e => !e.card.classList.contains('sent'));
+    const answered = open.filter(e => e.card.dataset.selected !== '');
+    send_btn.disabled = answered.length === 0;
+    if (open.length > 0 && answered.length === open.length) submit();
+  };
+  const wrap = document.createElement('div');
+  wrap.className = 'probe-wrap';
+  items.forEach((item, qi) => {
+    const card = build_probe_card(item, qi + 1, `REVIEW · ${String(qi + 1).padStart(2, '0')}`, update_state);
+    // Track the correct answer so we can grade the review.
+    const correct = (item.question && item.question.correct_index != null)
+      ? item.question.correct_index
+      : (item._correct_index != null ? item._correct_index : -1);
+    entries.push({ card, item: { ...item, _correct_index: correct } });
+    wrap.appendChild(card);
+  });
+  const actions = document.createElement('div');
+  actions.className = 'probe-actions';
+  send_btn = document.createElement('button');
+  send_btn.type = 'button';
+  send_btn.className = 'probe-send';
+  send_btn.textContent = 'Submit review';
+  send_btn.disabled = true;
+  send_btn.onclick = submit;
+  actions.appendChild(send_btn);
+  wrap.appendChild(actions);
+  const streamEl = document.getElementById('streaming-msg');
+  if (streamEl) streamEl.remove();
+  if (!box.querySelector('.probe-wrap')) {
+    const role = document.createElement('div');
+    role.className = 'msg__role';
+    role.textContent = 'Sage';
+    box.appendChild(role);
+  }
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
+  entries.forEach(entry => show_card(entry.card));
+}
+
+async function gradeReviewBatch(grades) {
+  if (!sessionId || !grades.length) return;
+  let done = 0;
+  for (const g of grades) {
+    try {
+      await fetch(`${API}/sessions/${sessionId}/review/${g.card_id}/grade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outcome: g.outcome }),
+      });
+    } catch (e) { /* best-effort */ }
+    done++;
+  }
+  showComposerToast(`Reviewed ${done} card${done === 1 ? '' : 's'}. Spacing them out so they stick.`);
+  maybeShowReviewChip();
+}
+
+async function maybeShowReviewChip() {
+  if (!sessionId || reviewActive) return;
+  try {
+    const res = await fetch(`${API}/sessions/${sessionId}/review/status`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (data && data.due_cards > 0) {
+      setQuickChips([
+        { label: `Review ${data.due_cards} due card${data.due_cards === 1 ? '' : 's'}`, prompt: '', action: 'review' },
+      ]);
+      // Make the review chip trigger startReview() instead of sending text.
+      const chip = QUICK_CHIPS_EL?.querySelector('.quick-chip');
+      if (chip) chip.onclick = () => { if (!streaming) startReview(); };
+    }
+  } catch (e) { /* non-fatal */ }
+}
+
+function showComposerToast(text) {
+  const el = document.getElementById('composer-toast');
+  if (!el) return;
+  el.textContent = text;
+  el.style.display = 'flex';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, 4500);
+}
+
+/* ---- Mastery panel (confidence bars + fading indicator) ---- */
+async function renderMasteryPanel() {
+  if (!sessionId) return;
+  const panel = document.getElementById('mastery-panel');
+  const body = document.getElementById('masteryBody');
+  if (!panel || !body) return;
+  try {
+    const res = await fetch(`${API}/sessions/${sessionId}/mastery`, { method: 'POST' });
+    const data = await res.json().catch(() => ({ topics: [] }));
+    const topics = Array.isArray(data.topics) ? data.topics : [];
+    if (!topics.length) { panel.hidden = true; body.innerHTML = ''; return; }
+    panel.hidden = false;
+    body.innerHTML = '';
+    topics.forEach(t => {
+      const pct = Math.max(0, Math.min(100, Math.round((t.confidence || 0) * 100)));
+      const row = document.createElement('div');
+      row.className = 'mastery-row' + (t.fading ? ' fading' : '');
+      const retr = t.retrievability != null ? Math.round(t.retrievability * 100) : null;
+      const meta = t.fading
+        ? '<span class="mastery-fade-dot" title="fading — review soon"></span> fading'
+        : (retr != null ? `${retr}% retention` : `${pct}%`);
+      row.innerHTML =
+        `<div class="mastery-row__head">` +
+          `<span class="mastery-row__label" title="${esc(t.label)}">${esc(t.label)}</span>` +
+          `<span class="mastery-row__meta">${meta}</span>` +
+        `</div>` +
+        `<div class="mastery-bar"><div class="mastery-bar__fill" style="width:${pct}%"></div></div>`;
+      body.appendChild(row);
+    });
+  } catch (e) { /* non-fatal */ }
+}
+
 /* ---- Button-first UI: phase-aware quick chips pinned above the composer ---- */
 const QUICK_CHIPS_EL = document.getElementById('quick-chips');
 let currentQuickChips = [];
@@ -1679,13 +1841,19 @@ sendMessage = async function () {
   finally {
     QUICK_CHIPS_EL?.querySelectorAll('.quick-chip').forEach(b => b.disabled = false);
     refreshChipsForPhase();
+    maybeShowReviewChip();
+    renderMasteryPanel();
   }
 };
 // initial chips once DOM ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', refreshChipsForPhase);
+  document.addEventListener('DOMContentLoaded', maybeShowReviewChip);
+  document.addEventListener('DOMContentLoaded', renderMasteryPanel);
 } else {
   refreshChipsForPhase();
+  maybeShowReviewChip();
+  renderMasteryPanel();
 }
 
 // Handoff from home: auto-send the first message once the session is loaded

@@ -61,6 +61,21 @@ class LearningService:
             return {"session": session.model_dump(), "questions": existing}
         self._delete_pending_questions(session_id, "check")
         topic = self._current_node_title(session) or session.goal
+        # Interleaved practice: roughly every 3rd check, pull a prior weak topic
+        # instead of the current node so retrieval is mixed (beats blocking).
+        interleaved = None
+        prior_checks = self.conn.execute(
+            "SELECT COUNT(*) AS n FROM quiz_questions "
+            "WHERE session_id = ? AND kind = 'check' AND status = 'answered'",
+            (session_id,),
+        ).fetchone()["n"]
+        if prior_checks > 0 and prior_checks % 3 == 0:
+            weak = mastery.lowest_confidence_topics(
+                self.conn, exclude={mastery.normalize_topic(topic)}, limit=1
+            )
+            if weak:
+                interleaved = weak[0]["label"]
+        focus_topic = interleaved or topic
         chunks = self.sessions._select_chunks(session, "check question")
         questions = await request_questions(
             llm,
@@ -69,14 +84,16 @@ class LearningService:
             mastery_summary=self.sessions._mastery_summary(),
             mode=session.grounding_mode,
             count=1,
-            focus=topic,
+            focus=focus_topic,
         )
         if not questions:
             error = ModelOutputError("The model returned no usable check question.")
             error.retryable = True
             raise error
         question = questions[0]
-        question.topic = topic
+        # Keep the established contract: a check question is tracked under the
+        # (possibly interleaved) focus topic, not whatever the model echoed back.
+        question.topic = interleaved or topic
         self._insert_question(session_id, "check", question)
         self.sessions.set_phase(session_id, "check")
         return {
@@ -222,6 +239,21 @@ class LearningService:
         mastery.record_evidence(
             self.conn, question["topic"], source, outcome, question_id=question_id
         )
+        # Register / reschedule an FSRS review card so material is spaced over time.
+        try:
+            from app.services import review as review_service
+
+            review_service.register_card(
+                self.conn,
+                session_id=session_id,
+                topic=question["topic"],
+                question_id=question_id,
+                kind=question["kind"],
+                outcome=outcome,
+            )
+        except Exception:
+            # Review scheduling is best-effort; never block grading on it.
+            self.conn.rollback()
         if question["kind"] == "check":
             phase = self.sessions.get(session_id).phase
             if outcome in ("incorrect", "idk"):

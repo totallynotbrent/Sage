@@ -132,6 +132,26 @@ CREATE TABLE IF NOT EXISTS mastery_topics (
     notes            TEXT
 );
 
+CREATE TABLE IF NOT EXISTS review_cards (
+    id              TEXT PRIMARY KEY,
+    session_id      TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    topic           TEXT NOT NULL,
+    question_id     TEXT,
+    kind            TEXT NOT NULL DEFAULT 'check',
+    state           INTEGER NOT NULL DEFAULT 1,
+    stability       REAL,
+    difficulty      REAL,
+    due             TEXT NOT NULL,
+    last_review     TEXT,
+    reps            INTEGER NOT NULL DEFAULT 0,
+    lapses          INTEGER NOT NULL DEFAULT 0,
+    card_json       TEXT NOT NULL,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_review_session ON review_cards (session_id);
+CREATE INDEX IF NOT EXISTS idx_review_due ON review_cards (session_id, due);
+
 CREATE TABLE IF NOT EXISTS preferences (
     id         INTEGER PRIMARY KEY CHECK (id = 1),
     depth      TEXT NOT NULL DEFAULT 'standard',
