@@ -12,6 +12,30 @@ from app.util import new_id, utc_now
 CHECK_EVERY_NODES = 2
 
 
+# Escalating reveal ladder: each rung reveals more, keeping a stuck learner in
+# the Socratic loop instead of rage-quitting (a known RAG-tutor failure mode).
+LADDER_LEVELS = ("hint", "worked_example", "walkthrough")
+
+# Ladder prompt instructions keyed by level (plain-text output, no JSON).
+_LADDER_INSTRUCTIONS = {
+    "hint": (
+        "Give ONLY a short hint (1-2 sentences) that helps the learner arrive "
+        "at the correct answer. Do not reveal the answer directly and do not "
+        "return JSON."
+    ),
+    "worked_example": (
+        "Give a concise worked example: 2-4 numbered, concrete steps that walk "
+        "through how to reason toward and obtain the correct answer, WITHOUT "
+        "flatly stating the answer's letter. Do not return JSON."
+    ),
+    "walkthrough": (
+        "Give a complete, encouraging step-by-step walkthrough that fully "
+        "solves the question: clearly state the correct answer, then explain "
+        "it step by step, addressing any common misconception. Do not return JSON."
+    ),
+}
+
+
 class TeachService:
     def __init__(self, conn: sqlite3.Connection, settings: Settings) -> None:
         self.conn = conn
@@ -79,20 +103,49 @@ class TeachService:
         return {"session": self.sessions.get(session_id).model_dump()}
 
     async def hint(self, session_id: str, question_id: str, llm) -> dict:
+        text = await self._ladder_step(session_id, question_id, llm, "hint")
+        return {"hint": text}
+
+    async def worked_example(self, session_id: str, question_id: str, llm) -> dict:
+        text = await self._ladder_step(session_id, question_id, llm, "worked_example")
+        return {"worked_example": text}
+
+    async def walkthrough(self, session_id: str, question_id: str, llm) -> dict:
+        text = await self._ladder_step(session_id, question_id, llm, "walkthrough")
+        return {"walkthrough": text}
+
+    async def _ladder_step(
+        self, session_id: str, question_id: str, llm, level: str
+    ) -> str:
+        """Generate (and cache) one rung of the reveal ladder for a question."""
+        if level not in _LADDER_INSTRUCTIONS:
+            raise ValueError(f"unknown ladder level {level!r}")
+        cached = self.conn.execute(
+            "SELECT content FROM feedback_actions "
+            "WHERE session_id = ? AND question_id = ? AND action = ? "
+            "ORDER BY created_at DESC LIMIT 1",
+            (session_id, question_id, level),
+        ).fetchone()
+        if cached and cached["content"]:
+            return cached["content"]
+
         session = self.sessions.get(session_id)
-        row = self._fetch_question(session_id, question_id)
-        question = dict(row)
+        question = dict(self._fetch_question(session_id, question_id))
         if question["kind"] not in ("probe", "check"):
-            raise ValueError(f"question kind {question['kind']!r} cannot receive a hint")
+            raise ValueError(
+                f"question kind {question['kind']!r} cannot receive a ladder step"
+            )
         if question["status"] != "answered":
-            raise ValueError("a hint requires the question to be answered first")
+            raise ValueError("a ladder step requires the question to be answered first")
         options = question_dict(question)["options"]
         chosen = question["user_choice"]
-        chosen_text = "I don't know" if chosen is None or chosen < 0 else options[chosen] if 0 <= chosen < len(options) else str(chosen)
+        chosen_text = (
+            "I don't know"
+            if chosen is None or chosen < 0
+            else options[chosen] if 0 <= chosen < len(options) else str(chosen)
+        )
         user = (
-            "Give ONLY a short hint (1-2 sentences) that helps the learner arrive "
-            "at the correct answer. Do not reveal the answer directly and do not "
-            "return JSON.\n\n"
+            f"{_LADDER_INSTRUCTIONS[level]}\n\n"
             f"Question: {question['question']}\n"
             f"Options: {options}\n"
             f"The learner chose: {chosen_text}\n"
@@ -102,7 +155,9 @@ class TeachService:
             {
                 "role": "system",
                 "content": make_system_prompt(
-                    session.model_dump(), session.grounding_mode, self.sessions._mastery_summary()
+                    session.model_dump(),
+                    session.grounding_mode,
+                    self.sessions._mastery_summary(),
                 ),
             },
             {"role": "user", "content": user},
@@ -110,19 +165,61 @@ class TeachService:
         text, error_text = await llm.complete_json(messages)
         if text is None:
             raise provider_error_from_text(error_text)
-        hint_text = text.strip()
-        if not hint_text:
-            error = ModelOutputError("The model returned no hint.")
+        step_text = text.strip()
+        if not step_text:
+            error = ModelOutputError(f"The model returned no {level}.")
             error.retryable = True
             raise error
         now = utc_now()
         self.conn.execute(
             "INSERT INTO feedback_actions (id, session_id, question_id, action, content, created_at) "
-            "VALUES (?, ?, ?, 'hint', ?, ?)",
-            (new_id(), session_id, question_id, hint_text, now),
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (new_id(), session_id, question_id, level, step_text, now),
         )
         self.conn.commit()
-        return {"hint": hint_text}
+        return step_text
+
+    def ladder(self, session_id: str, question_id: str) -> dict:
+        """Report the reveal ladder for a question: ordered rungs + cached content."""
+        self.sessions.get(session_id)
+        row = dict(self._fetch_question(session_id, question_id))
+        if row["kind"] not in ("probe", "check"):
+            raise ValueError(
+                f"question kind {row['kind']!r} cannot have a reveal ladder"
+            )
+        cached = {
+            r["action"]: r["content"]
+            for r in self.conn.execute(
+                "SELECT action, content FROM feedback_actions "
+                "WHERE session_id = ? AND question_id = ? AND action IN (?, ?, ?)",
+                (session_id, question_id, *LADDER_LEVELS),
+            )
+        }
+        rungs = []
+        for level in LADDER_LEVELS:
+            rungs.append(
+                {"level": level, "generated": level in cached, "content": cached.get(level)}
+            )
+        # Reveal is the static final rung (answer + explanation), always available
+        # once answered.
+        reveal_ready = row["status"] == "answered"
+        if reveal_ready:
+            options = question_dict(row)["options"]
+            correct_index = row["correct_index"]
+            rungs.append(
+                {
+                    "level": "reveal",
+                    "generated": True,
+                    "content": options[correct_index]
+                    if 0 <= correct_index < len(options)
+                    else None,
+                }
+            )
+        return {
+            "question_id": question_id,
+            "answered": row["status"] == "answered",
+            "ladder": rungs,
+        }
 
     def reveal(self, session_id: str, question_id: str) -> dict:
         self.sessions.get(session_id)

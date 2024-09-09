@@ -222,28 +222,27 @@ class SessionService(TurnMixin):
         ready_ids = self.files.expand_pairings(ready_ids)
         all_chunks = self.files.get_chunks_for_files(ready_ids)
         query = f"{session.goal}\n{user_text}"
-        selected = self.retriever.select(
-            all_chunks,
-            query,
-            budget=self.settings.context_chunk_budget,
-            per_file_cap=3,
-        )
-        if selected or not all_chunks:
-            return selected
-        # Keyword scoring found nothing (paraphrase / vocabulary mismatch):
-        # rescue with local embedding cosine similarity. Additive only.
         try:
-            from app.services.embed_retrieval import EmbedFallback
+            from app.services.hybrid import select_hybrid
 
-            fallback = EmbedFallback(self.settings)
-            return fallback.sync_select(
+            return select_hybrid(
                 all_chunks,
                 query,
                 budget=self.settings.context_chunk_budget,
                 per_file_cap=3,
+                settings=self.settings,
             )
         except Exception:
-            return []
+            # Last-resort fallback: plain lexical score (bounded, never raises).
+            try:
+                return self.retriever.select(
+                    all_chunks,
+                    query,
+                    budget=self.settings.context_chunk_budget,
+                    per_file_cap=3,
+                )
+            except Exception:
+                return []
 
     def _mastery_summary(self) -> str:
         return summarize_mastery(self.conn)

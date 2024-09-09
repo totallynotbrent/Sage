@@ -68,6 +68,52 @@ async def quiz_hint(
         raise handle_value_error(exc)
 
 
+@router.post("/api/sessions/{session_id}/quiz/{question_id}/worked-example")
+async def quiz_worked_example(
+    session_id: str,
+    question_id: str,
+    llm: LLMClient = Depends(get_llm_client),
+    settings: Settings = Depends(get_app_settings),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> dict:
+    require_configured(settings)
+    service = TeachService(conn, settings)
+    try:
+        return await service.worked_example(session_id, question_id, llm)
+    except ValueError as exc:
+        raise handle_value_error(exc)
+
+
+@router.post("/api/sessions/{session_id}/quiz/{question_id}/walkthrough")
+async def quiz_walkthrough(
+    session_id: str,
+    question_id: str,
+    llm: LLMClient = Depends(get_llm_client),
+    settings: Settings = Depends(get_app_settings),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> dict:
+    require_configured(settings)
+    service = TeachService(conn, settings)
+    try:
+        return await service.walkthrough(session_id, question_id, llm)
+    except ValueError as exc:
+        raise handle_value_error(exc)
+
+
+@router.post("/api/sessions/{session_id}/quiz/{question_id}/ladder")
+async def quiz_ladder(
+    session_id: str,
+    question_id: str,
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> dict:
+    service = TeachService(conn, settings)
+    try:
+        return service.ladder(session_id, question_id)
+    except ValueError as exc:
+        raise handle_value_error(exc)
+
+
 @router.post("/api/sessions/{session_id}/quiz/{question_id}/reveal")
 async def quiz_reveal(
     session_id: str,

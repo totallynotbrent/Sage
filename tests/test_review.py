@@ -101,3 +101,44 @@ def test_lowest_confidence_topics_excludes_current(conn, settings):
     topics = [w["topic"] for w in weak]
     assert "algebra" not in topics
     assert topics[0] in ("calculus", "geometry")
+
+
+def test_daily_review_aggregates_across_sessions(conn, settings):
+    s1 = _session(conn, settings, goal="learn calculus")
+    s2 = _session(conn, settings, goal="learn biology")
+    # One due card per session (all answered 'idk' -> Again -> due now).
+    c1 = review_service.register_card(conn, s1.id, "derivatives", "q1", "check", "idk")
+    c2 = review_service.register_card(conn, s2.id, "mitochondria", "q2", "check", "idk")
+    due = review_service.due_cards_all(conn)
+    ids = {c["card_id"] for c in due}
+    assert c1["card_id"] in ids and c2["card_id"] in ids
+    # Both cards exposed regardless of which session they belong to.
+    assert len(due) == 2
+    goals = {c["_session_goal"] for c in due if "_session_goal" in c}
+    assert goals == {"learn calculus", "learn biology"}
+
+
+def test_daily_status_counts_every_session(conn, settings):
+    s1 = _session(conn, settings)
+    s2 = _session(conn, settings)
+    review_service.register_card(conn, s1.id, "a", "q1", "check", "idk")
+    review_service.register_card(conn, s2.id, "b", "q2", "check", "idk")
+    status = review_service.review_status_all(conn)
+    assert status["total_cards"] == 2
+    assert status["due_cards"] == 2
+    assert status["sessions"] == 2
+
+
+def test_grade_card_any_works_across_sessions(conn, settings):
+    s1 = _session(conn, settings)
+    s2 = _session(conn, settings)
+    c1 = review_service.register_card(conn, s1.id, "a", "q1", "check", "idk")
+    # Grade from a *different* session context (as the daily review does).
+    updated = review_service.grade_card_any(conn, c1["card_id"], "correct")
+    assert updated is not None
+    assert updated["reps"] == c1["reps"] + 1
+    # A correct grade after an initial miss adds no new lapse.
+    assert updated["lapses"] == c1["lapses"]
+    # Rescheduled out of due for the home session too.
+    assert not any(x["card_id"] == c1["card_id"] for x in review_service.due_cards(conn, s2.id))
+    assert not any(x["card_id"] == c1["card_id"] for x in review_service.due_cards(conn, s1.id))

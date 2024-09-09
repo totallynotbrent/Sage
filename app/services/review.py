@@ -175,6 +175,35 @@ def due_cards(conn: sqlite3.Connection, session_id: str) -> list[dict]:
     return [_row_to_api(r) for r in rows]
 
 
+def due_cards_all(conn: sqlite3.Connection) -> list[dict]:
+    """Every due review card across ALL sessions (the cross-session daily deck).
+
+    This is what turns per-session FSRS silos into one "daily review" surface:
+    cards from an old session resurface here once their due time arrives, instead
+    of rotting because you never reopened that session.
+    """
+    cutoff = _due_cutoff_iso()
+    rows = rows_to_dicts(
+        conn.execute(
+            "SELECT * FROM review_cards WHERE due <= ? ORDER BY due ASC, reps ASC",
+            (cutoff,),
+        )
+    )
+    out = []
+    for r in rows:
+        item = _row_to_api(r)
+        item["_session_goal"] = _session_goal(conn, r["session_id"])
+        out.append(item)
+    return out
+
+
+def _session_goal(conn: sqlite3.Connection, session_id: str) -> str | None:
+    row = conn.execute(
+        "SELECT goal FROM sessions WHERE id = ?", (session_id,)
+    ).fetchone()
+    return row["goal"] if row else None
+
+
 def all_cards(conn: sqlite3.Connection, session_id: str) -> list[dict]:
     rows = rows_to_dicts(
         conn.execute(
@@ -205,6 +234,27 @@ def grade_card(
     return register_card(
         conn,
         session_id=session_id,
+        topic=row["topic"],
+        question_id=row["question_id"],
+        kind=row["kind"],
+        outcome=outcome,
+    )
+
+
+def grade_card_any(conn: sqlite3.Connection, card_id: str, outcome: str) -> dict | None:
+    """Grade a card by id alone, agnostic of which session it belongs to.
+
+    This is what lets the cross-session daily review reschedule a card created
+    in a different session without forcing the user to reopen that session.
+    """
+    row = conn.execute(
+        "SELECT * FROM review_cards WHERE id = ?", (card_id,)
+    ).fetchone()
+    if row is None:
+        return None
+    return register_card(
+        conn,
+        session_id=row["session_id"],
         topic=row["topic"],
         question_id=row["question_id"],
         kind=row["kind"],
@@ -244,6 +294,23 @@ def review_status(conn: sqlite3.Connection, session_id: str) -> dict:
         "total_cards": total,
         "due_cards": due,
         "topics": topics,
+    }
+
+
+def review_status_all(conn: sqlite3.Connection) -> dict:
+    """Global daily-review status across every session."""
+    total = conn.execute(
+        "SELECT COUNT(*) AS n FROM review_cards"
+    ).fetchone()["n"]
+    due = conn.execute(
+        "SELECT COUNT(*) AS n FROM review_cards WHERE due <= ?", (_due_cutoff_iso(),)
+    ).fetchone()["n"]
+    return {
+        "total_cards": total,
+        "due_cards": due,
+        "sessions": conn.execute(
+            "SELECT COUNT(DISTINCT session_id) AS n FROM review_cards"
+        ).fetchone()["n"],
     }
 
 
