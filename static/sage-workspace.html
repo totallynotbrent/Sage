@@ -1406,7 +1406,7 @@ function append_yes_no_buttons(message_el, text) {
   message_el.appendChild(row);
 }
 
-let activeTyper = null, activeTyperDone = null;
+let activeTyper = null, activeTyperDone = null; // (kept: reserved for future streaming tweaks)
 
 async function sendMessage() {
   const text = input.value.trim();
@@ -1527,27 +1527,19 @@ async function sendMessage() {
             }
           }
         } else if (ev.type === 'buffered_text') {
-          // Server buffered the full reply; simulate typing client-side.
-          // Non-blocking: words are appended on a timer so consume_line stays sync.
-          if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
-          const words = String(ev.text || '').split(/(\s+)/).filter(Boolean);
-          let wi = 0;
-          fullText = ev.text || '';   // mark text present for persistence
-          activeTyper = new Promise(resolve => { activeTyperDone = resolve; });
-          const streamSpan = (w) => {
-            // plain append — no per-word animation (user request)
-            bubble.appendChild(document.createTextNode(w));
-          };
-          const typer = setInterval(() => {
-            if (wi >= words.length) {
-              clearInterval(typer);
-              if (activeTyperDone) activeTyperDone();
-              return;
-            }
-            streamSpan(words[wi]);
+          // Buffered mode (SAGE_STREAMING=false): the full reply arrives as one
+          // event. Render it immediately — NOT as a word-by-word fake-typing
+          // stream. That simple per-word typer doubled up with the polished
+          // .word cascade on the final message (two streaming animations). The
+          // polished word-entrance on the persisted message still plays below.
+          const text = String(ev.text || '');
+          if (text) {
+            if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
+            fullText = text;   // mark text present for persistence
+            bubble.innerHTML = sanitize_html(renderMd(fullText));
+            render_math(false);
             box.scrollTop = box.scrollHeight;
-            wi++;
-          }, 40);
+          }
         } else if (ev.type === 'done') {
           stream_done = true;
           if (Array.isArray(ev.actions)) done_actions = ev.actions;
@@ -1576,10 +1568,8 @@ async function sendMessage() {
     }
   }
 
-  // Let the fake-typing animation finish before swapping to the final rendered message,
-  // otherwise the word-entrance animations get wiped mid-play.
-  if (activeTyper) { try { await Promise.race([activeTyper, new Promise(r => setTimeout(r, 8000))]); } catch (_) {} }
-  activeTyper = null;
+  // Buffered reply was already rendered in full above; the polished .word
+  // entrance on the final message plays once we swap it in below.
 
   streaming = false;
   streamCtrl = null;
