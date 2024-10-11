@@ -190,12 +190,6 @@
 .artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.correct::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(156,207,216,0.2),transparent);animation:artColorSweep 600ms var(--ease) forwards}
 @keyframes artColorSweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.incorrect{opacity:0.4}
-.quiz-ladder{display:flex;flex-direction:column;gap:8px;padding:10px 16px 14px;border-top:1px solid var(--surface-2)}
-.quiz-ladder__row{display:flex;flex-wrap:wrap;gap:6px}
-.quiz-ladder__btn{font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;color:var(--accent);background:transparent;border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);border-radius:999px;padding:5px 11px;cursor:pointer;transition:all 160ms var(--ease)}
-.quiz-ladder__btn:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
-.quiz-ladder__btn:disabled{opacity:.6;cursor:default}
-.quiz-ladder__content{margin-top:6px;font-size:13.5px;line-height:1.55;color:var(--text);white-space:pre-wrap}
 .artifact-card[data-kind="todo"]{opacity:0}
 .artifact-card[data-kind="todo"].visible{animation:artifactReveal 500ms var(--ease) forwards}
 .artifact-card[data-kind="todo"] .artifact-card__todo-item{opacity:0;transform:perspective(400px) rotateX(90deg)}
@@ -1188,64 +1182,7 @@ function build_probe_card(question, ordinal, marker_text, on_select) {
   content.appendChild(wrap);
   card.appendChild(header);
   card.appendChild(content);
-  addRevealLadder(card, question.id || question._question_id);
   return card;
-}
-
-/* Feature: reveal ladder (hint → worked example → full walkthrough). When a
-   learner misses or hits "I don't know", escalating reveals keep them in the
-   Socratic loop instead of rage-quitting. Each rung calls the matching API. */
-function addRevealLadder(card, questionId) {
-  if (!questionId || !sessionId) return;
-  const rungs = [
-    { level: 'hint', label: '💡 Hint', endpoint: 'hint' },
-    { level: 'worked_example', label: 'Worked example', endpoint: 'worked-example' },
-    { level: 'walkthrough', label: 'Full walkthrough', endpoint: 'walkthrough' },
-  ];
-  const area = document.createElement('div');
-  area.className = 'quiz-ladder';
-  const row = document.createElement('div');
-  row.className = 'quiz-ladder__row';
-  row.setAttribute('role', 'group');
-  row.setAttribute('aria-label', 'Reveal ladder');
-  const body = document.createElement('div');
-  body.className = 'quiz-ladder__content';
-  body.hidden = true;
-  rungs.forEach(rung => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'quiz-ladder__btn';
-    btn.textContent = rung.label;
-    btn.onclick = async () => {
-      if (btn.disabled) return;
-      body.hidden = false;
-      body.textContent = '…';
-      try {
-        const res = await fetch(`${API}/sessions/${sessionId}/quiz/${questionId}/${rung.endpoint}`, { method: 'POST' });
-        if (!res.ok) {
-          const detail = await res.json().catch(() => ({}));
-          if (res.status === 400 || res.status === 422) {
-            body.textContent = String(detail.detail || 'Answer & submit first, then reveal this step.').replace(/^question kind [^ ]+ cannot receive a ladder step$/, 'This kind of question has no reveal ladder.');
-            return;
-          }
-          throw new Error('failed');
-        }
-        const data = await res.json();
-        const content = data[rung.level === 'worked_example' ? 'worked_example' : (rung.level === 'walkthrough' ? 'walkthrough' : 'hint')];
-        body.textContent = String(content || '');
-        btn.disabled = true;
-        btn.textContent = '✓ ' + rung.label;
-      } catch (e) {
-        body.hidden = true;
-        showComposerToast('Could not generate that reveal step.');
-      }
-    };
-    row.appendChild(btn);
-  });
-  area.appendChild(row);
-  area.appendChild(body);
-  // Insert directly under the options, before the card ends.
-  card.insertBefore(area, card.lastElementChild);
 }
 
 function start_probe_batch(items, kind_label) {
