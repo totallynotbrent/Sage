@@ -1568,6 +1568,10 @@ async function sendMessage() {
   });
   let assistant_msg = null;
   if (fullText) {
+    // Drop any check/probe question the model restated in prose — the card
+    // below renders it once. Also covers the streaming path (where deltas are
+    // appended raw), not just buffered_text.
+    fullText = dedupeCheckQuestion(fullText);
     assistant_msg = addMessage('assistant', fullText);
   } else if (was_aborted) {
   } else if (done_error_message) {
@@ -1722,9 +1726,8 @@ async function gradeReviewBatch(grades) {
   let done = 0;
   for (const g of grades) {
     try {
-      // Grade by card id via the global endpoint so cards from OLD sessions
-      // (cross-session daily review) reschedule without reopening that session.
-      await fetch(`${API}/review/${g.card_id}/grade`, {
+      // Grade by card id within this session (per-session mastery/review).
+      await fetch(`${API}/sessions/${sessionId}/review/${g.card_id}/grade`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ outcome: g.outcome }),
@@ -1736,44 +1739,18 @@ async function gradeReviewBatch(grades) {
   maybeShowReviewChip();
 }
 
-/* Cross-session daily review: pull every due card across all sessions. */
-async function startDailyReview() {
-  if (reviewActive || !sessionId) return;
-  reviewActive = true;
-  try {
-    const res = await fetch(`${API}/review/due`, { method: 'POST' });
-    const data = await res.json().catch(() => ({ cards: [] }));
-    const cards = Array.isArray(data.cards) ? data.cards : [];
-    if (!cards.length) {
-      showComposerToast('No review cards due right now. Sage will surface them as they mature.');
-      return;
-    }
-    const items = cards.map(c => {
-      const q = (c.question && c.question.question) ? c.question : { question: '(question unavailable)', options: ['I do not know'] };
-      const opts = Array.isArray(q.options) ? q.options.slice() : [];
-      if (!opts.some(o => /don'?t know/i.test(String(o)))) opts.push("I don't know");
-      return { question: q.question, options: opts, _card_id: c.card_id, _question_id: q.id, _topic: c.topic, _goal: c._session_goal || '' };
-    });
-    startReviewBatch(items, 'DAILY REVIEW');
-  } catch (e) {
-    showComposerToast('Could not load the daily review deck.');
-  } finally {
-    reviewActive = false;
-  }
-}
-
 async function maybeShowReviewChip() {
   if (!sessionId || reviewActive) return;
   try {
-    // Global status aggregates every session — this is the "daily review" surface.
-    const res = await fetch(`${API}/review/status`, { method: 'POST' });
+    // Per-session status: this session's due cards only.
+    const res = await fetch(`${API}/sessions/${sessionId}/review/status`, { method: 'POST' });
     const data = await res.json().catch(() => ({}));
     if (data && data.due_cards > 0) {
       setQuickChips([
-        { label: `Daily review · ${data.due_cards} due`, prompt: '', action: 'daily-review' },
+        { label: `Review · ${data.due_cards} due`, prompt: '', action: 'review' },
       ]);
       const chip = QUICK_CHIPS_EL?.querySelector('.quick-chip');
-      if (chip) chip.onclick = () => { if (!streaming) startDailyReview(); };
+      if (chip) chip.onclick = () => { if (!streaming) startReview(); };
     }
   } catch (e) { /* non-fatal */ }
 }

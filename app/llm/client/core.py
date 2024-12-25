@@ -1,26 +1,15 @@
-"""Sage LLM client — verbatim port of bread's OllamaClient (native /api/chat).
+"""Sage LLM client core — SageOllamaClient, a bread-parity Ollama transport plus Sage SSE inflight bookkeeping and compat wrappers.
 
-Copies bread/src/llm/client.py 1:1 (OllamaClient, ChatAttempt, status_snapshot,
-_build_options/_build_messages/_response_to_chunk, degradation ladder, multi-backend
-round-robin) and adapts only the Settings mapping (BROT_* → Ollama fields). Adds:
-- Sage SSE inflight bookkeeping (begin/end/is/cancel/get)
-- Leaked-call stripping (gemma writes "call:run_probe/" as visible content alongside
-  structured tool_calls; bread's model doesn't leak, so bread has no guard)
-- Compat stream_chat wrapper so app/services/sessions/turn.py (dict messages/tools)
-  continues to work while the canonical chat_stream (LLMMessage/ToolSchema →
-  StreamChunk) is identical to bread.
-
-Inspiration: https://github.com/vasanthsreeram/Alvarmethod (probe/plan/teach loop)
+Splitting note: ChatAttempt/OllamaClientConfig are kept verbatim in attempt.py/config.py for easy bread parity diffs; helpers live in utils.py; leaked-call stripping in leak_guard.py."
 """
 from __future__ import annotations
 
 import asyncio
 import json
-import re
+import logging
 import time
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 from ollama import AsyncClient, ResponseError
 
@@ -36,175 +25,21 @@ from app.llm.base import (
     ToolSchema,
 )
 
-import logging as _logging
-
-try:
-    from utils.logging import get_logger as _get_logger  # type: ignore
-    logger = _get_logger("sage.llm.ollama")
-except Exception:
-    logger = _logging.getLogger("app")
-
-UNSUPPORTED_TOOL_HINTS = ("tool", "function", "does not support tools")
-UNSUPPORTED_THINK_HINTS = ("think", "thinking")
-UNSUPPORTED_IMAGE_HINTS = ("image", "vision", "multimodal")
-UNSUPPORTED_FORMAT_HINTS = (
-    "format",
-    "json schema",
-    "structured output",
-    "structured outputs",
-    "does not support json",
+from app.llm.client.attempt import ChatAttempt
+from app.llm.client.config import OllamaClientConfig
+from app.llm.client.leak_guard import _strip_leaked_calls
+from app.llm.client.utils import (
+    RETRYABLE_STATUS_CODES,
+    _FeatureUnsupportedError,
+    _coerce_logprobs,
+    _compact_model_details,
+    _detect_unsupported_feature,
+    _dump_sdk_value,
+    _get,
+    _optional_int,
+    _optional_text,
+    _parse_arguments,
 )
-UNSUPPORTED_LOGPROBS_HINTS = ("logprob", "log probabilities", "top_logprobs")
-RETRYABLE_STATUS_CODES = (429, 500, 502, 503, 504)
-
-ThinkLevel = Literal["low", "medium", "high", "max"]
-
-# Leaked tool-call text some models emit as visible content even though they
-# also emitted structured tool_calls (e.g. "Please pick ... call:run_probe/").
-# Bread's model doesn't leak, but Sage's gemma4:31b-cloud does. Strip it only
-# from chunks that actually carry tool_calls, so normal prose mentioning
-# "call:" is preserved.
-_LEAKED_CALL_RE = re.compile(r"<call:\w+\b[^>]*>?")
-_LEAKED_BARE_RE = re.compile(
-    r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t.:;,!?)(\\\"'-]))"
-    r"\[?call:\w+\b/?\]?"
-    r"(?:\s*status\s*=\s*[\"'][^\"']*[\"'])?"
-    r"(?:\s*\([^)\"']*\))?"
-)
-_LEAKED_OPEN_RE = re.compile(r"<call:\w+\b[^<]*$")
-
-
-def _strip_leaked_calls(text: str) -> str:
-    if not text or "call:" not in text.lower():
-        return text
-    cleaned = _LEAKED_CALL_RE.sub("", text)
-    cleaned = _LEAKED_BARE_RE.sub("", cleaned)
-    return _LEAKED_OPEN_RE.sub("", cleaned)
-
-
-@dataclass
-class ChatAttempt:
-    use_tools: bool = True
-    use_think: bool = True
-    use_images: bool = True
-    use_format: bool = True
-    use_logprobs: bool = True
-
-    def without(self, feature: str) -> "ChatAttempt":
-        if feature == "tools":
-            return ChatAttempt(
-                use_tools=False,
-                use_think=self.use_think,
-                use_images=self.use_images,
-                use_format=self.use_format,
-                use_logprobs=self.use_logprobs,
-            )
-        if feature == "think":
-            return ChatAttempt(
-                use_tools=self.use_tools,
-                use_think=False,
-                use_images=self.use_images,
-                use_format=self.use_format,
-                use_logprobs=self.use_logprobs,
-            )
-        if feature == "images":
-            return ChatAttempt(
-                use_tools=self.use_tools,
-                use_think=self.use_think,
-                use_images=False,
-                use_format=self.use_format,
-                use_logprobs=self.use_logprobs,
-            )
-        if feature == "format":
-            return ChatAttempt(
-                use_tools=self.use_tools,
-                use_think=self.use_think,
-                use_images=self.use_images,
-                use_format=False,
-                use_logprobs=self.use_logprobs,
-            )
-        if feature == "logprobs":
-            return ChatAttempt(
-                use_tools=self.use_tools,
-                use_think=self.use_think,
-                use_images=self.use_images,
-                use_format=self.use_format,
-                use_logprobs=False,
-            )
-        return self
-
-    def disabled_features(self) -> list[str]:
-        disabled: list[str] = []
-        if not self.use_tools:
-            disabled.append("tools")
-        if not self.use_think:
-            disabled.append("think")
-        if not self.use_images:
-            disabled.append("images")
-        if not self.use_format:
-            disabled.append("format")
-        if not self.use_logprobs:
-            disabled.append("logprobs")
-        return disabled
-
-
-@dataclass
-class OllamaClientConfig:
-    host: str
-    hosts: list[str] = field(default_factory=list)
-    api_key: str = ""
-    api_keys: list[str] = field(default_factory=list)
-    backends: list[tuple[str, str]] = field(default_factory=list)
-    model: str = ""
-    num_ctx: int = 131072
-    num_threads: int = 5
-    temperature: float = 0.67
-    keep_alive: int = -1
-    thinking: bool = False
-    thinking_level: str = ""
-    streaming: bool = True
-    logprobs: bool = False
-    top_logprobs: int = 0
-    image_processing_enabled: bool = True
-    debug_raw: bool = False
-    max_retries: int = 3
-    request_timeout: float = 120.0
-    status_cache_seconds: float = 10.0
-
-    @classmethod
-    def from_settings(cls, settings: Settings) -> "OllamaClientConfig":
-        # Sage uses BROT_* keys but the semantics are identical to bread's OLLAMA_*
-        host = (getattr(settings, "brot_base_url", "") or "").strip().rstrip("/")
-        if host.endswith("/v1"):
-            host = host[: -len("/v1")]
-        return cls(
-            host=host or "https://ollama.com",
-            hosts=[],
-            api_key=(getattr(settings, "brot_api_key", "") or "").strip(),
-            api_keys=[],
-            backends=[],
-            model=(getattr(settings, "brot_model", "") or "").strip(),
-            num_ctx=int(getattr(settings, "ollama_num_ctx", 32768) or 32768),
-            num_threads=5,
-            temperature=0.67,
-            keep_alive=int(getattr(settings, "ollama_keep_alive", -1)),
-            thinking=bool(getattr(settings, "ollama_thinking", True)),
-            thinking_level="",
-            streaming=bool(getattr(settings, "streaming", True)),
-            logprobs=False,
-            top_logprobs=0,
-            image_processing_enabled=True,
-            debug_raw=False,
-            max_retries=3,
-            request_timeout=120.0,
-            status_cache_seconds=10.0,
-        )
-
-    def all_backends(self) -> list[tuple[str, str]]:
-        if self.backends:
-            return list(self.backends)
-        return [(self.host, self.api_key)]
-
 
 class SageOllamaClient(LLMClient):
     """Bread-identical Ollama client plus Sage SSE inflight bookkeeping."""
@@ -890,136 +725,3 @@ class SageOllamaClient(LLMClient):
 # Back-compat alias — turn.py and tests import LLMClient
 LLMClient = SageOllamaClient
 
-
-def _get(obj: Any, key: str, default: Any = None) -> Any:
-    if obj is None:
-        return default
-    if isinstance(obj, dict):
-        return obj.get(key, default)
-    return getattr(obj, key, default)
-
-
-def _optional_int(value: Any) -> int | None:
-    try:
-        return int(value) if value is not None else None
-    except (TypeError, ValueError):
-        return None
-
-
-def _optional_text(value: Any) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
-
-
-def _coerce_logprobs(value: Any) -> list[dict[str, Any]]:
-    if not isinstance(value, list):
-        return []
-    result: list[dict[str, Any]] = []
-    for item in value[:128]:
-        dumped = _dump_sdk_value(item)
-        if isinstance(dumped, dict):
-            result.append(dumped)
-    return result
-
-
-def _dump_sdk_value(value: Any) -> Any:
-    if hasattr(value, "model_dump"):
-        return value.model_dump()
-    if isinstance(value, dict):
-        return {str(key): _dump_sdk_value(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_dump_sdk_value(item) for item in value]
-    if hasattr(value, "__dict__"):
-        return {
-            str(key): _dump_sdk_value(item)
-            for key, item in vars(value).items()
-            if not str(key).startswith("_")
-        }
-    return value
-
-
-def _compact_model_details(value: Any) -> dict[str, Any]:
-    dumped = _dump_sdk_value(value)
-    if not isinstance(dumped, dict):
-        return {"value": dumped}
-    result: dict[str, Any] = {}
-    for key in ("name", "modified_at", "size", "digest", "details", "capabilities"):
-        if key in dumped:
-            result[key] = dumped[key]
-    details = result.get("details")
-    if isinstance(details, dict):
-        result["details"] = {
-            key: details[key]
-            for key in (
-                "parent_model",
-                "format",
-                "family",
-                "families",
-                "parameter_size",
-                "quantization_level",
-            )
-            if key in details
-        }
-    return result
-
-
-def _parse_arguments(raw: str) -> dict[str, Any]:
-    if not raw.strip():
-        return {}
-    try:
-        parsed = json.loads(raw)
-        if isinstance(parsed, dict):
-            return parsed
-        return {"value": parsed}
-    except json.JSONDecodeError:
-        return {}
-
-
-def _detect_unsupported_feature(message: str) -> str | None:
-    lowered = message.lower()
-    if any(hint in lowered for hint in UNSUPPORTED_TOOL_HINTS):
-        return "tools"
-    if any(hint in lowered for hint in UNSUPPORTED_THINK_HINTS):
-        return "think"
-    if any(hint in lowered for hint in UNSUPPORTED_IMAGE_HINTS):
-        return "images"
-    if any(hint in lowered for hint in UNSUPPORTED_FORMAT_HINTS):
-        return "format"
-    if any(hint in lowered for hint in UNSUPPORTED_LOGPROBS_HINTS):
-        return "logprobs"
-    return None
-
-
-class _FeatureUnsupportedError(Exception):
-    def __init__(self, feature: str, message: str) -> None:
-        super().__init__(message)
-        self.feature = feature
-
-
-# -- FastAPI dependency compat (app/api/*.py import get_llm_client) --
-from fastapi import Request as _Request  # noqa: E402
-
-def get_llm_client(request: _Request) -> SageOllamaClient:
-    client = getattr(request.app.state, "llm_client", None)
-    if client is None:
-        client = SageOllamaClient(request.app.state.settings)
-        request.app.state.llm_client = client
-    return client
-
-
-def reset_llm_client() -> None:
-    return None
-
-
-# Compat for tests that import the old helper (bread's client has no _strip_thought;
-# sage kept it. Re-export here so tests still pass.)
-import re as _compat_re
-
-def _strip_thought(text: str) -> str:
-    if not text:
-        return text
-    text = _compat_re.sub(r"<\|channel\|>thought.*?(?:channel\|>|<\|channel\|>)", "", text, flags=_compat_re.DOTALL)
-    text = _compat_re.sub(r"<\|think\|>.*?(?:channel\|>|<\|channel\|>)", "", text, flags=_compat_re.DOTALL)
-    return text

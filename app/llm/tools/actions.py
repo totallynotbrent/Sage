@@ -1,26 +1,12 @@
+"""Tool handler implementations for the learning/teach/web tools."""
 from __future__ import annotations
-
-import logging
-from typing import get_args
 
 from pydantic import ValidationError
 
 from app.errors import ModelOutputError
 from app.llm.messages import make_system_prompt
 from app.llm.structured_outputs import parse_exact_json, validate_output
-from app.models import TeachActionDraft
-
-_ACTION_IDS = list(get_args(TeachActionDraft.model_fields["id"].annotation))
-
-_KINDS = ("mermaid", "quiz", "todo", "latex")
-
-_SCHEMA_HINTS = {
-    "chat": '{"content":"..."}',
-    "mermaid": '{"title":"...","source":"graph TD\\n A-->B"}',
-    "todo": '{"title":"...","items":[{"text":"...","done":false}]}',
-    "quiz": '{"questions":[{"question":"...","options":["...","..."],"correct_index":0,"explanation":"...","topic":"...","difficulty":3}]}',
-    "latex": '{"title":"...","latex":"\\\\documentclass{article}..."}',
-}
+from app.llm.tools.schemas import _SCHEMA_HINTS, _WEB_BLOCKED_TOKENS
 
 _KNOWN_ERROR_CODES = frozenset(
     """empty_text empty_output duplicate_options correct_index_out_of_range quiz_count
@@ -28,111 +14,6 @@ _KNOWN_ERROR_CODES = frozenset(
     script_content invalid_output invalid_json trailing_data auth rate_limit
     timeout connection bad_request upstream not_found""".split()
 )
-
-_WEB_BLOCKED_TOKENS = ("wikidiff", "redkiwiapp")
-
-_STR = {"type": "string"}
-_STATUS_PROP = {
-    "status": {
-        "type": "string",
-        "description": (
-            "Short, warm, user-facing description of what you are doing right "
-            "now, shown live while the tool runs. Example: 'Searching for a "
-            "reliable definition...'. Not hidden reasoning."
-        ),
-    }
-}
-_TOPIC = {"topic": _STR}
-_QUIZ_PROPS = {"topic": _STR, "count": {"type": "integer", "minimum": 1, "maximum": 10}}
-_ACTION_ITEM = {
-    "id": {"type": "string", "enum": _ACTION_IDS},
-    "label": {"type": "string", "maxLength": 60},
-    "prompt": {"type": "string", "maxLength": 200},
-}
-_ACTIONS_PROP = {
-    "type": "array",
-    "minItems": 1,
-    "maxItems": 6,
-    "items": {
-        "type": "object",
-        "properties": _ACTION_ITEM,
-        "required": list(_ACTION_ITEM),
-    },
-}
-_LEARNING_TOOLS = frozenset(
-    {"run_probe", "grade_answer", "build_plan", "advance_lesson"}
-)
-
-
-def _fn(name: str, description: str, properties: dict, required: list[str]) -> dict:
-    parameters = {
-        "type": "object",
-        "properties": {**properties, **_STATUS_PROP},
-        "required": required,
-    }
-    function = {"name": name, "description": description, "parameters": parameters}
-    return {"type": "function", "function": function}
-
-
-TOOL_SCHEMAS = [
-    _fn("web_search", "Search the web.", {"query": _STR}, ["query"]),
-    _fn("generate_mermaid", "Generate a Mermaid diagram.", dict(_TOPIC), ["topic"]),
-    _fn("generate_quiz", "Generate a quiz.", dict(_QUIZ_PROPS), ["topic"]),
-    _fn("generate_todo", "Generate a study checklist.", dict(_TOPIC), ["topic"]),
-    _fn("generate_latex", "Generate a LaTeX document.", dict(_TOPIC), ["topic"]),
-    _fn(
-        "record_step_actions",
-        "Record follow-up teaching-step actions.",
-        {"actions": _ACTIONS_PROP},
-        ["actions"],
-    ),
-    _fn(
-        "run_probe",
-        "Start the diagnostic probe: generates 3 adaptive multiple-choice "
-        "questions mapping what the learner already knows.",
-        {},
-        [],
-    ),
-    _fn(
-        "grade_answer",
-        "Grade the learner's answer to a probe/check question. "
-        "question_id MUST be copied VERBATIM from the ids returned by "
-        "run_probe (opaque hex strings like 9f2c…, NEVER display numbers "
-        "like 1 or 2).",
-        {
-            "question_id": _STR,
-            "choice_index": {"type": "integer"},
-            "idk": {"type": "boolean", "default": False},
-        },
-        ["question_id"],
-    ),
-    _fn(
-        "build_plan",
-        "Reason out and persist the full lesson plan as ordered "
-        "dependency-aware nodes.",
-        {},
-        [],
-    ),
-    _fn(
-        "advance_lesson",
-        "Advance to the next plan node after the learner confirms "
-        "understanding or passes a check; passed_check=false routes into "
-        "remediation.",
-        {"passed_check": {"type": "boolean"}},
-        ["passed_check"],
-    ),
-]
-
-
-def available_tools(settings) -> list[dict]:
-    enabled = (
-        {f"generate_{kind}" for kind in _KINDS}
-        | {"record_step_actions"}
-        | set(_LEARNING_TOOLS)
-    )
-    if getattr(settings, "searxng_url", ""):
-        enabled.add("web_search")
-    return [t for t in TOOL_SCHEMAS if t["function"]["name"] in enabled]
 
 
 def _issue_code(exc: Exception) -> str:
@@ -151,64 +32,6 @@ def _issue_code(exc: Exception) -> str:
         return exc_code
     code = message.split(":", 1)[0].strip()
     return code if code in _KNOWN_ERROR_CODES else "invalid_output"
-
-
-def _summarize(name: str, result: dict) -> str:
-    if name == "run_probe":
-        return f"probe ready: {len(result.get('questions') or [])} questions"
-    if name == "grade_answer":
-        return f"graded {result.get('outcome')}"
-    if name == "build_plan":
-        return f"plan ready: {len(result.get('nodes') or [])} nodes"
-    if name == "advance_lesson":
-        if result.get("lesson_complete"):
-            return "lesson complete"
-        if not result.get("advanced"):
-            return "remediation"
-        title = (result.get("node") or {}).get("title")
-        return f"advanced to {title}" if title else "advanced"
-    return ""
-
-
-async def execute_tool(name: str, arguments: dict, ctx) -> dict:
-    result = await _dispatch_tool(name, arguments, ctx)
-    if not result.get("error"):
-        summary = _summarize(name, result)
-        if summary:
-            result["summary"] = summary
-    return result
-
-
-async def _dispatch_tool(name: str, arguments: dict, ctx) -> dict:
-    arguments = arguments or {}
-    try:
-        if name == "web_search":
-            return await _run_web_search(arguments, ctx)
-        if name == "record_step_actions":
-            raw_actions = arguments.get("actions")
-            if not isinstance(raw_actions, list) or not 1 <= len(raw_actions) <= 6:
-                return {"error": "invalid_action"}
-            try:
-                drafts = [TeachActionDraft.model_validate(item) for item in raw_actions]
-            except ValidationError:
-                return {"error": "invalid_action"}
-            ids = [draft.id for draft in drafts]
-            if len(set(ids)) != len(ids):
-                return {"error": "duplicate_action_ids"}
-            return {"actions": [draft.model_dump() for draft in drafts]}
-        if name == "run_probe":
-            return await _run_probe(arguments, ctx)
-        if name == "grade_answer":
-            return await _run_grade_answer(arguments, ctx)
-        if name == "build_plan":
-            return await _run_build_plan(arguments, ctx)
-        if name == "advance_lesson":
-            return await _run_advance_lesson(arguments, ctx)
-        if name.startswith("generate_"):
-            return await _run_generate(name.removeprefix("generate_"), arguments, ctx)
-    except Exception as exc:
-        return {"error": _issue_code(exc)}
-    return {"error": "unsupported_output_kind"}
 
 
 def _web_entry(result: dict) -> dict:
@@ -306,7 +129,6 @@ async def _run_generate(kind: str, arguments: dict, ctx) -> dict:
             }
     payload["kind"] = kind
     return payload
-
 
 def _learning_guard(ctx) -> dict | None:
     if getattr(ctx, "conn", None) is None:

@@ -37,7 +37,19 @@ sage/
 │   │   ├── watch.py                 #   /api/watch list · add · scan · delete
 │   │   └── preferences.py           #   /api/preferences · /api/mastery reset
 │   ├── llm/
-│   │   ├── client.py                # AsyncOpenAI → https://ollama.com/v1 · thought-channel filtering · stream_chat · cancel_inflight
+│   │   ├── client/                # Ollama client package (split from client.py)
+│   │   │   ├── core.py            # SageOllamaClient · degradation ladder · stream/chat paths
+│   │   │   ├── config.py          # OllamaClientConfig + BROT_* settings mapping
+│   │   │   ├── attempt.py         # ChatAttempt (bread-parity)
+│   │   │   ├── leak_guard.py      # _strip_leaked_calls (gemma leaked-call guard)
+│   │   │   ├── utils.py           # SDK value coercion · unsupported-feature detection
+│   │   │   ├── api_deps.py        # get_llm_client · reset_llm_client · _strip_thought
+│   │   │   └── __init__.py        # re-exports public surface
+│   │   ├── tools/                 # Tool schema + dispatch package (split from tools.py)
+│   │   │   ├── schemas.py         # TOOL_SCHEMAS · available_tools
+│   │   │   ├── actions.py         # tool handler implementations
+│   │   │   ├── dispatch.py        # execute_tool · _dispatch_tool
+│   │   │   └── __init__.py        # re-exports available_tools · execute_tool
 │   │   ├── messages.py              # chat message builder · hybrid Socratic tutor + [WEB] blocks · citation markers
 │   │   ├── notes.py                 # notes-quiz generation · answerability check
 │   │   ├── structured.py            # structured probe/plan question requests
@@ -113,7 +125,7 @@ flowchart LR
         WATCH["app/services/watcher.py<br/>watcher_loop · scan_once · sync_watch_sources"]
         DB[("SQLite<br/>DATA_DIR/sage.db · 11 tables")]
         UP["uploads on disk<br/>DATA_DIR/uploads · outside served paths"]
-        LLM["app/llm/client.py<br/>AsyncOpenAI → https://ollama.com/v1 · thought filtering<br/>stream_chat · quick_probe · cancel_inflight · inflight registry"]
+        LLM["app/llm/client/<br/>SageOllamaClient → https://ollama.com/v1<br/>transport core · thought filtering<br/>stream_chat · quick_probe · cancel_inflight · inflight registry"]
         STRUCT["app/llm/structured_outputs.py + app/services/structured_outputs.py<br/>chat/mermaid/todo/quiz/teach/latex · strict envelopes<br/>server-owned metadata · duplicate_action_ids · script_content"]
         MERMAID["mermaid.py + tools/validate_mermaid.mjs<br/>mermaid.parse syntax validation"]
         WEBSEARCH["app/services/web_search.py<br/>SearXNG client · httpx GET /search<br/>GET /search?q=&format=json"]
