@@ -132,7 +132,7 @@ def test_init_migrates_v1_db_to_v2(settings):
     try:
         version = conn.execute("SELECT version FROM schema_version").fetchone()[0]
         assert version == SCHEMA_VERSION
-        assert version == 2
+        assert version == 3
         files_cols = {r["name"] for r in conn.execute("PRAGMA table_info(files)")}
         for name in ("paired_file_id", "subject", "source_path"):
             assert name in files_cols
@@ -143,6 +143,12 @@ def test_init_migrates_v1_db_to_v2(settings):
             r["name"] for r in conn.execute("PRAGMA table_info(quiz_questions)")
         }
         assert "source_ref" in quiz_cols
+        assert "confidence" in quiz_cols
+        mastery_cols = {
+            r["name"] for r in conn.execute("PRAGMA table_info(mastery_topics)")
+        }
+        assert "overconfident_count" in mastery_cols
+        assert "underconfident_count" in mastery_cols
         watch = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='watch_sources'"
         ).fetchone()

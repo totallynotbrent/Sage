@@ -301,3 +301,60 @@ def test_notes_answer_endpoint_no_phase_change(client, conn, override_llm):
     assert response.status_code == 200
     assert response.json()["result"]["outcome"] == "correct"
     assert response.json()["session"]["phase"] == "setup"
+
+
+def test_answer_accepts_confidence(client, override_llm, conn):
+    session = _create_session(client)
+    override_llm.complete_json_responses = [json.dumps(_good_questions())]
+    question = _probe(client, session["id"])["questions"][0]
+    response = client.post(
+        f"/api/sessions/{session['id']}/quiz/{question['id']}/answer",
+        json={"choice_index": 1, "confidence": "know"},
+    )
+    assert response.status_code == 200
+    assert response.json()["result"]["outcome"] == "correct"
+    row = conn.execute(
+        "SELECT confidence FROM quiz_questions WHERE id = ?", (question["id"],)
+    ).fetchone()
+    assert row["confidence"] == "know"
+
+
+def test_learner_questions_endpoint(client, override_llm, conn):
+    session = _create_session(client)
+    override_llm.complete_json_responses = [
+        json.dumps(
+            [
+                {
+                    "question": "What causes tides?", "answer": "Gravity of the Moon.",
+                    "coverage": "hit", "feedback": "Great, that targets a key fact.",
+                },
+                {
+                    "question": "What is 2+2?", "answer": "4.",
+                    "coverage": "miss", "feedback": "Too trivial; ask about the taught material.",
+                },
+            ]
+        )
+    ]
+    response = client.post(
+        f"/api/sessions/{session['id']}/learner-questions",
+        json={"questions": ["What causes tides?", "What is 2+2?"]},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["questions"]) == 2
+    assert payload["questions"][0]["coverage"] == "hit"
+    assert payload["questions"][1]["coverage"] == "miss"
+    rows = conn.execute(
+        "SELECT content FROM feedback_actions WHERE session_id = ? AND action = 'learner_question'",
+        (session["id"],),
+    ).fetchall()
+    assert len(rows) == 2
+
+
+def test_learner_questions_requires_two(client, override_llm):
+    session = _create_session(client)
+    response = client.post(
+        f"/api/sessions/{session['id']}/learner-questions",
+        json={"questions": ["only one?"]},
+    )
+    assert response.status_code == 422

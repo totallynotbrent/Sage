@@ -188,6 +188,7 @@ async def _run_grade_answer(arguments: dict, ctx) -> dict:
         str(arguments.get("question_id") or ""),
         arguments.get("choice_index"),
         bool(arguments.get("idk") or False),
+        confidence=arguments.get("confidence"),
     )
     return result["result"]
 
@@ -276,9 +277,11 @@ async def _run_advance_lesson(arguments: dict, ctx) -> dict:
             )
             pending = check.get("questions") or []
             if pending:
-                payload["check_question"] = _strip_question(
-                    pending[0], ("id", "question", "options")
-                )
+                payload["check_questions"] = [
+                    _strip_question(q, ("id", "question", "options"))
+                    for q in pending
+                ]
+                payload["check_question"] = payload["check_questions"][0]
         return payload
     current_phase = service.sessions.get(ctx.session_id).phase
     if current_phase == "remediate":
@@ -320,7 +323,9 @@ async def _run_advance_lesson(arguments: dict, ctx) -> dict:
         )
         pending = check.get("questions") or []
         if pending:
-            payload["check_question"] = _strip_question(
-                pending[0], ("id", "question", "options")
-            )
+            payload["check_questions"] = [
+                _strip_question(q, ("id", "question", "options"))
+                for q in pending
+            ]
+            payload["check_question"] = payload["check_questions"][0]
     return payload

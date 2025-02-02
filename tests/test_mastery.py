@@ -117,3 +117,45 @@ def test_reset_mastery(conn):
     mastery.record_evidence(conn, "calculus", "probe", "idk")
     mastery.reset_mastery(conn)
     assert conn.execute("SELECT COUNT(*) FROM mastery_topics").fetchone()[0] == 0
+
+
+def test_overconfident_wrong_calibrates_extra_miss(conn):
+    row = mastery.record_evidence(conn, "algebra", "check", "incorrect", confidence="know")
+    # 1 observed outcome + 1 overconfidence penalty = 2 observed, 0 correct
+    assert row["observed_count"] == 2
+    assert row["correct_count"] == 0
+    assert row["overconfident_count"] == 1
+    assert row["confidence"] == pytest.approx(1 / 4)
+
+
+def test_confident_incorrect_also_calibrates(conn):
+    row = mastery.record_evidence(conn, "physics", "check", "idk", confidence="confident")
+    assert row["overconfident_count"] == 1
+    assert row["observed_count"] == 2
+
+
+def test_guess_correct_counts_as_underconfident(conn):
+    row = mastery.record_evidence(conn, "geometry", "check", "correct", confidence="guess")
+    assert row["underconfident_count"] == 1
+    assert row["overconfident_count"] == 0
+    # A correct guess is not penalized.
+    assert row["observed_count"] == 1
+
+
+def test_no_penalty_for_accurate_know(conn):
+    row = mastery.record_evidence(conn, "biology", "check", "correct", confidence="know")
+    assert row["overconfident_count"] == 0
+    assert row["observed_count"] == 1
+
+
+def test_evidence_records_confidence(conn):
+    mastery.record_evidence(conn, "history", "check", "incorrect", confidence="confident", question_id="q9")
+    evidence = _evidence(conn, "history")
+    assert evidence[0]["confidence"] == "confident"
+    assert evidence[0]["question_id"] == "q9"
+
+
+def test_topic_confidence_returns_value_or_none(conn):
+    assert mastery.topic_confidence(conn, "algebra") is None
+    mastery.record_evidence(conn, "algebra", "probe", "correct", confidence="guess")
+    assert mastery.topic_confidence(conn, "algebra") == pytest.approx(2 / 3)

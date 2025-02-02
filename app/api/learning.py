@@ -8,7 +8,13 @@ from app.api.deps import handle_value_error, require_configured
 from app.config import Settings, get_app_settings
 from app.db import get_conn
 from app.llm.client import LLMClient, get_llm_client
-from app.models import CheckBody, NotesQuizBody, ProbeBody, QuizAnswerBody
+from app.models import (
+    CheckBody,
+    LearnerQuestionsBody,
+    NotesQuizBody,
+    ProbeBody,
+    QuizAnswerBody,
+)
 from app.services.learning import LearningService
 
 router = APIRouter()
@@ -66,6 +72,26 @@ async def answer_quiz(
 ) -> dict:
     service = LearningService(conn, settings)
     try:
-        return service.answer_quiz(session_id, question_id, body.choice_index, body.idk)
+        return service.answer_quiz(
+            session_id,
+            question_id,
+            body.choice_index,
+            body.idk,
+            body.confidence,
+        )
     except ValueError as exc:
         raise handle_value_error(exc)
+
+
+@router.post("/api/sessions/{session_id}/learner-questions")
+async def review_learner_questions(
+    session_id: str,
+    body: LearnerQuestionsBody,
+    llm: LLMClient = Depends(get_llm_client),
+    settings: Settings = Depends(get_app_settings),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> dict:
+    require_configured(settings)
+    return await LearningService(conn, settings).review_learner_questions(
+        session_id, llm, body.questions
+    )

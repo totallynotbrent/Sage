@@ -33,6 +33,82 @@ def _laplace_confidence(correct_count: int, observed_count: int) -> float:
     return (correct_count + 1) / (observed_count + 2)
 
 
+def topic_confidence(conn: sqlite3.Connection, topic: str | None) -> float | None:
+    row = conn.execute(
+        "SELECT confidence FROM mastery_topics WHERE topic = ?",
+        (normalize_topic(topic),),
+    ).fetchone()
+    return float(row["confidence"]) if row else None
+
+
+# Rated self-assessed confidence before an answer.
+CONFIDENCE_LEVELS = ("guess", "confident", "know")
+
+
+def _confidence_penalty(confidence: str | None, outcome: str) -> int:
+    """Extra implicit misses when the learner was overconfident and wrong.
+
+    Knowing/believing an answer and getting it wrong means the topic is worse
+    than the raw outcome suggests, so it should schedule harder (lower Laplace
+    confidence). A guess that happens to be right is underconfidence and costs
+    nothing. Returns bonus miss count to fold into observed counts.
+    """
+    if confidence in ("confident", "know") and outcome in ("incorrect", "idk"):
+        return 1
+    return 0
+
+
+def _record_evidence_insert(
+    conn: sqlite3.Connection,
+    topic: str,
+    label: str,
+    correct: int,
+    observed: int,
+    idk: int,
+    overconfident: int,
+    underconfident: int,
+    confidence: float,
+    note_entry: str | None,
+    now: str,
+    evidence: list[dict],
+) -> None:
+    if note_entry is not None:
+        conn.execute(
+            "UPDATE mastery_topics SET observed_count = ?, correct_count = ?, idk_count = ?, "
+            "overconfident_count = ?, underconfident_count = ?, confidence = ?, "
+            "last_assessed_at = ?, evidence_json = ?, notes = ? WHERE topic = ?",
+            (
+                observed,
+                correct,
+                idk,
+                overconfident,
+                underconfident,
+                confidence,
+                now,
+                json.dumps(evidence),
+                note_entry,
+                topic,
+            ),
+        )
+    else:
+        conn.execute(
+            "UPDATE mastery_topics SET observed_count = ?, correct_count = ?, idk_count = ?, "
+            "overconfident_count = ?, underconfident_count = ?, confidence = ?, "
+            "last_assessed_at = ?, evidence_json = ? WHERE topic = ?",
+            (
+                observed,
+                correct,
+                idk,
+                overconfident,
+                underconfident,
+                confidence,
+                now,
+                json.dumps(evidence),
+                topic,
+            ),
+        )
+
+
 def record_evidence(
     conn: sqlite3.Connection,
     topic: str | None,
@@ -40,6 +116,7 @@ def record_evidence(
     outcome: str,
     question_id: str | None = None,
     note: str | None = None,
+    confidence: str | None = None,
 ) -> dict:
     normalized = normalize_topic(topic)
     label = _display_label(topic)
@@ -51,15 +128,19 @@ def record_evidence(
         observed = 0
         correct = 0
         idk = 0
+        overconfident = 0
+        underconfident = 0
         evidence: list[dict] = []
         conn.execute(
-            "INSERT INTO mastery_topics (topic, label, observed_count, correct_count, idk_count, last_assessed_at, evidence_json) VALUES (?, ?, 0, 0, 0, ?, '[]')",
+            "INSERT INTO mastery_topics (topic, label, observed_count, correct_count, idk_count, overconfident_count, underconfident_count, last_assessed_at, evidence_json) VALUES (?, ?, 0, 0, 0, 0, 0, ?, '[]')",
             (normalized, label, now),
         )
     else:
         observed = row["observed_count"]
         correct = row["correct_count"]
         idk = row["idk_count"]
+        overconfident = row["overconfident_count"]
+        underconfident = row["underconfident_count"]
         try:
             evidence = json.loads(row["evidence_json"] or "[]")
         except json.JSONDecodeError:
@@ -71,24 +152,41 @@ def record_evidence(
     elif outcome == "idk":
         idk += 1
 
-    entry: dict = {"source": source, "topic": normalized, "outcome": outcome, "at": now}
+    penalty = _confidence_penalty(confidence, outcome)
+    if penalty:
+        overconfident += 1
+        observed += penalty
+    if confidence == "guess" and outcome == "correct":
+        underconfident += 1
+
+    entry: dict = {
+        "source": source,
+        "topic": normalized,
+        "outcome": outcome,
+        "at": now,
+        "confidence": confidence,
+    }
     if question_id is not None:
         entry["question_id"] = question_id
     if note:
         entry["note"] = note
     evidence.append(entry)
 
-    confidence = _laplace_confidence(correct, observed)
-    if note is not None:
-        conn.execute(
-            "UPDATE mastery_topics SET observed_count = ?, correct_count = ?, idk_count = ?, confidence = ?, last_assessed_at = ?, evidence_json = ?, notes = ? WHERE topic = ?",
-            (observed, correct, idk, confidence, now, json.dumps(evidence), note, normalized),
-        )
-    else:
-        conn.execute(
-            "UPDATE mastery_topics SET observed_count = ?, correct_count = ?, idk_count = ?, confidence = ?, last_assessed_at = ?, evidence_json = ? WHERE topic = ?",
-            (observed, correct, idk, confidence, now, json.dumps(evidence), normalized),
-        )
+    confidence_value = _laplace_confidence(correct, observed)
+    _record_evidence_insert(
+        conn,
+        normalized,
+        label,
+        correct,
+        observed,
+        idk,
+        overconfident,
+        underconfident,
+        confidence_value,
+        note,
+        now,
+        evidence,
+    )
     conn.commit()
     return row_to_dict(
         conn.execute(

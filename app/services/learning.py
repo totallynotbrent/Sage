@@ -7,7 +7,7 @@ from app.config import Settings
 from app.db import rows_to_dicts
 from app.errors import ModelOutputError, NotFoundError
 from app.llm.notes import request_notes_questions
-from app.llm.structured import request_questions
+from app.llm.structured import request_learner_review, request_questions
 from app.models import QuizQuestionInput, Session
 from app.services import mastery
 from app.services.sessions import SessionService, question_dict
@@ -15,8 +15,6 @@ from app.services.teach import TeachService
 from app.util import new_id, utc_now
 
 IDK_OPTION = "I don't know"
-
-PROBE_COUNT = 3
 
 
 class LearningService:
@@ -26,6 +24,37 @@ class LearningService:
         self.sessions = SessionService(conn, settings)
         self.teach = TeachService(conn, settings)
 
+    def _adaptive_question_count(
+        self, session_id: str, topic: str, *, probe: bool = False
+    ) -> int:
+        """Pick how many questions to ask from recent performance.
+
+        Acing (last 2 outcomes correct on this topic with decent confidence) keeps
+        checks light (1) and probes diagnostic (2). Stalling (a recent miss or low
+        confidence) drills harder with up to 3 mixed questions.
+        """
+        recent = self.conn.execute(
+            "SELECT outcome FROM quiz_questions "
+            "WHERE session_id = ? AND kind IN ('probe','check') AND outcome IS NOT NULL "
+            "AND answered_at IS NOT NULL ORDER BY answered_at DESC, rowid DESC LIMIT 2",
+            (session_id,),
+        ).fetchall()
+        outcomes = [r["outcome"] for r in recent]
+        confidence = mastery.topic_confidence(self.conn, topic)
+        miss = any(o in ("incorrect", "idk") for o in outcomes)
+        acing = (
+            len(outcomes) == 2
+            and not miss
+            and confidence is not None
+            and confidence >= 0.6
+        )
+        stalling = miss or (confidence is not None and confidence < 0.35)
+        if stalling:
+            return 3
+        if acing:
+            return 1
+        return 2
+
     async def generate_probe(self, session_id: str, llm) -> dict:
         session = self.sessions.get(session_id)
         existing = self._pending_questions(session_id, "probe")
@@ -33,13 +62,14 @@ class LearningService:
             return {"session": session.model_dump(), "questions": existing}
         self._delete_pending_questions(session_id, "probe")
         chunks = self.sessions._select_chunks(session, "adaptive probe questions")
+        count = self._adaptive_question_count(session_id, session.goal, probe=True)
         questions = await request_questions(
             llm,
             session=session.model_dump(),
             chunks=chunks,
             mastery_summary=self.sessions._mastery_summary(),
             mode=session.grounding_mode,
-            count=PROBE_COUNT,
+            count=count,
             focus=session.goal,
         )
         if not questions:
@@ -77,29 +107,61 @@ class LearningService:
                 interleaved = weak[0]["label"]
         focus_topic = interleaved or topic
         chunks = self.sessions._select_chunks(session, "check question")
+        count = self._adaptive_question_count(session_id, focus_topic)
         questions = await request_questions(
             llm,
             session=session.model_dump(),
             chunks=chunks,
             mastery_summary=self.sessions._mastery_summary(),
             mode=session.grounding_mode,
-            count=1,
+            count=count,
             focus=focus_topic,
         )
         if not questions:
             error = ModelOutputError("The model returned no usable check question.")
             error.retryable = True
             raise error
-        question = questions[0]
-        # Keep the established contract: a check question is tracked under the
+        # Keep the established contract: check questions are tracked under the
         # (possibly interleaved) focus topic, not whatever the model echoed back.
-        question.topic = interleaved or topic
-        self._insert_question(session_id, "check", question)
+        for question in questions:
+            question.topic = interleaved or topic
+            self._insert_question(session_id, "check", question)
         self.sessions.set_phase(session_id, "check")
         return {
             "session": self.sessions.get(session_id).model_dump(),
             "questions": self._pending_questions(session_id, "check"),
         }
+
+    async def review_learner_questions(
+        self, session_id: str, llm, questions: list[str]
+    ) -> dict:
+        """'You ask the questions' mode: Sage answers the learner's own questions.
+
+        The learner writes two questions over what they just studied; Sage answers
+        each and grades whether it hits the key facts (coverage hit/partial/miss),
+        then we persist the review rows for the record.
+        """
+        session = self.sessions.get(session_id)
+        topic = self._current_node_title(session) or session.goal
+        chunks = self.sessions._select_chunks(session, "learner questions review")
+        review = await request_learner_review(
+            llm,
+            session=session.model_dump(),
+            chunks=chunks,
+            mastery_summary=self.sessions._mastery_summary(),
+            mode=session.grounding_mode,
+            questions=questions,
+            topic=topic,
+        )
+        now = utc_now()
+        for entry in review:
+            self.conn.execute(
+                "INSERT INTO feedback_actions (id, session_id, question_id, action, content, created_at) "
+                "VALUES (?, ?, ?, 'learner_question', ?, ?)",
+                (new_id(), session_id, "learner", json.dumps(entry), now),
+            )
+        self.conn.commit()
+        return {"questions": review}
 
     async def generate_notes_quiz(
         self, session_id: str, llm, count: int = 3, subject: str | None = None
@@ -155,7 +217,12 @@ class LearningService:
         question_id: str,
         choice_index: int | None = None,
         idk: bool = False,
+        confidence: str | None = None,
     ) -> dict:
+        if confidence is not None and confidence not in mastery.CONFIDENCE_LEVELS:
+            raise ValueError(
+                f"confidence must be one of {sorted(mastery.CONFIDENCE_LEVELS)}"
+            )
         self.sessions.get(session_id)
         row = self.conn.execute(
             "SELECT * FROM quiz_questions WHERE id = ? AND session_id = ?",
@@ -200,11 +267,12 @@ class LearningService:
         now = utc_now()
         claimed = self.conn.execute(
             "UPDATE quiz_questions SET status = 'answered', user_choice = ?, outcome = ?, "
-            "answered_at = ? WHERE id = ? AND session_id = ? AND status IS ? AND outcome IS ?",
+            "answered_at = ?, confidence = ? WHERE id = ? AND session_id = ? AND status IS ? AND outcome IS ?",
             (
                 choice,
                 outcome,
                 now,
+                confidence,
                 question_id,
                 session_id,
                 question["status"],
@@ -229,6 +297,7 @@ class LearningService:
                 "user_choice": choice,
                 "outcome": outcome,
                 "answered_at": now,
+                "confidence": confidence,
             }
         )
         source = (
@@ -237,7 +306,12 @@ class LearningService:
             else "check"
         )
         mastery.record_evidence(
-            self.conn, question["topic"], source, outcome, question_id=question_id
+            self.conn,
+            question["topic"],
+            source,
+            outcome,
+            question_id=question_id,
+            confidence=confidence,
         )
         # Register / reschedule an FSRS review card so material is spaced over time.
         try:

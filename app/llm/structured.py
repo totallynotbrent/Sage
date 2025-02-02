@@ -315,3 +315,88 @@ async def request_questions(
     if questions is None:
         questions = _questions_from_fragments(raw)
     return questions
+
+
+LEARNER_REVIEW_RETRY_NOTE = (
+    "Your previous answer could not be parsed. Return ONLY a JSON array, one "
+    "object per learner question, each with: question (string, the learner's "
+    "question verbatim), answer (string), coverage (one of hit/partial/miss), "
+    "feedback (string)."
+)
+
+
+def _validate_learner_review(raw: Any) -> list[dict] | None:
+    if not isinstance(raw, list) or not raw:
+        return None
+    items = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            return None
+        coverage = str(entry.get("coverage") or "partial")
+        if coverage not in ("hit", "partial", "miss"):
+            coverage = "partial"
+        items.append(
+            {
+                "question": str(entry.get("question") or "").strip(),
+                "answer": str(entry.get("answer") or "").strip(),
+                "coverage": coverage,
+                "feedback": str(entry.get("feedback") or "").strip(),
+            }
+        )
+    if not items or any(not item["question"] for item in items):
+        return None
+    return items
+
+
+async def request_learner_review(
+    llm,
+    *,
+    session: dict[str, Any],
+    chunks: list[dict[str, Any]],
+    mastery_summary: str,
+    mode: str,
+    questions: list[str],
+    topic: str | None = None,
+) -> list[dict]:
+    """Sage answers the learner's own questions and grades fact coverage."""
+    system = make_system_prompt(session, mode, mastery_summary)
+    bullet = "\n".join(f"{i + 1}. {q}" for i, q in enumerate(questions))
+    user = (
+        "The learner just studied the material and wrote TWO questions of their "
+        "own over it. For each, (1) answer it accurately and (2) grade whether it "
+        "hits the key facts of the material. Return ONLY a JSON array, one object "
+        "per learner question, each with: question (the learner's question "
+        "verbatim), answer (string), coverage (exactly one of: hit / partial / "
+        "miss — hit if it targets a key fact, partial if it touches it loosely, "
+        "miss if it's off-topic or trivial), feedback (string, 1-2 sentences "
+        "encouraging what was good and what a stronger question would probe).\n\n"
+        f"Learner questions:\n{bullet}\n\n"
+        f"{_context_block(chunks)}"
+    )
+    if topic:
+        user += f"\n\nTopic just covered: {topic}"
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user},
+    ]
+    full_text, error_text = await llm.complete_json(messages)
+    if full_text is None:
+        raise provider_error_from_text(error_text)
+    raw = _try_parse(full_text)
+    review = _validate_learner_review(raw)
+    if review is None:
+        messages.extend(
+            [
+                {"role": "assistant", "content": full_text},
+                {"role": "user", "content": LEARNER_REVIEW_RETRY_NOTE},
+            ]
+        )
+        retry_text, retry_error = await llm.complete_json(messages)
+        if retry_text is None:
+            raise provider_error_from_text(retry_error)
+        review = _validate_learner_review(_try_parse(retry_text))
+    if review is None:
+        error = ModelOutputError("The model returned no usable learner-question review.")
+        error.retryable = True
+        raise error
+    return review

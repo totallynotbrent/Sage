@@ -158,6 +158,11 @@ class NotesQuizBody(BaseModel):
 class QuizAnswerBody(BaseModel):
     choice_index: int | None = None
     idk: bool = False
+    confidence: Literal["guess", "confident", "know"] | None = None
+
+
+class LearnerQuestionsBody(BaseModel):
+    questions: list[str] = Field(min_length=2, max_length=2)
 
 
 class WatchBody(BaseModel):
