@@ -62,6 +62,6 @@ sequenceDiagram
 ```
 
 ## See also
-- [[01-system-architecture]]
-- [[04-complete-ui-flow-sequence]]
-- [[03-session-state-machine]]
+- [[01-system-architecture|System Architecture]]
+- [[04-complete-ui-flow-sequence|Complete UI Flow (sequence)]]
+- [[03-session-state-machine|Session State Machine]]

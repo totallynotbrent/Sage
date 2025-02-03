@@ -67,5 +67,5 @@ sequenceDiagram
 ```
 
 ## See also
-- [[02-learning-loop]]
-- [[06-data-model-er]]
+- [[02-learning-loop|Learning Loop]]
+- [[06-data-model-er|Data Model (ER)]]
