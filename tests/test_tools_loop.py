@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sqlite3
 from types import SimpleNamespace
 
 import httpx
@@ -756,3 +757,61 @@ def test_stream_chat_plain_path_stays_strings():
         _collect(client.stream_chat([{"role": "user", "content": "hi"}]))
     )
     assert chunks == ["plain"]
+
+
+def test_tool_only_turn_gets_fallback_prose(conn, settings, monkeypatch):
+    tool_settings = _tool_settings(settings, searxng_url="http://searx.test")
+    tool_settings = tool_settings.model_copy(update={"streaming": False})
+    service = SessionService(conn, tool_settings)
+    session = service.create(
+        goal="learn recursion", file_ids=[], grounding_mode="grounded"
+    )
+    fake_llm = FakeLLM()
+
+    async def fake_search(base_url, query, max_results=5):
+        return [{"title": "Recursion", "url": "https://example.com/r", "content": "self"}]
+
+    monkeypatch.setattr("app.services.web_search.search_web", fake_search)
+    # Tool call, then the follow-up text pass yields EMPTY text (tool-only turn).
+    fake_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "web_search",
+                "arguments": {"query": "what is recursion", "status": "Searching..."},
+                "id": "call_ws",
+            }
+        ]
+    )
+    fake_llm.script("Explain recursion", "")
+    # Fallback completion returns prose.
+    fake_llm.complete_json_responses = [
+        json.dumps("Recursion is when a function calls itself.")
+    ]
+
+    events = asyncio.run(
+        _collect(
+            service.turn(
+                session.id,
+                "Explain recursion",
+                client_msg_id="c1",
+                llm=fake_llm,
+                is_disconnected=_never_disconnected,
+            )
+        )
+    )
+    types = [event["type"] for event in events]
+    assert "tool_call" in types and "tool_result" in types
+    done = events[-1]
+    assert done["type"] == "done"
+    # The tool-only turn got a fallback prose reply persisted (non-empty).
+    assert done["message_id"] is not None
+    text = "".join(e.get("text", "") for e in events if e["type"] == "buffered_text")
+    assert "Recursion is when a function calls itself." in text
+    check = sqlite3.connect(settings.db_path)
+    check.row_factory = sqlite3.Row
+    persisted = check.execute(
+        "SELECT content FROM messages WHERE id = ?", (done["message_id"],)
+    ).fetchone()
+    check.close()
+    assert persisted is not None and "Recursion is when a function calls itself." in persisted["content"]
