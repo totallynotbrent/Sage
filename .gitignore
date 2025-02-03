@@ -48,3 +48,8 @@ docs/.agents/
 .agents/jobs/evidence/
 verify_*.py
 script.txt
+
+# Quartz docs site
+docs-site/node_modules/
+docs-site/public/
+docs-site/**/.quartz-cache/
