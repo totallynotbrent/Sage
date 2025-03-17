@@ -199,8 +199,8 @@ def test_watch_api_round_trip(tmp_path):
 
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         max_upload_mb=30,
         max_total_mb=500,
         chunk_chars=100,
@@ -266,8 +266,8 @@ def test_watch_api_rejects_missing_directory(tmp_path):
     root.mkdir()
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         watch_dirs=[str(root)],
         watch_scan_seconds=3600,
     )
@@ -291,8 +291,8 @@ def test_watch_api_rejects_file_path(tmp_path):
     target.write_text("x", encoding="utf-8")
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         watch_dirs=[str(root)],
         watch_scan_seconds=3600,
     )
@@ -314,8 +314,8 @@ def test_watch_api_rejects_outside_scope(tmp_path):
     outside.mkdir()
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         watch_dirs=[str(base)],
         watch_scan_seconds=3600,
     )
@@ -338,8 +338,8 @@ def test_watch_api_rejects_filesystem_root(tmp_path):
     root.mkdir()
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         watch_dirs=[str(root)],
         watch_scan_seconds=3600,
     )
@@ -359,8 +359,8 @@ def test_watch_api_aliased_paths_collapse(tmp_path):
     root.mkdir()
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         watch_dirs=[str(tmp_path)],
         watch_scan_seconds=3600,
     )
@@ -394,8 +394,8 @@ def test_watch_api_readd_same_path_is_rate_limited(tmp_path):
 
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         max_upload_mb=30,
         max_total_mb=500,
         watch_dirs=[str(root)],
@@ -585,8 +585,8 @@ def test_watcher_loop_runs_a_scan_then_stops(tmp_path):
 
     settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         watch_dirs=[str(root)],
         watch_scan_seconds=1,
     )
@@ -615,8 +615,8 @@ def _async_app(tmp_path, root, watch_scan_seconds=3600):
 
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         watch_dirs=[str(root)],
         watch_scan_seconds=watch_scan_seconds,
     )
@@ -709,8 +709,8 @@ async def test_watch_overlapping_scans_serialize(tmp_path, monkeypatch):
     monkeypatch.setattr(watcher, "scan_once", tracking_scan)
     app_settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
         watch_dirs=[str(root_a), str(root_b)],
         watch_scan_seconds=3600,
     )

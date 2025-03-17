@@ -226,7 +226,7 @@ class SageOllamaClient(LLMClient):
             # Force streaming=True: these clients exercise the stream path explicitly.
             try:
                 from app.config import Settings as _S
-                _settings = getattr(self, "_settings", None) or _S(brot_api_key="test-key")
+                _settings = getattr(self, "_settings", None) or _S(api_key="test-key")
                 cfg = OllamaClientConfig.from_settings(_settings)  # type: ignore
                 cfg.streaming = True
                 self.config = cfg

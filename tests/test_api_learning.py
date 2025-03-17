@@ -232,8 +232,8 @@ def test_probe_config_missing_400(tmp_path):
 
     settings = Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="",
-        brot_base_url="http://127.0.0.1:9/v1",
+        api_key="",
+        api_url="http://127.0.0.1:9/v1",
     )
     app = create_app(settings)
     with TestClient(app) as client:
