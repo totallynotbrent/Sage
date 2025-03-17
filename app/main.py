@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.websockets import WebSocket
 
 from app.config import Settings, get_settings, validation_problems
 from app.db import init_db
@@ -17,6 +18,18 @@ from app.logging_setup import setup_logging
 from app.services.watcher import watcher_loop
 
 logger = logging.getLogger("app")
+
+
+class _WebsocketSafeStatic(StaticFiles):
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "websocket":
+            return await self._reject(scope, receive, send)
+        return await super().__call__(scope, receive, send)
+
+    @staticmethod
+    async def _reject(scope, receive, send):
+        ws = WebSocket(scope=scope, receive=receive, send=send)
+        await ws.close(code=1008)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -82,7 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         async def serve_ui():
             return FileResponse(str(static_dir / "index.html"))
 
-        app.mount("/", StaticFiles(directory=str(static_dir)), name="static")
+        app.mount("/", _WebsocketSafeStatic(directory=str(static_dir)), name="static")
 
     return app
 
