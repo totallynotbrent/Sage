@@ -159,6 +159,7 @@ class QuizAnswerBody(BaseModel):
     choice_index: int | None = None
     idk: bool = False
     confidence: Literal["guess", "confident", "know"] | None = None
+    latency_ms: int | None = Field(default=None, ge=0)
 
 
 class LearnerQuestionsBody(BaseModel):

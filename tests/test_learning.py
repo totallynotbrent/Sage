@@ -292,6 +292,127 @@ def test_generate_check_falls_back_to_goal_topic(conn, settings, fake_llm):
     assert result["questions"][0]["topic"] == "learn algebra"
 
 
+def test_generate_pretest_uses_node_topic(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    conn.execute(
+        "INSERT INTO plan_nodes (id, session_id, node_key, title, description, depends_on_json, status, position) VALUES (?, ?, 'n1', 'Group Theory', NULL, '[]', 'current', 0)",
+        ("node1", session.id),
+    )
+    conn.execute(
+        "UPDATE sessions SET current_node_id = 'node1' WHERE id = ?", (session.id,)
+    )
+    conn.commit()
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            [
+                {
+                    "question": "Pretest Q?",
+                    "options": ["x", "y"],
+                    "correct_index": 0,
+                    "explanation": "e",
+                    "topic": "model-topic",
+                    "difficulty": 3,
+                }
+            ]
+        )
+    ]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_pretest(session.id, fake_llm))
+    assert len(result["questions"]) == 1
+    question = result["questions"][0]
+    assert question["kind"] == "pretest"
+    assert question["topic"] == "Group Theory"
+    assert question["options"][-1] == "I don't know"
+    assert question["correct_index"] == 0
+
+
+def test_generate_pretest_does_not_change_phase(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            [
+                {
+                    "question": "Pretest Q?",
+                    "options": ["x", "y"],
+                    "correct_index": 0,
+                    "explanation": "e",
+                    "topic": None,
+                    "difficulty": 3,
+                }
+            ]
+        )
+    ]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_pretest(session.id, fake_llm))
+    assert result["session"]["phase"] == session.phase == "setup"
+
+
+def test_generate_pretest_falls_back_to_goal_topic(conn, settings, fake_llm):
+    session = _create_session(conn, settings, goal="learn algebra")
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            [
+                {
+                    "question": "Pretest Q?",
+                    "options": ["x", "y"],
+                    "correct_index": 0,
+                    "explanation": "e",
+                    "topic": None,
+                    "difficulty": 3,
+                }
+            ]
+        )
+    ]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_pretest(session.id, fake_llm))
+    assert result["questions"][0]["topic"] == "learn algebra"
+
+
+def test_generate_pretest_caps_to_single_question(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = [
+        json.dumps(_good_questions())
+    ]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_pretest(session.id, fake_llm))
+    assert len(result["questions"]) == 1
+    assert result["questions"][0]["kind"] == "pretest"
+
+
+def test_generate_pretest_idempotent(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            [
+                {
+                    "question": "Pretest Q?",
+                    "options": ["x", "y"],
+                    "correct_index": 0,
+                    "explanation": "e",
+                    "topic": None,
+                    "difficulty": 3,
+                }
+            ]
+        )
+    ]
+    service = LearningService(conn, settings)
+    first = asyncio.run(service.generate_pretest(session.id, fake_llm))
+    second = asyncio.run(service.generate_pretest(session.id, fake_llm))
+    assert [q["id"] for q in second["questions"]] == [
+        q["id"] for q in first["questions"]
+    ]
+    assert len(fake_llm.calls) == 1
+
+
+def test_generate_pretest_no_usable_questions_raises(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = ["garbage", "garbage"]
+    with pytest.raises(ModelOutputError) as excinfo:
+        asyncio.run(LearningService(conn, settings).generate_pretest(session.id, fake_llm))
+    assert excinfo.value.status_code == 422
+    assert excinfo.value.retryable is True
+
+
 def test_wrong_check_answer_sets_remediate(conn, settings, fake_llm):
     session = _create_session(conn, settings)
     fake_llm.complete_json_responses = [
@@ -570,6 +691,46 @@ def test_adaptive_check_count_defaults_two(conn, settings, fake_llm):
     assert service._adaptive_question_count(session.id, "learn algebra") == 2
 
 
+def test_adaptive_check_count_slow_corrects_downgrade_acing(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    from app.services import mastery
+    from app.util import new_id, utc_now
+
+    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    now = utc_now()
+    for _ in range(2):
+        conn.execute(
+            "INSERT INTO quiz_questions (id, session_id, kind, topic, difficulty, question, options_json, correct_index, status, user_choice, outcome, confidence, latency_ms, created_at, answered_at) "
+            "VALUES (?, ?, 'check', 'learn algebra', 2, 'Slow Q?', '[\"a\",\"b\"]', 0, 'answered', 0, 'correct', 'know', 12_000, ?, ?)",
+            (new_id(), session.id, now, now),
+        )
+    conn.commit()
+    # Confidence (>= 0.6) and outcomes alone would ace; slow effortful recall
+    # must downgrade the light check back to the standard 2.
+    service = LearningService(conn, settings)
+    assert service._adaptive_question_count(session.id, "learn algebra") == 2
+
+
+def test_adaptive_check_count_fast_corrects_still_ace(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    from app.services import mastery
+    from app.util import new_id, utc_now
+
+    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    now = utc_now()
+    for _ in range(2):
+        conn.execute(
+            "INSERT INTO quiz_questions (id, session_id, kind, topic, difficulty, question, options_json, correct_index, status, user_choice, outcome, confidence, latency_ms, created_at, answered_at) "
+            "VALUES (?, ?, 'check', 'learn algebra', 2, 'Fast Q?', '[\"a\",\"b\"]', 0, 'answered', 0, 'correct', 'know', 2000, ?, ?)",
+            (new_id(), session.id, now, now),
+        )
+    conn.commit()
+    service = LearningService(conn, settings)
+    assert service._adaptive_question_count(session.id, "learn algebra") == 1
+
+
 def test_generate_check_adaptively_requests_multiple(conn, settings, fake_llm):
     session = _create_session(conn, settings)
     _answer_outcome(conn, session.id, "check", "idk")
@@ -617,3 +778,44 @@ def test_answer_quiz_rejects_bad_confidence(conn, settings, fake_llm):
     qid = result["questions"][0]["id"]
     with pytest.raises(ValueError):
         service.answer_quiz(session.id, qid, 1, confidence="certain")
+
+
+def test_answer_quiz_stores_latency_ms(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = [json.dumps(_good_questions())]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_probe(session.id, fake_llm))
+    qid = result["questions"][0]["id"]
+    service.answer_quiz(session.id, qid, 1, latency_ms=4500)
+    row = conn.execute(
+        "SELECT latency_ms FROM quiz_questions WHERE id = ?", (qid,)
+    ).fetchone()
+    assert row["latency_ms"] == 4500
+    evidence = json.loads(
+        conn.execute(
+            "SELECT evidence_json FROM mastery_topics WHERE topic = 'topic-0'"
+        ).fetchone()[0]
+    )
+    assert evidence[0]["latency_ms"] == 4500
+    assert evidence[0]["latency_bucket"] == "fast-correct"
+
+
+def test_answer_quiz_latency_gap_fallback(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = [json.dumps(_good_questions())]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_probe(session.id, fake_llm))
+    qid = result["questions"][0]["id"]
+    # Simulate a long gap between question creation and answering: without a UI
+    # latency badge the server falls back to the created_at→answered_at gap.
+    conn.execute(
+        "UPDATE quiz_questions SET created_at = '2026-01-01T10:00:00.000Z' WHERE id = ?",
+        (qid,),
+    )
+    conn.commit()
+    service.answer_quiz(session.id, qid, 1)
+    row = conn.execute(
+        "SELECT latency_ms FROM quiz_questions WHERE id = ?", (qid,)
+    ).fetchone()
+    assert row["latency_ms"] is not None
+    assert row["latency_ms"] > 1000

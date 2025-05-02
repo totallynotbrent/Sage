@@ -44,6 +44,55 @@ def topic_confidence(conn: sqlite3.Connection, topic: str | None) -> float | Non
 # Rated self-assessed confidence before an answer.
 CONFIDENCE_LEVELS = ("guess", "confident", "know")
 
+# Answers at or under this retrieval time count as fast recall (strong signal);
+# anything slower signals effortful retrieval (weak/fading).
+FAST_ANSWER_MS = 8000
+
+LATENCY_BUCKETS = ("fast-correct", "slow-correct", "fast-wrong", "slow-wrong")
+
+
+def coerce_latency_ms(value) -> int | None:
+    """Safely normalize a latency value from any client (model relay included).
+
+    Garbage, negatives, and absurdly large values become None so a mangled
+    tool argument can never break grading.
+    """
+    if value is None:
+        return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not 0 <= n < 3_600_000:
+        return None
+    return int(round(n))
+
+
+def latency_bucket(outcome: str, latency_ms: int | None) -> str | None:
+    if latency_ms is None:
+        return None
+    fast = latency_ms <= FAST_ANSWER_MS
+    if outcome == "correct":
+        return "fast-correct" if fast else "slow-correct"
+    return "fast-wrong" if fast else "slow-wrong"
+
+
+def is_slow_answer(latency_ms: int | None) -> bool:
+    return latency_ms is not None and latency_ms > FAST_ANSWER_MS
+
+
+def _latency_penalty(bucket: str | None) -> int:
+    """Extra implicit observed events from retrieval effort.
+
+    A correct answer that took visible effort is weaker than the raw outcome
+    suggests, and an effortful miss is a harder signal than a quick one, so
+    both schedule harder (lower Laplace confidence). Fast-correct counts as a
+    clean strong recall and fast-wrong as a plain guess: no adjustment.
+    """
+    if bucket in ("slow-correct", "slow-wrong"):
+        return 1
+    return 0
+
 
 def _confidence_penalty(confidence: str | None, outcome: str) -> int:
     """Extra implicit misses when the learner was overconfident and wrong.
@@ -117,6 +166,7 @@ def record_evidence(
     question_id: str | None = None,
     note: str | None = None,
     confidence: str | None = None,
+    latency_ms: int | None = None,
 ) -> dict:
     normalized = normalize_topic(topic)
     label = _display_label(topic)
@@ -158,6 +208,9 @@ def record_evidence(
         observed += penalty
     if confidence == "guess" and outcome == "correct":
         underconfident += 1
+    bucket = latency_bucket(outcome, latency_ms)
+    if _latency_penalty(bucket):
+        observed += 1
 
     entry: dict = {
         "source": source,
@@ -166,6 +219,10 @@ def record_evidence(
         "at": now,
         "confidence": confidence,
     }
+    if latency_ms is not None:
+        entry["latency_ms"] = latency_ms
+    if bucket is not None:
+        entry["latency_bucket"] = bucket
     if question_id is not None:
         entry["question_id"] = question_id
     if note:

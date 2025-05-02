@@ -189,6 +189,7 @@ async def _run_grade_answer(arguments: dict, ctx) -> dict:
         arguments.get("choice_index"),
         bool(arguments.get("idk") or False),
         confidence=arguments.get("confidence"),
+        latency_ms=arguments.get("latency_ms"),
     )
     return result["result"]
 

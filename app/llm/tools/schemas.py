@@ -103,6 +103,10 @@ TOOL_SCHEMAS = [
                 "enum": ["guess", "confident", "know"],
                 "description": "Optional learner self-rating of confidence before answering.",
             },
+            "latency_ms": {
+                "type": "integer",
+                "description": "Optional retrieval time reported by the UI as [<n>ms] badge in the learner reply; forward it verbatim.",
+            },
         },
         ["question_id"],
     ),

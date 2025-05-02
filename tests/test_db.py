@@ -132,7 +132,7 @@ def test_init_migrates_v1_db_to_v2(settings):
     try:
         version = conn.execute("SELECT version FROM schema_version").fetchone()[0]
         assert version == SCHEMA_VERSION
-        assert version == 3
+        assert version == 4
         files_cols = {r["name"] for r in conn.execute("PRAGMA table_info(files)")}
         for name in ("paired_file_id", "subject", "source_path"):
             assert name in files_cols

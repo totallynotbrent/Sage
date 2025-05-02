@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from fsrs import Card, Rating, Scheduler
 
 from app.db import rows_to_dicts
+from app.services import mastery
 from app.util import new_id, utc_now
 
 # Map Sage quiz outcomes to FSRS ratings.
@@ -15,6 +16,11 @@ OUTCOME_TO_RATING = {
     "incorrect": Rating.Again,  # wrong — review again soon
     "idk": Rating.Again,       # didn't know — review again soon
 }
+
+# A slow-but-correct first recall is weaker than a fast one: scale the seeded
+# initial stability down so the card returns sooner (fading retrieval effort).
+SLOW_CORRECT_STABILITY_SCALE = 0.6
+_MIN_SEED_STABILITY_DAYS = 1.0
 
 _SCHEDULER = Scheduler()
 
@@ -58,6 +64,8 @@ def _row_to_api(row: dict) -> dict:
         "question_id": row["question_id"],
         "kind": row["kind"],
         "state": row["state"],
+        "stability": row["stability"],
+        "difficulty": row["difficulty"],
         "due": row["due"],
         "last_review": row["last_review"],
         "reps": row["reps"],
@@ -73,6 +81,7 @@ def register_card(
     question_id: str | None,
     kind: str,
     outcome: str,
+    latency_ms: int | None = None,
 ) -> dict | None:
     """Create or update an FSRS review card for a graded question.
 
@@ -128,6 +137,10 @@ def register_card(
     # Fresh card.
     card = Card()
     card, _log = _SCHEDULER.review_card(card, rating=rating, review_datetime=now_dt)
+    if outcome == "correct" and mastery.is_slow_answer(latency_ms):
+        card.stability = max(
+            card.stability * SLOW_CORRECT_STABILITY_SCALE, _MIN_SEED_STABILITY_DAYS
+        )
     due_iso = card.due.isoformat(timespec="milliseconds").replace("+00:00", "Z")
     card_id = new_id()
     lapses = 1 if outcome in ("incorrect", "idk") else 0
@@ -194,7 +207,11 @@ def get_card(conn: sqlite3.Connection, card_id: str, session_id: str) -> dict | 
 
 
 def grade_card(
-    conn: sqlite3.Connection, card_id: str, session_id: str, outcome: str
+    conn: sqlite3.Connection,
+    card_id: str,
+    session_id: str,
+    outcome: str,
+    latency_ms: int | None = None,
 ) -> dict | None:
     row = conn.execute(
         "SELECT * FROM review_cards WHERE id = ? AND session_id = ?",
@@ -209,6 +226,7 @@ def grade_card(
         question_id=row["question_id"],
         kind=row["kind"],
         outcome=outcome,
+        latency_ms=latency_ms,
     )
 
 

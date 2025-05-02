@@ -83,6 +83,8 @@ erDiagram
         int correct_index
         bool answered
         string outcome "correct | incorrect | idk"
+        string confidence "guess | confident | know"
+        int latency_ms "retrieval ms; UI-stamped, gap fallback, backfilled (schema v4)"
         string explanation
         json source_ref "chunk_id, file_id, file_name, section, environment, label, page"
     }
