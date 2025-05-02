@@ -54,6 +54,17 @@ accuracy:
   stability (×0.6, floored at 1 day), so the card's stability-derived intervals
   shrink and it returns sooner.
 
+## Per-node pretest
+
+`LearningService.generate_pretest(session_id, llm)` fires **one** diagnostic
+question (`kind='pretest'`, `count=1`) on the **current plan node's title**
+(falling back to the session goal when no node is current). It mirrors
+`generate_check`: idempotent (re-returns any pending pretest), topic forced to
+the node title, options get the server-appended "I don't know" row, and the
+session phase is left untouched so teaching can proceed with the pending card
+rendered through the probe-card path. Return shape is the same
+`{"session", "questions"}` dict as `generate_check`.
+
 ## See also
 - [[01-system-architecture|System Architecture]]
 - [[03-session-state-machine|Session State Machine]]
