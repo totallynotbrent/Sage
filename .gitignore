@@ -53,3 +53,4 @@ script.txt
 docs-site/node_modules/
 docs-site/public/
 docs-site/**/.quartz-cache/
+/ISSUES.md

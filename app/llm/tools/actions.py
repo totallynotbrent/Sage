@@ -194,6 +194,31 @@ async def _run_grade_answer(arguments: dict, ctx) -> dict:
     return result["result"]
 
 
+async def _run_start_review(arguments: dict, ctx) -> dict:
+    guard = _learning_guard(ctx)
+    if guard:
+        return guard
+    from app.db import row_to_dict
+    from app.services import review as review_service
+    from app.services.sessions import question_dict
+
+    cards = review_service.due_cards(ctx.conn, ctx.session_id)
+    out = []
+    for card in cards:
+        item: dict = dict(card)
+        if card.get("question_id"):
+            q = row_to_dict(
+                ctx.conn.execute(
+                    "SELECT * FROM quiz_questions WHERE id = ?",
+                    (card["question_id"],),
+                ).fetchone()
+            )
+            if q:
+                item["question"] = question_dict(q)
+        out.append(item)
+    return {"cards": out, "due_count": len(out)}
+
+
 def _plan_label(title) -> str:
     cleaned = str(title or "").replace('"', "").replace("[", "").replace("]", "")
     return " ".join(cleaned.split())

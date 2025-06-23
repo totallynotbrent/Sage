@@ -31,11 +31,14 @@ flowchart LR
 
 ## Latency-weighted mastery signal
 
-Every quiz answer carries a `latency_ms` stamp: the UI records `performance.now()`
-when the answer card renders and sends the retrieval time with the answer (as a
-`[<n>ms]` badge in the graded chat reply, or as `latency_ms` in the review-grade
-JSON). When absent, the server falls back to the `created_at → answered_at` gap,
-and pre-existing rows are backfilled from those timestamps on migration to schema
+Every quiz answer carries a `latency_ms` stamp. In the question flow the UI shows
+a **Continue** gate after the narration: the reading appears first, the questions
+are revealed only when the learner presses **Continue**, and each card stamps its
+own `performance.now()` render time and answer time, so every question reports
+its **own** retrieval time (as a `[<n>ms]` badge in the graded chat reply, or as
+`latency_ms` in the review-grade JSON) rather than one shared whole-batch figure.
+When absent, the server falls back to the `created_at → answered_at` gap, and
+pre-existing rows are backfilled from those timestamps on migration to schema
 version 4.
 
 The stamp feeds three scheduling layers, so retrieval effort counts alongside
@@ -69,3 +72,23 @@ rendered through the probe-card path. Return shape is the same
 - [[01-system-architecture|System Architecture]]
 - [[03-session-state-machine|Session State Machine]]
 - [[08-latex-notes|LaTeX Notes]]
+
+## Per-session mastery & grounded checks
+
+- **Mastery is per-session** (schema v4 → v5): the `mastery_topics` table is keyed
+  `(session_id, topic)`, and every read/write — `record_evidence`,
+  `apply_statement`, `summarize_mastery` (the prompt summary), `topic_confidence`,
+  `lowest_confidence_topics`, and the UI `mastery_panel` — filters by the current
+  `session_id`. One session's mastery never bleeds into another's panel or into
+  the adaptive-count / interleave sampling for another session. Pre-v5 rows fold
+  under `session_id=''` on migration.
+- **Check questions are grounded in the current node's topic.** The former
+  every-3rd-check "interleaved weak-topic" sampling was removed, so `generate_check`
+  always targets `_current_node_title` (or the session goal) and never asks an
+  unrelated prior topic mid-lesson.
+- **No repeated stems.** `request_questions` accepts an `avoid` list — the session's
+  recent question stems are passed in for probe/check so the model writes fresh
+  stems and distractors instead of recycling near-identical questions.
+- **Pending questions persist across a reload** (issue: refresh regeneration): the
+  server keeps unanswered questions in `quiz_questions` (`status='pending'`), and
+  `loadSession` re-renders them on load instead of regenerating.

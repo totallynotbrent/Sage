@@ -69,7 +69,7 @@ class StructuredOutputService:
             session.model_dump(),
             self._prompt(request),
             chunks,
-            self.sessions._mastery_summary(),
+            self.sessions._mastery_summary(session_id),
             session.grounding_mode,
             web_results=web_results,
         )

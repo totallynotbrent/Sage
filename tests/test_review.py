@@ -6,6 +6,8 @@ from app.services import review as review_service
 from app.services import mastery
 from app.services.sessions import SessionService
 
+SID = "session-test"
+
 
 def _session(conn, settings, goal="learn calculus"):
     return SessionService(conn, settings).create(goal, [])
@@ -71,7 +73,7 @@ def test_mastery_panel_combines_confidence(conn, settings):
 
     session = _session(conn, settings)
     # Give the topic some confidence via evidence.
-    mastery.record_evidence(conn, "limits", "probe", "correct")
+    mastery.record_evidence(conn, session.id, "limits", "probe", "correct")
     # And a review card for it.
     review_service.register_card(conn, session.id, "limits", "q1", "check", "correct")
     panel = review_service.mastery_panel(conn, session.id)
@@ -79,6 +81,22 @@ def test_mastery_panel_combines_confidence(conn, settings):
     assert "limits" in topics
     assert topics["limits"]["confidence"] > 0
     assert "fading" in topics["limits"]
+
+
+def test_mastery_panel_is_scoped_to_session(conn, settings):
+    # Issue #1: mastery must not bleed across sessions. Evidence recorded for
+    # session A must not appear in session B's mastery panel.
+    a = _session(conn, settings, goal="learn algebra")
+    b = _session(conn, settings, goal="learn algebra")
+    mastery.record_evidence(conn, a.id, "algebra", "probe", "correct")
+    mastery.record_evidence(conn, b.id, "calculus", "probe", "correct")
+    panel_a = review_service.mastery_panel(conn, a.id)
+    panel_b = review_service.mastery_panel(conn, b.id)
+    topics_a = {t["topic"] for t in panel_a["topics"]}
+    topics_b = {t["topic"] for t in panel_b["topics"]}
+    assert "algebra" in topics_a
+    assert "algebra" not in topics_b
+    assert "calculus" in topics_b
 
 
 def test_review_table_migrates_idempotently(settings):
@@ -94,10 +112,10 @@ def test_review_table_migrates_idempotently(settings):
 
 
 def test_lowest_confidence_topics_excludes_current(conn, settings):
-    mastery.record_evidence(conn, "algebra", "probe", "correct")      # 2/3
-    mastery.record_evidence(conn, "calculus", "probe", "idk")         # 1/3 (weakest)
-    mastery.record_evidence(conn, "geometry", "probe", "incorrect")   # 1/3 (weakest too)
-    weak = mastery.lowest_confidence_topics(conn, exclude={"algebra"}, limit=3)
+    mastery.record_evidence(conn, SID, "algebra", "probe", "correct")      # 2/3
+    mastery.record_evidence(conn, SID, "calculus", "probe", "idk")         # 1/3 (weakest)
+    mastery.record_evidence(conn, SID, "geometry", "probe", "incorrect")   # 1/3 (weakest too)
+    weak = mastery.lowest_confidence_topics(conn, SID, exclude={"algebra"}, limit=3)
     topics = [w["topic"] for w in weak]
     assert "algebra" not in topics
     assert topics[0] in ("calculus", "geometry")
@@ -159,7 +177,7 @@ def test_latency_column_migrates_and_backfills(settings):
     cols = {r[1] for r in conn.execute("PRAGMA table_info(quiz_questions)")}
     assert "latency_ms" in cols
     version = conn.execute("SELECT version FROM schema_version").fetchone()["version"]
-    assert version == 4
+    assert version == 5
     row = conn.execute(
         "SELECT latency_ms FROM quiz_questions WHERE id = 'q-legacy'"
     ).fetchone()
