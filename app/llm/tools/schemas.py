@@ -7,11 +7,10 @@ from app.models import TeachActionDraft
 
 _ACTION_IDS = list(get_args(TeachActionDraft.model_fields["id"].annotation))
 
-_KINDS = ("mermaid", "quiz", "todo", "latex")
+_KINDS = ("quiz", "todo", "latex")
 
 _SCHEMA_HINTS = {
     "chat": '{"content":"..."}',
-    "mermaid": '{"title":"...","source":"graph TD\\n A-->B"}',
     "todo": '{"title":"...","items":[{"text":"...","done":false}]}',
     "quiz": '{"questions":[{"question":"...","options":["...","..."],"correct_index":0,"explanation":"...","topic":"...","difficulty":3}]}',
     "latex": '{"title":"...","latex":"\\\\documentclass{article}..."}',
@@ -60,6 +59,7 @@ _LEARNING_TOOLS = frozenset(
         "grade_answer",
         "build_plan",
         "advance_lesson",
+        "run_final_quiz",
         "start_review",
     }
 )
@@ -77,7 +77,6 @@ def _fn(name: str, description: str, properties: dict, required: list[str]) -> d
 
 TOOL_SCHEMAS = [
     _fn("web_search", "Search the web.", {"query": _STR}, ["query"]),
-    _fn("generate_mermaid", "Generate a Mermaid diagram.", dict(_TOPIC), ["topic"]),
     _fn("generate_quiz", "Generate a quiz.", dict(_QUIZ_PROPS), ["topic"]),
     _fn("generate_todo", "Generate a study checklist.", dict(_TOPIC), ["topic"]),
     _fn("generate_latex", "Generate a LaTeX document.", dict(_TOPIC), ["topic"]),
@@ -92,9 +91,7 @@ TOOL_SCHEMAS = [
         "Start the diagnostic probe: generates adaptive multiple-choice "
         "questions mapping what the learner already knows before teaching "
         "begins. Call it ONLY when the session phase is 'setup' or 'probe' and "
-        "no real teaching has started yet. Do NOT fire it mid-lesson — "
-        "mid-lesson understanding is checked via advance_lesson "
-        "(passed_check=true/false), which issues the check questions.",
+        "no real teaching has started yet.",
         {},
         [],
     ),
@@ -110,10 +107,10 @@ TOOL_SCHEMAS = [
     ),
     _fn(
         "grade_answer",
-        "Grade the learner's answer to a probe/check question. "
+        "Grade the learner's answer to a probe or final-quiz question. "
         "question_id MUST be copied VERBATIM from the ids returned by "
-        "run_probe (opaque hex strings like 9f2c…, NEVER display numbers "
-        "like 1 or 2).",
+        "run_probe or run_final_quiz (opaque hex strings like 9f2c…, NEVER "
+        "display numbers like 1 or 2).",
         {
             "question_id": _STR,
             "choice_index": {"type": "integer"},
@@ -139,11 +136,21 @@ TOOL_SCHEMAS = [
     ),
     _fn(
         "advance_lesson",
-        "Advance to the next plan node after the learner confirms "
-        "understanding or passes a check; passed_check=false routes into "
-        "remediation.",
-        {"passed_check": {"type": "boolean"}},
-        ["passed_check"],
+        "Advance to the next plan node after the current node is fully "
+        "explained and the learner is following along. There are no "
+        "intermediate check cards; just move on.",
+        {},
+        [],
+    ),
+    _fn(
+        "run_final_quiz",
+        "Generate the comprehensive final quiz once the lesson is "
+        "essentially taught. It re-asks the diagnostic probe questions and "
+        "covers the whole lesson, then returns the question cards to "
+        "present. Grade the answers with grade_answer and judge whether the "
+        "learner learned before completing.",
+        {},
+        [],
     ),
 ]
 

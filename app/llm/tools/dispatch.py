@@ -8,6 +8,7 @@ from app.llm.tools.actions import (
     _issue_code,
     _run_advance_lesson,
     _run_build_plan,
+    _run_final_quiz,
     _run_generate,
     _run_grade_answer,
     _run_probe,
@@ -27,6 +28,8 @@ def _summarize(name: str, result: dict) -> str:
         return (
             f"review ready: {result.get('due_count') or 0} due cards"
         )
+    if name == "run_final_quiz":
+        return f"final quiz ready: {len(result.get('questions') or [])} questions"
     if name == "advance_lesson":
         if result.get("lesson_complete"):
             return "lesson complete"
@@ -73,6 +76,8 @@ async def _dispatch_tool(name: str, arguments: dict, ctx) -> dict:
             return await _run_build_plan(arguments, ctx)
         if name == "advance_lesson":
             return await _run_advance_lesson(arguments, ctx)
+        if name == "run_final_quiz":
+            return await _run_final_quiz(arguments, ctx)
         if name.startswith("generate_"):
             return await _run_generate(name.removeprefix("generate_"), arguments, ctx)
     except Exception as exc:
