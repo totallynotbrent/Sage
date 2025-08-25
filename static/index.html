@@ -13,56 +13,93 @@
   <script src="dither.js"></script>
   <script>
     // Home-screen experiment (feature/homepage-dither): full-bleed ordered-dither
-    // background, left-anchored, with a colors bloom intro (2 -> 40, easeInOutCirc).
-    // Rollback = git checkout main.
+    // background, width-first wallpaper sizing, colors bloom intro (1 -> 50, linear),
+    // fade capped at 75% so it reads darker. Rollback = git checkout main.
     document.addEventListener('DOMContentLoaded', function () {
       var bg = document.getElementById('home-bg');
       if (!bg || !window.dither) return;
-      var TARGET = 40, MINC = 2;
-      function easeInOutCirc(t) {
-        return t < 0.5 ? 0.5 * (1 - Math.sqrt(1 - Math.pow(2 * t, 2)))
-          : 0.5 * (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1);
-      }
-      function renderStep(c, w, h) {
-        return dither.renderCover(bg, 'wallpaper.jpg', {
-          width: w, height: h,
-          cell: 2, mode: 'bayer', kernel: 'burkes', serpentine: false, matrix: 16,
-          colors: c, palette: 'extract', saturation: 0.6, anchor: 0.25,
-          noise: { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' }
-        });
-      }
+      var D = window.dither;
+      var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.75, HOLD = 24;
       function fullRes() {
         var dpr = Math.min(window.devicePixelRatio || 1, 2);
         return { W: Math.min(Math.round(innerWidth * dpr), 1920), H: Math.min(Math.round(innerHeight * dpr), 1920) };
       }
-      // Colors bloom: resolve 2 -> 40 colors with easeInOutCirc, slowed (~4x) and
-      // faded in. Low-res preview frames keep the SAME aspect as the final settle
-      // so the framing never shifts mid-animation; then settle at full res.
-      function bloom() {
-        var s = fullRes();
-        var scale = Math.min(0.5, 480 / Math.max(s.W, s.H));
-        var lw = Math.max(64, Math.round(s.W * scale)), lh = Math.max(64, Math.round(s.H * scale));
-        var steps = 12, hold = 100, i = 0;
-        function frame() {
-          var t = (i + 1) / steps, e = easeInOutCirc(t);
-          var c = Math.max(MINC, Math.round(MINC + (TARGET - MINC) * e));
-          return renderStep(c, lw, lh).then(function () {
-            bg.style.opacity = String(0.08 + 0.92 * e);
-            i++;
-            if (i >= steps) return renderStep(TARGET, s.W, s.H).then(function () { bg.style.opacity = '1'; });
-            return new Promise(function (r) { setTimeout(r, hold); }).then(frame);
-          });
-        }
-        return frame();
+      var DITHER_BASE = { cell: 2, mode: 'bayer', kernel: 'burkes', serpentine: false, matrix: 16 };
+      var NOISE = { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' };
+      // Sample k tones evenly across the palette; guard the 1-color start.
+      function resolvePal(pal, k) {
+        var L = pal.length;
+        if (k <= 1) return [pal[0]];
+        if (k >= L) return pal.slice();
+        var o = []; for (var j = 0; j < k; j++) o.push(pal[Math.round((L - 1) * j / (k - 1))]);
+        return o;
       }
-      bg.style.opacity = '0';
-      bloom().catch(function () { bg.style.display = 'none'; });
-      var t;
+      // Width-first cover: show the wallpaper's full width and crop only excess
+      // height; if it isn't tall enough to fill, fall back to a height-fill crop
+      // anchored at the 1/4 line. The returned span always matches the viewport
+      // aspect, so there's no distortion and preview/settle framing is identical.
+      function coverRect(iw, ih, s) {
+        var dstAr = s.W / s.H;
+        var sw = iw, sh = iw / dstAr, sx = 0, sy = (ih - sh) / 2;
+        if (sh > ih) { sh = ih; sw = ih * dstAr; sx = (iw - sw) * 0.25; sy = 0; }
+        return { sw: Math.round(sw), sh: Math.round(sh), sx: Math.round(sx), sy: Math.round(sy) };
+      }
+      function buildCrop(img, iw, ih, s) {
+        var r = coverRect(iw, ih, s);
+        var crop = document.createElement('canvas');
+        crop.width = Math.max(8, r.sw); crop.height = Math.max(8, r.sh);
+        crop.getContext('2d').drawImage(img, r.sx, r.sy, r.sw, r.sh, 0, 0, crop.width, crop.height);
+        return crop;
+      }
+      // Resolve the dithered background: LINEAR color count 1 -> 50 (every level,
+      // single extract), fading up to 75% opacity so it stays a little dark.
+      function start() {
+        var s = fullRes();
+        var pScale = Math.min(0.5, 460 / Math.max(s.W, s.H));
+        var Wp = Math.max(64, Math.round(s.W * pScale)), Hp = Math.max(64, Math.round(s.H * pScale));
+        D.loadImage('wallpaper.jpg').then(function (img) {
+          var iw = img.width, ih = img.height;
+          var crop = buildCrop(img, iw, ih, s);
+          var cropS = document.createElement('canvas');
+          cropS.width = Wp; cropS.height = Hp;
+          cropS.getContext('2d').drawImage(crop, 0, 0, Wp, Hp);
+          var pal = D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 });
+          var K = Math.max(MINC, pal.length), steps = K - MINC + 1, i = 0;
+          bg.width = Wp; bg.height = Hp;
+          bg.style.opacity = '0';
+          function frame() {
+            var k = MINC + i;                            // linear: every count, no skip
+            var t = (i + 1) / steps;
+            var dc = D.ditherInto(bg, cropS, Object.assign({}, DITHER_BASE, { paletteC: resolvePal(pal, k) }));
+            return dc.then(function () {
+              bg.style.opacity = String((0.06 + (FINAL_OPACITY - 0.06) * t).toFixed(3));
+              i++;
+              if (i >= steps) return settle(s, crop, pal);
+              return new Promise(function (r) { setTimeout(r, HOLD); }).then(frame);
+            });
+          }
+          return frame();
+        });
+      }
+      function settle(s, crop, pal) {
+        bg.width = s.W; bg.height = s.H;
+        return D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { paletteC: pal })).then(function () {
+          D.applyNoise(bg, NOISE);
+          bg.style.opacity = String(FINAL_OPACITY);
+        });
+      }
+      start();
+      var rt;
       addEventListener('resize', function () {
-        clearTimeout(t);
-        t = setTimeout(function () {
+        clearTimeout(rt);
+        rt = setTimeout(function () {
           var s = fullRes();
-          renderStep(TARGET, s.W, s.H).catch(function () {});
+          D.loadImage('wallpaper.jpg').then(function (img) {
+            var iw = img.width, ih = img.height;
+            var crop = buildCrop(img, iw, ih, s);
+            var pal = D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 });
+            settle(s, crop, pal);
+          });
         }, 200);
       });
     });
