@@ -28,21 +28,16 @@
       }
       var DITHER_BASE = { cell: 2, mode: 'bayer', kernel: 'burkes', serpentine: false, matrix: 16 };
       var NOISE = { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' };
-      // Sample k tones from a tonal WINDOW that widens LINEARLY with the count
-      // (spread = k/target). Early counts are low-contrast and the range grows
-      // evenly all the way to full, so every level adds visibly new tone without
-      // an exponential burst — linear, not jittery, and no 'skips halfway'.
+      // Sample k tones EVENLY across the full palette (k=1 -> single mid tone).
+      // This guarantees k DISTINCT tones at every count — monotonic, strictly
+      // increasing indices, so no two consecutive frames are ever identical and
+      // the count-up reads cleanly to the end (no floor/ceil window collapse).
       function resolvePal(pal, k, target) {
         var L = pal.length;
-        if (k <= 1) return [pal[Math.round(L / 2)]];
+        if (k <= 1) return [pal[Math.round((L - 1) / 2)]];
         if (k >= target) return pal.slice();
-        var spread = k / target;
-        var mid = (L - 1) / 2;
-        var lo = Math.max(0, Math.floor(mid - mid * spread));
-        var hi = Math.min(L - 1, Math.ceil(mid + mid * spread));
-        var span = Math.max(1, hi - lo);
         var o = [];
-        for (var j = 0; j < k; j++) o.push(pal[lo + Math.round(span * j / (k - 1))]);
+        for (var j = 0; j < k; j++) o.push(pal[Math.round((L - 1) * j / (k - 1))]);
         return o;
       }
       // Guarantee an exact TARGET-color palette: the extractor can return fewer
