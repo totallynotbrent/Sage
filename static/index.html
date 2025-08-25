@@ -34,6 +34,25 @@
         var o = []; for (var j = 0; j < k; j++) o.push(pal[Math.round((L - 1) * j / (k - 1))]);
         return o;
       }
+      // Guarantee an exact TARGET-color palette: the extractor can return fewer
+      // colors than requested on a low-detail image, which would cut the bloom
+      // short at `pal.length` ("halfway"). Interpolate up so the count-up always
+      // spans 1..TARGET with distinct levels.
+      function ensurePal(pal, target) {
+        var L = pal.length;
+        if (L >= target) return pal.slice(0, target);
+        var out = [];
+        for (var j = 0; j < target; j++) {
+          var f = (L - 1) * j / (target - 1);
+          var a = Math.floor(f), g = f - a, b = Math.min(L - 1, a + 1);
+          out.push([
+            Math.round(pal[a][0] + (pal[b][0] - pal[a][0]) * g),
+            Math.round(pal[a][1] + (pal[b][1] - pal[a][1]) * g),
+            Math.round(pal[a][2] + (pal[b][2] - pal[a][2]) * g)
+          ]);
+        }
+        return out;
+      }
       // Width-first cover: show the wallpaper's full width and crop only excess
       // height; if it isn't tall enough to fill, fall back to a height-fill crop
       // anchored at the 1/4 line. The returned span always matches the viewport
@@ -63,7 +82,7 @@
           var cropS = document.createElement('canvas');
           cropS.width = Wp; cropS.height = Hp;
           cropS.getContext('2d').drawImage(crop, 0, 0, Wp, Hp);
-          var pal = D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 });
+          var pal = ensurePal(D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 }), TARGET);
           var K = Math.max(MINC, pal.length), steps = K - MINC + 1, i = 0;
           bg.width = Wp; bg.height = Hp;
           bg.style.opacity = '0';
@@ -97,7 +116,7 @@
           D.loadImage('wallpaper.jpg').then(function (img) {
             var iw = img.width, ih = img.height;
             var crop = buildCrop(img, iw, ih, s);
-            var pal = D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 });
+            var pal = ensurePal(D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 }), TARGET);
             settle(s, crop, pal);
           });
         }, 200);
