@@ -9,9 +9,7 @@ from app.llm.structured import provider_error_from_text
 from app.services.sessions import SessionService, plan_node_dict, question_dict
 from app.util import new_id, utc_now
 
-# Checks were removed from the teaching loop (2026-09-02, user direction): the
-# only formal question rounds are the opening probe and a closing final quiz, so
-# advancing through nodes never flags an intermediate check_due anymore.
+CHECK_EVERY_NODES = 2
 
 
 # Escalating reveal ladder: each rung reveals more, keeping a stuck learner in
@@ -89,7 +87,7 @@ class TeachService:
         return {
             "session": updated.model_dump(),
             "node": plan_node_dict(node),
-            "check_due": False,
+            "check_due": updated.phase == "teach" and updated.nodes_since_check >= CHECK_EVERY_NODES,
         }
 
     def continue_after_remediate(self, session_id: str) -> dict:

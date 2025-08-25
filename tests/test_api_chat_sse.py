@@ -612,8 +612,10 @@ def test_build_plan_tool_result_carries_plan_diagram(
         e for e in events if e["type"] == "tool_result" and e["name"] == "build_plan"
     ]
     assert len(plan_results) == 1
-    # The plan no longer ships a mermaid flowchart (removed per user request).
-    assert "plan_diagram" not in plan_results[0]
+    plan_diagram = plan_results[0]["plan_diagram"]
+    assert plan_diagram["source"].startswith("flowchart TD")
+    assert "g1[Group definition]" in plan_diagram["source"]
+    assert "g1 --> g2" in plan_diagram["source"]
     assert plan_results[0]["summary"] == "plan ready: 2 nodes"
 
 

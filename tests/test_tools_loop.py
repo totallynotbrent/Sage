@@ -35,7 +35,6 @@ _LEARNING_TOOL_NAMES = {
     "grade_answer",
     "build_plan",
     "advance_lesson",
-    "run_final_quiz",
     "start_review",
 }
 
@@ -143,6 +142,7 @@ def test_available_tools_gates_web_search_on_searxng():
 
     assert names_with == {
         "web_search",
+        "generate_mermaid",
         "generate_quiz",
         "generate_todo",
         "generate_latex",
@@ -150,7 +150,6 @@ def test_available_tools_gates_web_search_on_searxng():
         *_LEARNING_TOOL_NAMES,
     }
     assert _LEARNING_TOOL_NAMES <= names_without
-    assert "generate_mermaid" not in names_without
     assert "web_search" not in names_without
     assert len(names_without) == 10
 
@@ -326,28 +325,58 @@ def test_turn_stashes_record_step_actions(conn, settings):
     assert done["actions"][0]["label"] == "Continue"
 
 
-def test_execute_tool_run_final_quiz_reasks_probe_and_spans(conn, settings):
+def test_turn_generate_mermaid_tool_result_card(conn, settings, monkeypatch):
+    service = SessionService(conn, _tool_settings(settings))
+    session = service.create(goal="learn trees", file_ids=[], grounding_mode="grounded")
     fake_llm = FakeLLM()
-    fake_llm.complete_json_responses.extend([_PROBE_JSON, _PLAN_JSON])
-    session, ctx = _learning_ctx(conn, settings, fake_llm)
-    probe = asyncio.run(execute_tool("run_probe", {}, ctx))
-    probe_count = probe["count"]
-    asyncio.run(execute_tool("build_plan", {}, ctx))
-    PlansService(conn, settings).approve(session.id)
+    fake_llm.complete_json_responses.append(
+        json.dumps({"title": "Call Stack", "source": "graph TD\n A-->B"})
+    )
 
-    fake_llm.complete_json_responses.append(_CHECK_JSON)
-    result = asyncio.run(execute_tool("run_final_quiz", {}, ctx))
+    async def fake_validate(source: str) -> str:
+        return "flowchart"
 
-    assert result["phase"] == "final_quiz"
-    assert result["count"] == len(result["questions"])
-    # It re-asks this session's probe questions, plus fresh covering ones.
-    assert result["count"] >= probe_count + 1
-    assert SessionService(conn, settings).get(session.id).phase == "final_quiz"
+    monkeypatch.setattr("app.services.mermaid.validate_mermaid", fake_validate)
+    fake_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "generate_mermaid",
+                "arguments": {"topic": "call stack"},
+                "id": "call_mm",
+            }
+        ]
+    )
+    fake_llm.script("trees", "The diagram above shows the structure.")
+
+    events = asyncio.run(
+        _collect(
+            service.turn(
+                session.id,
+                "Show me a diagram of the call stack",
+                client_msg_id="c3",
+                llm=fake_llm,
+                is_disconnected=_never_disconnected,
+            )
+        )
+    )
+
+    tool_result = next(e for e in events if e["type"] == "tool_result")
+    assert tool_result["kind"] == "mermaid"
+    assert tool_result["title"] == "Call Stack"
+    assert tool_result["diagram_type"] == "flowchart"
+    assert "A-->B" in tool_result["source"]
+    assert tool_result["summary"] == "mermaid ok"
 
 
-def test_execute_tool_removed_mermaid_returns_unsupported():
+def test_execute_tool_generate_mermaid_uses_validate_fn():
     fake_llm = FakeLLM()
-    fake_llm.complete_json_responses.append(json.dumps({"title": "Tree"}))
+    fake_llm.complete_json_responses.append(
+        json.dumps({"title": "Tree", "source": "```mermaid\ngraph TD\n A-->B\n```"})
+    )
+
+    async def fake_mermaid(source: str) -> str:
+        return "flowchart"
 
     ctx = ToolContext(
         settings=SimpleNamespace(context_chunk_budget=8),
@@ -357,14 +386,23 @@ def test_execute_tool_removed_mermaid_returns_unsupported():
         mode="grounded",
         llm=fake_llm,
         validate_fn=None,
-        mermaid_validate=None,
+        mermaid_validate=fake_mermaid,
     )
 
     result = asyncio.run(execute_tool("generate_mermaid", {"topic": "trees"}, ctx))
 
-    # The mermaid tool is gone; calling it surfaces a generation error, not a
-    # diagram payload.
-    assert result.get("error")
+    assert result["kind"] == "mermaid"
+    assert result["diagram_type"] == "flowchart"
+    assert result["source"] == "graph TD\n A-->B"
+    assert result["title"] == "Tree"
+    complete_calls = [c for c in fake_llm.calls if c["kind"] == "complete_json"]
+    assert len(complete_calls) == 1
+    roles = [m["role"] for m in complete_calls[0]["messages"]]
+    assert roles == ["system", "user"]
+    user_message = complete_calls[0]["messages"][1]
+    assert "output_kind=mermaid about: trees" in user_message["content"]
+    assert '"source"' in user_message["content"]
+    assert "exact JSON shape" in user_message["content"]
 
 
 def test_execute_tool_quiz_count_mismatch_reports_issue_code():
@@ -580,8 +618,12 @@ def test_execute_tool_build_plan_returns_stripped_nodes(conn, settings):
         }
     assert result["nodes"][1]["depends_on"] == ["n1"]
     assert all(node["status"] == "pending" for node in result["nodes"])
-    # The plan no longer ships a mermaid flowchart (removed per user request).
-    assert "plan_diagram" not in result
+    plan_diagram = result["plan_diagram"]
+    assert plan_diagram["diagram_type"] == "flowchart-v2"
+    assert plan_diagram["source"].startswith("flowchart TD")
+    assert "n1[What recursion is]" in plan_diagram["source"]
+    assert "n2[The base case]" in plan_diagram["source"]
+    assert "n1 --> n2" in plan_diagram["source"]
     assert SessionService(conn, settings).get(session.id).phase == "plan"
 
 
@@ -602,49 +644,63 @@ def test_execute_tool_advance_lesson_enters_first_node_from_plan(conn, settings)
     assert refreshed.nodes_since_check == 0
 
 
-def test_execute_tool_advance_lesson_advances_without_checks(conn, settings):
+def test_execute_tool_advance_lesson_failed_check_routes_to_remediation(conn, settings):
     fake_llm = FakeLLM()
     fake_llm.complete_json_responses.append(_PLAN_JSON)
+    fake_llm.complete_json_responses.append(_CHECK_JSON)
     session, ctx = _learning_ctx(conn, settings, fake_llm)
     asyncio.run(execute_tool("build_plan", {}, ctx))
     PlansService(conn, settings).approve(session.id)
 
-    result = asyncio.run(execute_tool("advance_lesson", {}, ctx))
+    result = asyncio.run(execute_tool("advance_lesson", {"passed_check": False}, ctx))
 
-    assert result["advanced"] is True
-    assert result["node"]["node_key"] == "n2"
+    assert result["advanced"] is False
+    assert result["node"]["node_key"] == "n1"
     assert result["check_due"] is False
-    assert "check_questions" not in result
-    assert "check_question" not in result
-    assert result["session_phase"] == "teach"
+    assert result["session_phase"] == "remediate"
+    check_question = result["check_question"]
+    assert set(check_question) == {"id", "question", "options"}
+    assert check_question["options"][-1] == "I don't know"
     refreshed = SessionService(conn, settings).get(session.id)
-    assert refreshed.phase == "teach"
+    assert refreshed.phase == "check"
+    row = conn.execute(
+        "SELECT status FROM quiz_questions "
+        "WHERE session_id = ? AND kind = 'check' AND status = 'pending'",
+        (session.id,),
+    ).fetchone()
+    assert row is not None
+    plan_row = conn.execute(
+        "SELECT status FROM plan_nodes WHERE session_id = ? AND node_key = 'n1'",
+        (session.id,),
+    ).fetchone()
+    assert plan_row["status"] == "current"
 
 
-def test_execute_tool_advance_lesson_never_emits_check_questions(conn, settings):
+def test_execute_tool_advance_lesson_appends_check_question_when_due(conn, settings):
     fake_llm = FakeLLM()
     fake_llm.complete_json_responses.append(_PLAN_JSON)
     session, ctx = _learning_ctx(conn, settings, fake_llm)
     asyncio.run(execute_tool("build_plan", {}, ctx))
-    PlansService(conn, settings).approve(session.id)
+    plans = PlansService(conn, settings)
+    plans.approve(session.id)
 
-    first = asyncio.run(execute_tool("advance_lesson", {}, ctx))
+    first = asyncio.run(execute_tool("advance_lesson", {"passed_check": True}, ctx))
     assert first["advanced"] is True
     assert first["node"]["node_key"] == "n2"
     assert first["check_due"] is False
     assert "check_question" not in first
 
     fake_llm.complete_json_responses.append(_CHECK_JSON)
-    second = asyncio.run(execute_tool("advance_lesson", {}, ctx))
+    due = asyncio.run(execute_tool("advance_lesson", {"passed_check": True}, ctx))
 
-    assert second["advanced"] is True
-    assert second["node"]["node_key"] == "n3"
-    # No intermediate check is ever emitted regardless of node count.
-    assert second["check_due"] is False
-    assert "check_question" not in second
-    assert "check_questions" not in second
-    assert second["session_phase"] == "teach"
-    assert SessionService(conn, settings).get(session.id).phase == "teach"
+    assert due["advanced"] is True
+    assert due["node"]["node_key"] == "n3"
+    assert due["check_due"] is True
+    check_question = due["check_question"]
+    assert set(check_question) == {"id", "question", "options"}
+    assert check_question["options"][-1] == "I don't know"
+    assert due["session_phase"] == "teach"
+    assert SessionService(conn, settings).get(session.id).phase == "check"
 
 
 class _scripted_stream:

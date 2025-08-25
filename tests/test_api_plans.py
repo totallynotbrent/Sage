@@ -282,7 +282,7 @@ def test_full_learning_flow(client, conn, override_llm):
     assert first["check_due"] is False
     second = client.post(f"/api/sessions/{sid}/advance", json={}).json()
     assert second["node"]["id"] == plan_payload["plan"][2]["id"]
-    assert second["check_due"] is False
+    assert second["check_due"] is True
 
     check_payload = client.post(f"/api/sessions/{sid}/check", json={}).json()
     check_q = check_payload["questions"][0]

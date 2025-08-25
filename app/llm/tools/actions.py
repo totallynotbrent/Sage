@@ -109,6 +109,24 @@ async def _run_generate(kind: str, arguments: dict, ctx) -> dict:
     if kind == "quiz" and isinstance(count, int) and 1 <= count <= 10:
         if len(payload["questions"]) != count:
             return {"error": "quiz_count"}
+    if kind == "mermaid":
+        validator = ctx.mermaid_validate
+        if validator is None:
+            from app.services.mermaid import validate_mermaid
+
+            validator = validate_mermaid
+        try:
+            payload["diagram_type"] = await validator(payload["source"])
+        except Exception as exc:
+            logger = logging.getLogger("app")
+            logger.warning(
+                "mermaid validation failed; raw source: %r",
+                payload["source"][:500],
+            )
+            return {
+                "error": _issue_code(exc),
+                "source_preview": repr(payload["source"][:400]),
+            }
     payload["kind"] = kind
     return payload
 
@@ -120,6 +138,20 @@ def _learning_guard(ctx) -> dict | None:
 
 def _strip_question(question: dict, fields: tuple[str, ...]) -> dict:
     return {field: question.get(field) for field in fields}
+
+
+def _current_plan_node(conn, session_id: str) -> dict | None:
+    from app.services.sessions import plan_node_dict
+
+    row = conn.execute(
+        "SELECT * FROM plan_nodes WHERE session_id = ? AND status = 'current' "
+        "ORDER BY position, rowid LIMIT 1",
+        (session_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    node = plan_node_dict(dict(row))
+    return {"node_key": node.get("node_key"), "title": node.get("title")}
 
 
 async def _run_probe(arguments: dict, ctx) -> dict:
@@ -187,6 +219,37 @@ async def _run_start_review(arguments: dict, ctx) -> dict:
     return {"cards": out, "due_count": len(out)}
 
 
+def _plan_label(title) -> str:
+    cleaned = str(title or "").replace('"', "").replace("[", "").replace("]", "")
+    return " ".join(cleaned.split())
+
+
+def _build_plan_source(nodes: list[dict]) -> str | None:
+    usable = [node for node in nodes if node.get("node_key")]
+    if not usable:
+        return None
+    lines = ["flowchart TD"]
+    for node in usable:
+        lines.append(f"    {node['node_key']}[{_plan_label(node.get('title'))}]")
+    for node in usable:
+        for dep in node.get("depends_on") or []:
+            lines.append(f"    {dep} --> {node['node_key']}")
+    return "\n".join(lines)
+
+
+async def _validate_plan_diagram(source: str, ctx) -> dict | None:
+    validator = getattr(ctx, "mermaid_validate", None)
+    if validator is None:
+        from app.services.mermaid import validate_mermaid
+
+        validator = validate_mermaid
+    try:
+        diagram_type = await validator(source)
+    except ModelOutputError:
+        return None
+    return {"source": source, "diagram_type": diagram_type}
+
+
 async def _run_build_plan(arguments: dict, ctx) -> dict:
     guard = _learning_guard(ctx)
     if guard:
@@ -205,8 +268,13 @@ async def _run_build_plan(arguments: dict, ctx) -> dict:
         }
         for node in result.get("plan") or []
     ]
-    # No plan flowchart is produced anymore (mermaid removed per user request).
-    return {"phase": "plan", "nodes": nodes}
+    payload = {"phase": "plan", "nodes": nodes}
+    source = _build_plan_source(nodes)
+    if source:
+        plan_diagram = await _validate_plan_diagram(source, ctx)
+        if plan_diagram is not None:
+            payload["plan_diagram"] = plan_diagram
+    return payload
 
 
 async def _run_advance_lesson(arguments: dict, ctx) -> dict:
@@ -216,13 +284,36 @@ async def _run_advance_lesson(arguments: dict, ctx) -> dict:
     from app.services.plans import PlansService
     from app.services.teach import TeachService
 
+    passed_check = bool(arguments.get("passed_check"))
     service = TeachService(ctx.conn, ctx.settings)
+    if not passed_check:
+        service.sessions.set_phase(ctx.session_id, "remediate")
+        updated = service.sessions.get(ctx.session_id)
+        payload = {
+            "advanced": False,
+            "node": _current_plan_node(service.conn, ctx.session_id),
+            "check_due": False,
+            "session_phase": updated.phase,
+        }
+        if updated.phase == "remediate":
+            from app.services.learning import LearningService
+
+            check = await LearningService(ctx.conn, ctx.settings).generate_check(
+                ctx.session_id, ctx.llm
+            )
+            pending = check.get("questions") or []
+            if pending:
+                payload["check_questions"] = [
+                    _strip_question(q, ("id", "question", "options"))
+                    for q in pending
+                ]
+                payload["check_question"] = payload["check_questions"][0]
+        return payload
     current_phase = service.sessions.get(ctx.session_id).phase
-    if current_phase == "final_quiz":
-        # Final quiz graded and the learner did well — resume advancing so the
-        # remaining node(s) finish and the lesson reaches 'complete'.
+    if current_phase == "remediate":
+        # Check was passed during remediation — clear the flag so advance() can proceed.
         service.sessions.set_phase(ctx.session_id, "teach")
-    if current_phase == "plan":
+    if service.sessions.get(ctx.session_id).phase == "plan":
         approved = PlansService(ctx.conn, ctx.settings).approve(ctx.session_id)
         current = next(
             (node for node in approved["plan"] if node["status"] == "current"),
@@ -241,34 +332,26 @@ async def _run_advance_lesson(arguments: dict, ctx) -> dict:
     session = result["session"]
     if result.get("node") is None or session["phase"] == "complete":
         return {"lesson_complete": True}
-    return {
+    payload = {
         "advanced": True,
         "node": {
             "node_key": result["node"].get("node_key"),
             "title": result["node"].get("title"),
         },
-        "check_due": False,
+        "check_due": bool(result.get("check_due")),
         "session_phase": session["phase"],
     }
+    if payload["check_due"]:
+        from app.services.learning import LearningService
 
-
-async def _run_final_quiz(arguments: dict, ctx) -> dict:
-    guard = _learning_guard(ctx)
-    if guard:
-        return guard
-    from app.services.learning import LearningService
-
-    service = LearningService(ctx.conn, ctx.settings)
-    result = await service.generate_final_quiz(ctx.session_id, ctx.llm)
-    questions = [
-        _strip_question(question, ("id", "question", "options", "difficulty"))
-        for question in result.get("questions") or []
-    ]
-    return {
-        "phase": "final_quiz",
-        "count": len(questions),
-        "questions": questions,
-        "grading_hint": (
-            "Grade replies with grade_answer using these exact question_id values."
-        ),
-    }
+        check = await LearningService(ctx.conn, ctx.settings).generate_check(
+            ctx.session_id, ctx.llm
+        )
+        pending = check.get("questions") or []
+        if pending:
+            payload["check_questions"] = [
+                _strip_question(q, ("id", "question", "options"))
+                for q in pending
+            ]
+            payload["check_question"] = payload["check_questions"][0]
+    return payload

@@ -1479,10 +1479,8 @@ function start_probe_batch(items, kind_label) {
   wrap.className = 'probe-wrap';
   items.forEach((question, qi) => {
     const marker_text = kind_label === 'check'
-          ? 'CHECK'
-          : kind_label === 'final'
-            ? `FINAL QUIZ · ${String(qi + 1).padStart(2, '0')}`
-            : `PROBE · ${String(qi + 1).padStart(2, '0')}`;
+      ? 'CHECK'
+      : `PROBE \u00b7 ${String(qi + 1).padStart(2, '0')}`;
     const card = build_probe_card(question, qi + 1, marker_text, update_state);
     entries.push({ card });
     wrap.appendChild(card);
@@ -1754,15 +1752,20 @@ async function sendMessage() {
           } else if (ev.name === 'advance_lesson' && (ev.check_questions || ev.check_question)) {
             const checks = Array.isArray(ev.check_questions) && ev.check_questions.length ? ev.check_questions : (ev.check_question ? [ev.check_question] : []);
             if (checks.length) pendingCards.push({ items: checks, kind: 'check' });
-          } else if (ev.name === 'run_final_quiz' && Array.isArray(ev.questions) && ev.questions.length) {
-            pendingCards.push({ items: ev.questions, kind: 'final' });
-          } else if (ev.name === 'build_plan') {
+          } else if (ev.name === 'build_plan' && ev.plan_diagram && ev.plan_diagram.source) {
+            appendPlanDiagramCard(ev.plan_diagram);
             // Refresh sidebar plan list immediately (don't wait for page reload)
-            const nodes = ev.nodes || ev.plan_nodes;
-            const el = document.getElementById('plan-nodes');
-            if (el && Array.isArray(nodes)) {
-              el.innerHTML = nodes.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+            if (ev.nodes || ev.plan_nodes) {
+              const nodes = ev.nodes || ev.plan_nodes;
+              const el = document.getElementById('plan-nodes');
+              if (el && Array.isArray(nodes)) {
+                el.innerHTML = nodes.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+              }
             } else { loadSession(sessionId).catch(()=>{}); }
+          } else if (ev.name === 'generate_mermaid' && ev.source) {
+            appendArtifact({ kind: ARTIFACT_KIND.DIAGRAM, output_id: `tr-diag-${++artifactCounter}`,
+              content: { title: ev.title || sessionGoal || 'Diagram', source: ev.source, diagram_type: ev.diagram_type || 'flowchart' },
+              validation: { status: 'validated' } });
           } else if (ev.artifact) {
             const a = ev.artifact;
             if (a.kind === 'quiz' && Array.isArray(a.questions)) {
@@ -2133,7 +2136,7 @@ function refreshChipsForPhase() {
   setQuickChips([]);
   // "You ask the questions" entry: always available once a lesson is underway.
   const phase = (document.getElementById('phase-badge')?.textContent || '').toLowerCase();
-  if (['probe', 'plan', 'teach', 'remediate', 'check_due', 'check', 'final_quiz', 'complete'].includes(phase) && sessionId) {
+  if (['probe', 'plan', 'teach', 'remediate', 'check_due', 'check', 'complete'].includes(phase) && sessionId) {
     setQuickChips([{ label: 'Ask your own questions', prompt: '', action: 'ask' }]);
   }
 }

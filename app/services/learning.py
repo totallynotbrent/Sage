@@ -105,75 +105,6 @@ class LearningService:
             "questions": self._pending_questions(session_id, "probe"),
         }
 
-    async def generate_final_quiz(self, session_id: str, llm) -> dict:
-        """Comprehensive closing quiz: re-ask this session's probe questions,
-        then add fresh questions spanning every plan node.
-
-        Called by run_final_quiz once the lesson is taught; Sage grades the
-        answers and decides whether the learner genuinely learned.
-        """
-        session = self.sessions.get(session_id)
-        existing = self._pending_questions(session_id, "final")
-        if existing:
-            return {"session": session.model_dump(), "questions": existing}
-        self._delete_pending_questions(session_id, "final")
-        nodes = self.conn.execute(
-            "SELECT title FROM plan_nodes WHERE session_id = ? "
-            "AND title IS NOT NULL ORDER BY position, rowid",
-            (session_id,),
-        ).fetchall()
-        topics = [row["title"] for row in nodes]
-        focus = "; ".join(topics) if topics else session.goal
-        chunks = self.sessions._select_chunks(session, "final quiz questions")
-        count = min(5, max(2, len(topics) or 3))
-        generated = await request_questions(
-            llm,
-            session=session.model_dump(),
-            chunks=chunks,
-            mastery_summary=self.sessions._mastery_summary(session_id),
-            mode=session.grounding_mode,
-            count=count,
-            focus=focus,
-            avoid=self._recent_question_stems(session_id),
-        )
-        if not generated:
-            error = ModelOutputError(
-                "The model returned no usable final quiz questions."
-            )
-            error.retryable = True
-            raise error
-        # Re-ask the session's prior probe questions first, then the new ones,
-        # so the closing quiz retests the diagnostic gaps AND new coverage.
-        probe_rows = self.conn.execute(
-            "SELECT * FROM quiz_questions WHERE session_id = ? AND kind = 'probe' "
-            "ORDER BY created_at, rowid",
-            (session_id,),
-        ).fetchall()
-        for row in probe_rows:
-            src = dict(row)
-            options = json.loads(src.get("options_json") or "[]")
-            if options and options[-1] == IDK_OPTION:
-                options = options[:-1]
-            self._insert_question(
-                session_id,
-                "final",
-                QuizQuestionInput(
-                    question=src["question"],
-                    options=options,
-                    correct_index=src["correct_index"],
-                    explanation=src.get("explanation"),
-                    topic=src.get("topic") or focus,
-                    difficulty=src.get("difficulty", 3),
-                ),
-            )
-        for question in generated:
-            self._insert_question(session_id, "final", question)
-        self.sessions.set_phase(session_id, "final_quiz")
-        return {
-            "session": self.sessions.get(session_id).model_dump(),
-            "questions": self._pending_questions(session_id, "final"),
-        }
-
     async def generate_check(self, session_id: str, llm) -> dict:
         session = self.sessions.get(session_id)
         existing = self._pending_questions(session_id, "check")
@@ -344,7 +275,7 @@ class LearningService:
         if row is None:
             raise NotFoundError("question", question_id)
         question = dict(row)
-        if question["kind"] not in ("probe", "check", "notes", "final"):
+        if question["kind"] not in ("probe", "check", "notes"):
             raise ValueError(f"question kind {question['kind']!r} cannot be answered")
         if question["status"] == "skipped":
             raise ValueError("this question was skipped and cannot be answered")
@@ -421,7 +352,7 @@ class LearningService:
         )
         source = (
             question["kind"]
-            if question["kind"] in ("probe", "check", "notes", "final")
+            if question["kind"] in ("probe", "check", "notes")
             else "check"
         )
         mastery.record_evidence(
