@@ -32,8 +32,8 @@
       setTimeout(slowText, 60);   // after the shared module wraps the hero words
       var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.62, HOLD = 40;
       var RF_BASE = 0.04;                              // starting render res = big pixels (held briefly)
-      var RF_HOLD = 0.12;                              // fraction of the sweep to keep the big-pixel start
       function easeOutCirc(t) { return Math.sqrt(1 - Math.pow(t - 1, 2)); }
+      function easeInOutCirc(t) { return t < 0.5 ? 0.5 * (1 - Math.sqrt(1 - Math.pow(2 * t, 2))) : 0.5 * (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1); }
       function fullRes() {
         var dpr = Math.min(window.devicePixelRatio || 1, 2);
         var W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
@@ -108,11 +108,9 @@
             var e = easeOutCirc(t);                    // ease-out on color + fade
             // Color count (eased) + fade (eased).
             var k = Math.max(MINC, Math.min(K, Math.round(MINC + (K - MINC) * e)));
-            // Pixel/resolution: hold the big-pixel start for the first RF_HOLD,
-            // then ease out to full so the opening blocks are genuinely big.
-            var rf = t < RF_HOLD
-              ? RF_BASE
-              : RF_BASE + (1 - RF_BASE) * easeOutCirc((t - RF_HOLD) / (1 - RF_HOLD));
+            // Pixel/resolution: ease-in-out so it starts big, holds blocky a
+            // while, and transitions to full SMOOTHLY (no post-hold resolution jump).
+            var rf = RF_BASE + (1 - RF_BASE) * easeInOutCirc(t);
             bg.width = Math.max(64, Math.round(s.W * rf));
             bg.height = Math.max(64, Math.round(s.H * rf));
             var dc = D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { paletteC: resolvePal(pal, k, TARGET) }));
