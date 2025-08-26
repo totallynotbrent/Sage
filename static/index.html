@@ -19,7 +19,7 @@
       var bg = document.getElementById('home-bg');
       if (!bg || !window.dither) return;
       var D = window.dither;
-      var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.75, HOLD = 24;
+      var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.75, HOLD = 60;
       function fullRes() {
         var dpr = Math.min(window.devicePixelRatio || 1, 2);
         var W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
@@ -99,7 +99,7 @@
             return dc.then(function () {
               bg.style.opacity = String((0.06 + (FINAL_OPACITY - 0.06) * t).toFixed(3));
               i++;
-              if (i >= steps) return settle(s, crop, pal);
+              if (i >= steps) return new Promise(function (r) { setTimeout(r, HOLD); }).then(function () { return settle(s, crop, pal); });
               return new Promise(function (r) { setTimeout(r, HOLD); }).then(frame);
             });
           }
