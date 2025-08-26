@@ -20,6 +20,7 @@
       if (!bg || !window.dither) return;
       var D = window.dither;
       var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.75, HOLD = 60;
+      var CELL_END = 2;                                  // final pixel size (the value you set)
       function fullRes() {
         var dpr = Math.min(window.devicePixelRatio || 1, 2);
         var W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
@@ -90,9 +91,12 @@
           bg.width = s.W; bg.height = s.H;
           bg.style.opacity = '0';
           function frame() {
-            var k = MINC + i;                        // linear color count 1..50
-            var f = (k - MINC) / (K - MINC);         // 0..1
-            var cell = Math.max(1, Math.round(1 + f)); // pixel size 1 -> 2
+            var k = MINC + i;                    // linear color count 1..50
+            var f = (k - MINC) / (K - MINC);     // 0..1
+            // Pixel size starts at ~one big pixel (full width) and refines LINEARLY
+            // down to CELL_END as the colors resolve — resolution reveals through the
+            // whole sweep, including the back half where the palette saturates.
+            var cell = Math.max(1, Math.round(s.W + (CELL_END - s.W) * f));
             var t = (i + 1) / steps;
             var dc = D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { cell: cell, paletteC: resolvePal(pal, k, TARGET) }));
             return dc.then(function () {
