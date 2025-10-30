@@ -1,62 +1,33 @@
 ---
-title: Setup & deployment
+title: Setup
 ---
 # Setup
 
-Requirements: Python 3.11 on a 64-bit ARM64 Raspberry Pi (Raspberry Pi OS) or
-any Linux/Windows machine.
+Sage runs in Docker anywhere.
 
-Raspberry Pi OS note: Bookworm (Debian 12) ships `python3.11` via apt. The
-current Raspberry Pi OS Trixie (Debian 13) does **not** — install Python 3.11
-with `uv python install 3.11` (or pyenv) there.
-
-```bash
-# Copy the example config and fill in your key
-cp .env.example .env
-
-# One-command start (Linux/Pi)
-./run.sh
-
-# Windows development equivalent
-run.bat
+```mermaid
+flowchart LR
+    A[Install Docker] --> B[cp .env.example .env]
+    B --> C[set MODEL, point API_URL at an OpenAI endpoint]
+    C --> D[docker compose up -d]
+    D --> E["open http://localhost:8000"]
 ```
 
-Set API_URL=https://ollama.com/v1 (or https://ollama.com — auto-corrected), API_KEY from https://ollama.com/settings/keys, MODEL=gemma4:31b-cloud. Optionally set SEARXNG_URL=http://192.168.1.57:8080/ for web search grounding.
+1. Install Docker and Compose.
+2. `cp .env.example .env`, set `MODEL`. See [[environment|Environment variables]].
+3. `docker compose up -d`.
+4. Open the UI at `http://localhost:${PORT:-8000}`.
 
-`run.sh` creates `.venv` when absent (preferring `python3.11`, falling back to
-`python3`), installs `requirements.txt`, then serves:
+Sage needs an OpenAI-compatible LLM. The compose default targets a local Ollama
+container; set `API_URL` to Ollama cloud (`https://ollama.com/v1`) or any other
+OpenAI-compatible endpoint instead.
 
-```
-uvicorn app.main:app --host ${HOST:-0.0.0.0} --port ${PORT:-8000}
-```
+## Access from elsewhere
 
-## Notes folder watch
+Over a LAN, open the port in the host firewall and reach Sage at
+`http://<host-ip>:8000`; over Tailscale, use its Tailscale IP. Read
+[[security|Security]] before exposing it on a network.
 
-Point Sage at LaTeX notes folders with `SAGE_WATCH_DIRS` — a JSON array of
-absolute paths, e.g. `SAGE_WATCH_DIRS=["/home/brent/notes/calculus"]` — and
-`SAGE_WATCH_SCAN_SECONDS` for the interval (default 300). The watcher starts
-with the app (lifespan) and, on every interval, ingests new or changed
-`.tex`/`.md`/PDF files into the library, re-ingests changed files, and tags
-each file's `subject` from its first folder segment. A same-stem `.tex`/`.pdf`
-pair is linked automatically. Manage sources live: `GET/POST /api/watch`
-lists/registers a folder, `POST /api/watch/scan` scans now, and
-`DELETE /api/watch/{id}` stops watching one. The first scan sleeps one full
-interval so it never races an explicit `POST /api/watch/scan`.
-
-## LAN access
-
-On kincsem, Sage runs as a systemd service (`sage.service`) on port **8015**
-(`deploy/sage.service` — `sudo systemctl enable --now sage.service`):
-
-```
-http://192.168.50.8:8015        # LAN
-http://100.103.215.91:8015      # Tailscale (remote)
-```
-
-Port 8015 is opened in firewalld's `homelan` zone (LAN) and `public` zone;
-Tailscale traffic bypasses zones via its own iptables chain. `HOST`/`PORT`
-environment variables override the bind address and port for manual runs.
-
-See [[environment|Environment variables]] for the full environment variable
-reference, and [[security|Security]] before exposing the service on a
-network.
+## See also
+- [[index|Sage]]
+- [[environment|Environment variables]]
