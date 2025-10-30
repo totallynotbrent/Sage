@@ -22,23 +22,20 @@ stateDiagram-v2
     plan --> teach: POST /plan/approve — first pending node becomes current
     plan --> teach: POST /plan/select — manual node pick
 
-    teach --> teach: POST /advance — next pending node (check_due=false)
-    teach --> check: POST /check — check_due=true (after 2 nodes)
-    teach --> complete: POST /advance — no pending nodes left
+    teach --> teach: POST /advance — next pending node
+    teach --> final_quiz: POST /advance — no pending nodes left (run_final_quiz)
 
-    check --> teach: answer correct — advance to next node
-    check --> complete: answer correct — no nodes remain
-    check --> remediate: answer incorrect / idk
-    check --> plan: POST /quiz/{qid}/skip — check questions only
+    final_quiz --> complete: quiz graded — mastery reached
+    final_quiz --> remediate: quiz graded — gaps remain
 
     remediate --> remediate: "hint | reveal | chat /turns"
-    remediate --> teach: POST /continue — reset counter, current node done, advance
+    remediate --> final_quiz: POST /continue — re-teach missed points, fresh quiz round
 
     setup --> complete: POST /complete (manual, history kept)
     probe --> complete: POST /complete (manual)
     plan --> complete: POST /complete (manual)
     teach --> complete: POST /complete (manual)
-    check --> complete: POST /complete (manual)
+    final_quiz --> complete: POST /complete (manual)
     remediate --> complete: POST /complete (manual)
 
     complete --> [*]

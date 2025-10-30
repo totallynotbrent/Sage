@@ -28,7 +28,7 @@
       const noise = { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' };
 
       function ease_out_circ(t) { return Math.sqrt(1 - Math.pow(t - 1, 2)); }
-      function ease_in_out_circ(t) { return t < 0.5 ? 0.5 * (1 - Math.sqrt(1 - Math.pow(2 * t, 2))) : 0.5 * (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1); }
+      function ease_out_quart(t) { return 1 - Math.pow(1 - t, 4); }
 
       function full_res() {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -111,7 +111,7 @@
             const t = (i + 1) / steps;
             const e = ease_out_circ(t);
             const k = Math.max(min_count, Math.min(k_max, Math.round(min_count + (k_max - min_count) * e)));
-            const rf = rf_base + (1 - rf_base) * ease_in_out_circ(t);
+            const rf = rf_base + (1 - rf_base) * ease_out_quart(t);
             bg.width = Math.max(64, Math.round(s.w * rf));
             bg.height = Math.max(64, Math.round(s.h * rf));
             const dc = D.dither_into(bg, crop, Object.assign({}, dither_base, { palette_c: resolve_pal(pal, k, target) }));
