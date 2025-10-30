@@ -1,3 +1,6 @@
+---
+title: Environment variables
+---
 # Environment variables
 
 All variables are read from `.env` (see `.env.example`) by
