@@ -7,38 +7,43 @@ Sage runs in Docker anywhere.
 
 ```mermaid
 flowchart TB
-    subgraph HOST["Your machine"]
-        A["Install Docker + Compose"] --> B["cp .env.example .env"]
-        B --> C["Set MODEL and point API_URL at an OpenAI endpoint"]
-        C --> D["docker compose up -d"]
-        D --> E["Sage container (sage:latest)"]
-    end
-    subgraph DATA["Persistence"]
-        E --> F["./data volume — SQLite · uploads · watch state (/data)"]
-    end
+    A["Install Docker + Compose"] --> B["cp .env.example .env"]
+    B --> C["Set MODEL and point API_URL at an OpenAI endpoint"]
+    C --> D["docker compose up -d"]
+    D --> E["Sage container (sage:latest)"]
+
     subgraph LLM["LLM backend"]
-        C --> G{"Which endpoint?"}
+        G{"Which endpoint?"}
         G -->|"local Ollama container"| H["http://ollama:11434 — on the compose network"]
         G -->|"Ollama cloud"| I["https://ollama.com/v1"]
         G -->|"any OpenAI-compatible"| J["your endpoint base URL"]
-        H --> E
-        I --> E
-        J --> E
     end
     subgraph NET["Networking & access"]
-        E --> K["http://localhost:8000 — local (PORT override)"]
-        E --> L["http://HOST-IP:8000 — LAN, open the port in the firewall"]
-        E --> M["http://TAILSCALE-IP:8000 — remote over Tailscale"]
+        K["http://localhost:8000 — local (PORT override)"]
+        L["http://HOST-IP:8000 — LAN, open the port in the firewall"]
+        M["http://TAILSCALE-IP:8000 — remote over Tailscale"]
+    end
+    subgraph DATA["Persistence"]
+        F["./data volume — SQLite · uploads · watch state (/data)"]
     end
     subgraph GROUND["Optional web grounding"]
-        N["SEARXNG_URL instance → grounded web results"] --> E
-        O["/api/health surfaces config problems (bad API_KEY / API_URL)"] -.-> P["SSE turns fail fast"]
+        N["SEARXNG_URL instance → grounded web results"]
     end
-    style HOST fill:#191724,stroke:#9ccfd8
+
+    C --> G
+    H --> E
+    I --> E
+    J --> E
+    E --> F
+    E --> K
+    E --> L
+    E --> M
+    N --> E
+
     style LLM fill:#191724,stroke:#c4a7e7
     style NET fill:#191724,stroke:#eb6f92
-    style GROUND fill:#191724,stroke:#f6c177
     style DATA fill:#191724,stroke:#f6c177
+    style GROUND fill:#191724,stroke:#f6c177
 ```
 
 1. Install Docker and Compose.
