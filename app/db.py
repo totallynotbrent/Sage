@@ -188,6 +188,7 @@ _MIGRATED_COLUMNS = (
     ("files", "paired_file_id", "paired_file_id TEXT"),
     ("files", "subject", "subject TEXT"),
     ("files", "source_path", "source_path TEXT"),
+    ("files", "outline", "outline TEXT"),
     ("chunks", "unicode_text", "unicode_text TEXT"),
     ("chunks", "environment", "environment TEXT"),
     ("chunks", "label", "label TEXT"),

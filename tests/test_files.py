@@ -14,6 +14,7 @@ from app.errors import (
     UnsupportedFormatError,
 )
 from app.services.files import FileService, sanitize_display_name
+import pytest
 
 
 def _service(conn: sqlite3.Connection, settings: Settings) -> FileService:
@@ -31,6 +32,29 @@ def test_save_and_get(conn, settings):
 
     fetched = _service(conn, settings).get(record.id)
     assert fetched.id == record.id
+
+
+def test_pdf_outline_roundtrip(conn, settings):
+    pymupdf = pytest.importorskip("pymupdf")
+    document = pymupdf.open()
+    page1 = document.new_page()
+    page1.insert_text((72, 72), "Intro body")
+    page2 = document.new_page()
+    page2.insert_text((72, 72), "Derivatives body")
+    document.set_toc([[1, "Introduction", 1], [1, "Derivatives", 2]])
+    data = document.tobytes()
+
+    service = _service(conn, settings)
+    record = service.save_upload(
+        filename="outline.pdf", content=data, content_type="application/pdf"
+    )
+    assert record.status == "ready"
+    assert record.outline is not None
+    titles = [entry["title"] for entry in record.outline]
+    assert titles == ["Introduction", "Derivatives"]
+
+    fetched = service.get(record.id)
+    assert [entry["title"] for entry in (fetched.outline or [])] == titles
 
 
 def test_save_then_list_orders_by_recency(conn, settings):
