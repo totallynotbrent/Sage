@@ -155,12 +155,12 @@ TOOL_SCHEMAS = [
 ]
 
 
-def available_tools(settings) -> list[dict]:
+def available_tools(settings, mode: str | None = None) -> list[dict]:
     enabled = (
         {f"generate_{kind}" for kind in _KINDS}
         | {"record_step_actions"}
         | set(_LEARNING_TOOLS)
     )
-    if getattr(settings, "searxng_url", ""):
+    if mode != "strict" and getattr(settings, "searxng_url", ""):
         enabled.add("web_search")
     return [t for t in TOOL_SCHEMAS if t["function"]["name"] in enabled]
