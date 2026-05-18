@@ -31,6 +31,7 @@ class PlansService:
             mastery_summary=self.sessions._mastery_summary(session_id),
             mode=session.grounding_mode,
             focus=session.goal,
+            outline=self._session_outline(session) if session.grounding_mode == "strict" else None,
         )
         if plan is None:
             error = ModelOutputError("The model returned no usable learning plan.")
@@ -138,6 +139,7 @@ class PlansService:
             mastery_summary=self.sessions._mastery_summary(session_id),
             mode=session.grounding_mode,
             focus=focus,
+            outline=self._session_outline(session) if session.grounding_mode == "strict" else None,
         )
         if plan is None:
             error = ModelOutputError("The model returned no usable plan expansion.")
@@ -229,6 +231,18 @@ class PlansService:
             (session_id,),
         ).fetchall()
         return [plan_node_dict(dict(r)) for r in rows]
+
+    def _session_outline(self, session) -> list[dict]:
+        # collect the uploaded pdf section outlines in file order
+        combined: list[dict] = []
+        for file_id in (session.file_ids or []):
+            try:
+                record = self.sessions.files.get(file_id)
+            except NotFoundError:
+                continue
+            if record.outline:
+                combined.extend(record.outline)
+        return combined
 
     def _replace_nodes(self, session_id: str, plan: Plan) -> None:
         self.conn.execute("DELETE FROM plan_nodes WHERE session_id = ?", (session_id,))
