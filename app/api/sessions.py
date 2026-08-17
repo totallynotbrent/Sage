@@ -1,0 +1,73 @@
+"""Session endpoints."""
+
+from __future__ import annotations
+
+import sqlite3
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+
+from app.config import Settings, get_app_settings
+from app.db import get_conn
+from app.models import GroundingMode, Session, SessionCreate
+from app.services.sessions import GROUNDING_MODES, SessionService
+
+router = APIRouter()
+
+
+class SelectFilesBody(BaseModel):
+    file_ids: list[str] = Field(default_factory=list)
+
+
+class PatchSessionBody(BaseModel):
+    grounding_mode: GroundingMode
+
+
+@router.post("/api/sessions", response_model=Session)
+async def create_session(
+    body: SessionCreate,
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> Session:
+    return SessionService(conn, settings).create(
+        goal=body.goal, file_ids=body.file_ids, grounding_mode=body.grounding_mode
+    )
+
+
+@router.get("/api/sessions", response_model=list[Session])
+async def list_sessions(
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> list[Session]:
+    return SessionService(conn, settings).list()
+
+
+@router.get("/api/sessions/{session_id}")
+async def get_session(
+    session_id: str,
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> dict:
+    return SessionService(conn, settings).load_full(session_id)
+
+
+@router.post("/api/sessions/{session_id}/files", response_model=Session)
+async def select_session_files(
+    session_id: str,
+    body: SelectFilesBody,
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> Session:
+    return SessionService(conn, settings).select_files(session_id, body.file_ids)
+
+
+@router.patch("/api/sessions/{session_id}", response_model=Session)
+async def patch_session(
+    session_id: str,
+    body: PatchSessionBody,
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> Session:
+    if body.grounding_mode not in GROUNDING_MODES:
+        raise HTTPException(status_code=400, detail=f"invalid grounding_mode: {body.grounding_mode}")
+    return SessionService(conn, settings).update_grounding(session_id, body.grounding_mode)

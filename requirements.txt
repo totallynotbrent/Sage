@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pydantic>=2
+pydantic-settings
+python-multipart
+httpx
+openai>=1.0
+pymupdf
+python-docx
+python-pptx
+
+# Development / test
+pytest
+pytest-asyncio

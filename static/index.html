@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sage — local learning agent</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/vendor/mermaid.min.js"></script>
+  <script>if (window.mermaid) mermaid.initialize({ startOnLoad: false });</script>
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">Sage</h1>
+    <span id="health-badge" class="badge" title="Configuration and endpoint status">…</span>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <section class="panel" id="library-panel">
+        <h2 class="panel-title">Study library</h2>
+        <label class="upload-button">
+          Add files
+          <input type="file" id="file-input" multiple accept=".pdf,.docx,.pptx,.md,.txt,.markdown" hidden>
+        </label>
+        <p id="upload-status" class="hint" hidden></p>
+        <ul id="file-list" class="file-list"></ul>
+      </section>
+
+      <section class="panel" id="sessions-panel">
+        <h2 class="panel-title">Sessions</h2>
+        <ul id="session-list" class="session-list"></ul>
+      </section>
+    </aside>
+
+    <main class="workspace">
+      <section class="panel" id="new-session-panel">
+        <h2 class="panel-title">New session</h2>
+        <div class="form-row">
+          <label for="goal-input">Learning goal</label>
+          <textarea id="goal-input" rows="2" placeholder="e.g. Give me a solid introduction to differential forms"></textarea>
+        </div>
+        <div class="form-row">
+          <label>Sources</label>
+          <div id="file-select-list" class="checkbox-list"></div>
+          <p class="hint">Only successfully extracted files contribute context.</p>
+        </div>
+        <div class="form-row">
+          <label for="grounding-select">Grounding mode</label>
+          <select id="grounding-select">
+            <option value="grounded">Grounded + model knowledge</option>
+            <option value="strict">Strict source-only</option>
+          </select>
+        </div>
+        <button id="create-session-btn" class="primary">Start session</button>
+      </section>
+
+      <section class="panel" id="session-panel" hidden>
+        <div class="session-header">
+          <div>
+            <h2 id="session-title"></h2>
+            <p id="session-goal" class="muted"></p>
+          </div>
+          <div class="session-meta">
+            <span id="phase-badge" class="badge">setup</span>
+            <label class="toggle-label">
+              <input type="checkbox" id="grounding-toggle" checked>
+              Grounded + knowledge
+            </label>
+          </div>
+        </div>
+        <div id="source-note" class="hint" hidden></div>
+        <div id="transcript" class="transcript" aria-live="polite"></div>
+        <form id="composer" class="composer">
+          <textarea id="message-input" rows="2" placeholder="Ask anything, or continue the lesson…"></textarea>
+          <div class="composer-actions">
+            <button type="button" id="stop-btn" class="danger" hidden>Stop</button>
+            <button type="submit" id="send-btn" class="primary">Send</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="excerpt-modal" class="modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="excerpt-title"></h3>
+        <button id="excerpt-close" class="ghost">Close</button>
+      </div>
+      <p id="excerpt-location" class="muted"></p>
+      <pre id="excerpt-text"></pre>
+      <div id="excerpt-context" class="context"></div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

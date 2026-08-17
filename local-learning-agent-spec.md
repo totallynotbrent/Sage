@@ -28,6 +28,8 @@ FREEBUFF_MODEL=deepseek/deepseek-v4-pro
 
 The application should not hard-code the API key or require a cloud account of its own.
 
+**Target platform (decided):** a single Raspberry Pi (64-bit ARM64/aarch64, 4–8 GB RAM class) running Raspberry Pi OS. The backend is **Python 3.11** built with **FastAPI** and served by **uvicorn**; the same process also serves the frontend. The app binds to `0.0.0.0` so it is reachable from a laptop or phone on the local network rather than only from the Pi itself. The Freebuff model endpoint runs on the same Pi by default, so `FREEBUFF_BASE_URL=http://127.0.0.1:8877/v1` remains the default and stays overridable.
+
 ## 2. Product inspiration and intended learning philosophy
 
 The supplied transcript describes an AI teacher that reduces the inefficiency of many learners sharing a one-size-fits-many teaching outlet. The intended tutor should instead adapt its teaching path and explanations to the learner's current understanding.
@@ -49,7 +51,7 @@ The transcript is inspiration for behavior, not a requirement to reproduce the o
 
 ### Repository findings
 
-The repository contained no files or established conventions at the time of specification. There is therefore no existing framework, package manager, persistence layer, component library, or API client to preserve. The implementation may choose an appropriate simple full-stack web setup, but it must provide a one-command local development workflow.
+The repository contained no files or established conventions at the time of specification. There is therefore no existing framework, package manager, persistence layer, component library, or API client to preserve. The framework decision in §17.1 is resolved: a Python 3.11 FastAPI backend served by uvicorn, with the frontend served as static files from the same process. All dependencies must install on ARM64/aarch64 Linux under Python 3.11. The app must provide a one-command local development workflow that runs on the Pi and is reachable on the LAN.
 
 ### API and file-handling findings
 
@@ -113,7 +115,21 @@ Core use cases:
 
 ### 7.1 Local setup
 
-The app must run through one documented development command. It should read these variables from a local `.env` file:
+The app runs on the Raspberry Pi with Python 3.11 and must start through one documented development command. Set up the environment once:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Start the app with a single command:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Binding to `0.0.0.0` makes the app reachable on the LAN, e.g. `http://<pi-ip>:8000` from a laptop or phone. The exact interpreter name on the chosen Raspberry Pi OS release and the documented way to discover the Pi's LAN address (`hostname -I`, mDNS hostname, or router DHCP list) must be confirmed during implementation. Optional `HOST` and `PORT` environment variables may override the bind address and port, but the defaults (`0.0.0.0`, `8000`) must remain LAN-reachable. The app should read these variables from a local `.env` file:
 
 ```env
 FREEBUFF_BASE_URL=http://127.0.0.1:8877/v1
@@ -353,6 +369,8 @@ Provide a place to retain basic teaching preferences alongside the detailed map,
 
 ## 12. Backend and model integration requirements
 
+**Concrete stack:** Python 3.11, FastAPI, served by uvicorn on the Pi. The frontend is built as static files served by the same FastAPI process (see §17.1), so a single uvicorn process handles both the JSON API and the UI — no separate frontend dev server or proxy is required. This keeps the one-command workflow trivial and the memory footprint small on a 4–8 GB device.
+
 The local backend should provide a small application API for:
 
 - File upload/list/detail/delete/retry ingestion.
@@ -388,6 +406,8 @@ The app should handle gracefully:
 - File type or extraction errors.
 - Duplicate files.
 - Large files or context exceeding model limits.
+- **Slow local model inference:** the Freebuff endpoint runs on the same Pi and may respond slowly, especially for long generations; use generous client/server timeouts, stream responses, and keep loading/stop controls prominent in the UI.
+- A runtime or extraction dependency without an ARM64/aarch64 Python 3.11 wheel must fail fast at setup with a clear, actionable message — not surface as a mid-session runtime traceback.
 - Mermaid rendering errors.
 - Interrupted sessions and browser refreshes.
 
@@ -395,7 +415,7 @@ A partially completed assistant response should not be persisted as complete unl
 
 ## 14. Security and local deployment
 
-- Bind the development server to localhost by default.
+- Bind the server to `0.0.0.0` by default so the app is reachable from any device on the local network, e.g. `http://<pi-ip>:8000`.
 - Do not log the API key or full sensitive document contents by default.
 - Validate uploaded filenames and avoid path traversal.
 - Store uploads outside the publicly served static directory.
@@ -404,14 +424,18 @@ A partially completed assistant response should not be persisted as complete unl
 - Clearly separate document instructions from system/application instructions.
 - Ensure the browser cannot directly read the `.env` file.
 
+LAN exposure is an intentional v1 trade-off. The app ships with no authentication, so anyone who can reach the Pi's IP on the local network can open the UI and use the configured model endpoint. Treat the app as a trusted-network-only service in v1 and document this clearly in the README. The in-scope mitigations remain: the API key stays server-side and is never delivered to the browser, and usage is bounded by the single local endpoint. An optional shared access token is a candidate follow-up if the Pi is ever exposed beyond a trusted LAN (see §17).
+
 ## 15. Acceptance criteria for the first implementation
 
 ### Setup
 
-- [ ] A fresh checkout can be started with one documented local command.
+- [ ] A fresh checkout can be started on a Raspberry Pi (64-bit ARM64) with Python 3.11 using one documented local command.
 - [ ] The app reads the three `FREEBUFF_*` environment variables.
 - [ ] Missing configuration and unreachable endpoint states are visible and actionable.
 - [ ] The API key never appears in browser-delivered source or normal UI responses.
+- [ ] After starting, the app is reachable from another device on the LAN at `http://<pi-ip>:8000`.
+- [ ] Every runtime and extraction dependency installs for ARM64/aarch64 Python 3.11; a missing wheel produces a clear setup error rather than a runtime traceback.
 
 ### Files
 
@@ -452,9 +476,11 @@ A partially completed assistant response should not be persisted as complete unl
 
 ### Phase 1 — Local shell and Freebuff connectivity
 
-- Establish the one-command local app.
+- Create the Python 3.11 virtual environment and install FastAPI, uvicorn, and project dependencies.
+- Establish the one-command start command (`uvicorn app.main:app --host 0.0.0.0 --port 8000`).
 - Add environment configuration and server-side OpenAI-compatible client.
 - Verify a basic streamed chat request against the configured endpoint.
+- Verify the app is reachable from another device on the LAN at `http://<pi-ip>:8000`.
 - Add normalized error handling.
 
 ### Phase 2 — File library and extraction
@@ -487,16 +513,20 @@ A partially completed assistant response should not be persisted as complete unl
 
 These items were not specified by the user and should be resolved during implementation without changing the product direction:
 
-1. The concrete frontend/backend framework and package manager, since the repository is empty.
-2. The local database/storage technology and application-data directory convention.
+1. RESOLVED — backend is FastAPI served by uvicorn on Python 3.11, with the frontend served as static files from the same FastAPI process; dependencies are managed with `pip` in a Python 3.11 virtual environment (`requirements.txt`). Rationale: a single uvicorn process serves API and UI, keeping the one-command workflow simple on a low-powered Pi, and `pip` + `venv` add no tooling beyond Python 3.11 itself. `uv` is a faster-install fallback if Python 3.11 bootstrap on the Pi proves awkward (to be verified during implementation).
+2. The local database/storage technology and application-data directory convention. Pi default: application data in `~/.local/share/sage` (XDG convention on Raspberry Pi OS), with uploads in a non-public subdirectory; a single local SQLite database is presumed unless a later phase requires more.
 3. Exact default upload size, per-file chunk size, total storage limit, and context-budget policy.
-4. The extraction libraries for PDF, DOCX, PPTX, and optional OCR.
+4. The extraction libraries for PDF, DOCX, PPTX, and optional OCR — restricted to libraries with ARM64/aarch64 Python 3.11 wheels. Candidate set: `pymupdf` (PDF), `python-docx` (DOCX), `python-pptx` (PPTX). ARM64 Python 3.11 wheel availability for the final set (including any OCR choice) must be verified during implementation.
 5. Whether the running Freebuff endpoint supports streaming and image input.
 6. The exact structured format used for model-generated plans and quiz questions, plus validation/recovery behavior.
 7. Whether citations are generated by the model, derived from retrieved chunk IDs, or both. Retrieved chunk IDs should be authoritative for inspectability.
 8. Whether a basic mastery-map view is included in the initial UI or only used internally until a later phase.
 9. How duplicate files are detected and whether replacing a file should invalidate dependent chunks and citations.
-10. Whether the app should use a separate development proxy or a same-origin backend/frontend setup.
+10. RESOLVED — same-origin: the FastAPI/uvicorn process serves both the API and the static frontend, so no separate development proxy is needed.
+11. Default bind port (recommended `8000`) and whether `HOST`/`PORT` environment overrides ship in v1 (proposed: yes, with `0.0.0.0`/`8000` as defaults).
+12. Whether v1 adds an optional shared access token given LAN exposure, or ships trusted-network-only with README documentation of the risk (§14).
+13. Confirm the application-data directory — default `~/.local/share/sage` versus a system-level location — tied to whether the app runs as a normal user or as a systemd service.
+14. How the Freebuff model endpoint is started on the Pi (manual command vs. a systemd service alongside the app) and how users discover the Pi's address (`hostname -I`, mDNS hostname, or router DHCP list).
 
 ## 18. Explicitly deferred future enhancements
 
