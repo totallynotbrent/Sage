@@ -1,17 +1,14 @@
-"""Application factory: wiring, startup validation, static serving.
+"""Application factory: wiring and startup validation.
 
-The same FastAPI process serves the JSON/SSE API and the static frontend
-(same-origin, no proxy, no build step). Static files are mounted at ``/`` and
-uploads live under ``DATA_DIR/uploads`` — never inside ``static/``.
+The same FastAPI process exposes the JSON/SSE API only (no static frontend).
+Uploads live under ``DATA_DIR/uploads`` — never served by the API.
 """
 
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 
 from app.config import Settings, get_settings, validation_problems
 from app.db import init_db
@@ -20,8 +17,6 @@ from app.llm.client import reset_llm_client
 from app.logging_setup import setup_logging
 
 logger = logging.getLogger("app")
-
-STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -60,9 +55,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(plans.router)
     app.include_router(teach.router)
     app.include_router(preferences.router)
-
-    # Static frontend (mounted last so API routes win).
-    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
 
     return app
 
