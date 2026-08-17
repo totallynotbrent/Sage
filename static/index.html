@@ -6,7 +6,7 @@
   <title>Sage — local learning agent</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/vendor/mermaid.min.js"></script>
-  <script>if (window.mermaid) mermaid.initialize({ startOnLoad: false });</script>
+  <script>if (window.mermaid) mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });</script>
 </head>
 <body>
   <header class="topbar">
@@ -62,6 +62,7 @@
           </div>
           <div class="session-meta">
             <span id="phase-badge" class="badge">setup</span>
+            <button id="preferences-btn" class="ghost" type="button">Preferences</button>
             <label class="toggle-label">
               <input type="checkbox" id="grounding-toggle" checked>
               Grounded + knowledge
@@ -70,6 +71,18 @@
         </div>
         <div id="source-note" class="hint" hidden></div>
         <div id="transcript" class="transcript" aria-live="polite"></div>
+
+        <section class="panel" id="plan-panel" hidden>
+          <h2 class="panel-title">Learning plan</h2>
+          <div id="plan-mermaid"></div>
+          <ol id="plan-outline" class="plan-outline"></ol>
+          <div id="plan-actions"></div>
+        </section>
+
+        <section class="panel" id="quiz-area" hidden></section>
+
+        <section class="panel" id="study-controls" hidden></section>
+
         <form id="composer" class="composer">
           <textarea id="message-input" rows="2" placeholder="Ask anything, or continue the lesson…"></textarea>
           <div class="composer-actions">
@@ -93,6 +106,59 @@
     </div>
   </div>
 
+  <div id="preferences-modal" class="modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Preferences &amp; mastery</h3>
+        <button id="preferences-close" class="ghost" type="button">Close</button>
+      </div>
+      <form id="preferences-form">
+        <div class="form-row">
+          <label for="pref-depth">Depth</label>
+          <select id="pref-depth">
+            <option value="brief">Brief</option>
+            <option value="standard">Standard</option>
+            <option value="deep">Deep</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="pref-pacing">Pacing</label>
+          <select id="pref-pacing">
+            <option value="slow">Slow</option>
+            <option value="normal">Normal</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="pref-style">Style</label>
+          <select id="pref-style">
+            <option value="analogy-first">Analogy-first</option>
+            <option value="examples-first">Examples-first</option>
+            <option value="formal-first">Formal-first</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="pref-notes">Notes</label>
+          <textarea id="pref-notes" rows="3"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="primary">Save</button>
+          <button type="button" id="preferences-clear" class="danger">Clear</button>
+        </div>
+      </form>
+      <h4>Mastery</h4>
+      <ul id="mastery-list" class="mastery-list"></ul>
+      <div class="modal-actions">
+        <button type="button" id="reset-mastery-btn" class="danger">Reset mastery</button>
+        <button type="button" id="delete-session-btn" class="danger">Delete session</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/app.js"></script>
+  <script src="/plan.js"></script>
+  <script src="/quiz.js"></script>
+  <script src="/data.js"></script>
+  <script src="/study.js"></script>
 </body>
 </html>

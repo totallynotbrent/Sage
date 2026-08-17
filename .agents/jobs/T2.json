@@ -1,0 +1,59 @@
+{
+  "task_id": "T2",
+  "agent": "turing",
+  "status": "done",
+  "summary": "Probe flow, session state-machine core (probe/check/answer), and mastery service",
+  "files": {
+    "modified": [
+      "app/models.py",
+      "app/llm/structured.py",
+      "app/services/sessions.py",
+      "app/main.py",
+      "tests/test_db.py",
+      "tests/test_files.py",
+      "tests/test_retrieval.py"
+    ],
+    "created": [
+      "app/services/mastery.py",
+      "app/services/learning.py",
+      "app/api/learning.py",
+      "tests/test_mastery.py",
+      "tests/test_learning.py",
+      "tests/test_api_learning.py"
+    ],
+    "deleted": []
+  },
+  "line_counts": {
+    "before": {
+      "app/models.py": 171,
+      "app/llm/structured.py": 326,
+      "app/services/sessions.py": 525,
+      "app/main.py": 66,
+      "tests/test_db.py": 130,
+      "tests/test_files.py": 123,
+      "tests/test_retrieval.py": 75
+    },
+    "after": {
+      "app/models.py": 193,
+      "app/llm/structured.py": 332,
+      "app/services/sessions.py": 523,
+      "app/main.py": 67,
+      "app/services/mastery.py": 155,
+      "app/services/learning.py": 223,
+      "app/api/learning.py": 59,
+      "tests/test_mastery.py": 119,
+      "tests/test_learning.py": 295,
+      "tests/test_api_learning.py": 185,
+      "tests/test_db.py": 133,
+      "tests/test_files.py": 125,
+      "tests/test_retrieval.py": 75
+    }
+  },
+  "modules_created": [
+    "app/services/mastery.py",
+    "app/services/learning.py",
+    "app/api/learning.py"
+  ],
+  "documentation": [],
+  "notes": "Reconciled post-review (warden M-1): status set to done; tests/test_db.py, tests/test_files.py, tests/test_retrieval.py added to modified (they were repaired test-suite bugs, unrelated to T2 features). The request_questions/request_plan focus parameter was added in T2 (focus=session.goal on probe, current node title or goal on check)."
+}

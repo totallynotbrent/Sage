@@ -17,7 +17,7 @@ def test_tokenize_basic():
 def test_ranking_prefers_relevant_chunk():
     chunks = [
         _chunk("a", "f1", "mitochondria produce atp energy biology", 0),
-        _chunk("b", "f1", "recipes for cooking pasta with tomato sauce", 1),
+        _chunk("b", "f1", "recipes for cooking pasta with tomato sauce and mitochondria trivia", 1),
     ]
     result = Retriever().select(chunks, "What are mitochondria?", budget=2)
     assert result[0]["id"] == "a"

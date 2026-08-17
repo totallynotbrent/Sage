@@ -51,16 +51,17 @@ CREATE TABLE IF NOT EXISTS chunks (
 CREATE INDEX IF NOT EXISTS idx_chunks_file ON chunks (file_id);
 
 CREATE TABLE IF NOT EXISTS sessions (
-    id               TEXT PRIMARY KEY,
-    title            TEXT,
-    goal             TEXT NOT NULL,
-    phase            TEXT NOT NULL DEFAULT 'setup',
-    grounding_mode   TEXT NOT NULL DEFAULT 'grounded',
-    current_node_id  TEXT,
-    plan_json        TEXT,
-    file_ids_json    TEXT NOT NULL DEFAULT '[]',
-    created_at       TEXT NOT NULL,
-    updated_at       TEXT NOT NULL
+    id                TEXT PRIMARY KEY,
+    title             TEXT,
+    goal              TEXT NOT NULL,
+    phase             TEXT NOT NULL DEFAULT 'setup',
+    grounding_mode    TEXT NOT NULL DEFAULT 'grounded',
+    current_node_id   TEXT,
+    nodes_since_check INTEGER NOT NULL DEFAULT 0,
+    plan_json         TEXT,
+    file_ids_json     TEXT NOT NULL DEFAULT '[]',
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -109,6 +110,16 @@ CREATE TABLE IF NOT EXISTS plan_nodes (
 );
 CREATE INDEX IF NOT EXISTS idx_plan_session ON plan_nodes (session_id);
 
+CREATE TABLE IF NOT EXISTS feedback_actions (
+    id          TEXT PRIMARY KEY,
+    session_id  TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    question_id TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    content     TEXT,
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_session ON feedback_actions (session_id);
+
 CREATE TABLE IF NOT EXISTS mastery_topics (
     topic            TEXT PRIMARY KEY,
     label            TEXT NOT NULL,
@@ -144,6 +155,11 @@ def init_db(db_path: Path) -> None:
     try:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(_DDL)
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(sessions)")}
+        if "nodes_since_check" not in cols:
+            conn.execute(
+                "ALTER TABLE sessions ADD COLUMN nodes_since_check INTEGER NOT NULL DEFAULT 0"
+            )
         conn.execute("DELETE FROM schema_version")
         conn.execute("INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,))
         conn.execute(

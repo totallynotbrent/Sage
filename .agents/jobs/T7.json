@@ -1,0 +1,44 @@
+{
+  "task_id": "T7",
+  "agent": "turing",
+  "status": "done",
+  "summary": "Frontend learning-loop UI: study orchestrator (phase badge, contextual controls, busy flag, single openSession refresh path), plan panel (mermaid graph with sanitized node keys + text outline + reorder/skip/expand/select/approve/regenerate), quiz/feedback area (probe/check question cards, answer/regrade, hint/reveal/retry/skip/continue), and preferences/mastery modal (GET/PATCH/DELETE /api/preferences, DELETE /api/mastery, delete session). Wired into existing app.js render flow via window.Sage export.",
+  "files": {
+    "modified": [
+      "static/index.html",
+      "static/app.js",
+      "static/style.css"
+    ],
+    "created": [
+      "static/study.js",
+      "static/plan.js",
+      "static/quiz.js",
+      "static/data.js"
+    ],
+    "deleted": []
+  },
+  "line_counts": {
+    "before": {
+      "static/index.html": 98,
+      "static/app.js": 709,
+      "static/style.css": 255
+    },
+    "after": {
+      "static/index.html": 164,
+      "static/app.js": 715,
+      "static/style.css": 312,
+      "static/study.js": 124,
+      "static/plan.js": 191,
+      "static/quiz.js": 341,
+      "static/data.js": 133
+    }
+  },
+  "modules_created": [
+    "static/study.js",
+    "static/plan.js",
+    "static/quiz.js",
+    "static/data.js"
+  ],
+  "documentation": [],
+  "notes": "Frontend-only; app/, tests/, vendor/, and other .agents/jobs files untouched. All new JS is snake_case, IIFE-scoped, textContent/createElement only; the sole innerHTML is the sanitized mermaid SVG (securityLevel:'strict'). Endpoint paths and request bodies verified against parallel task's app/api/plans.py, teach.py, preferences.py, learning.py. Contract assumptions: reorder body {node_keys}, skip/select body {node_key}, expand body {node_key, detail}, hint response {hint}, reveal response includes {explanation}; answer responses read defensively (nested resp.result or flat outcome/explanation/probe_complete). Retry button shown only when outcome is 'incorrect' (server allows regrade only then). Preferences style select values aligned to backend Literal (analogy-first/examples-first/formal-first). pytest: 140 passed on first run (pre-backend-agent mid-edit state); later runs transiently failed backend tests being actively rewritten by the parallel backend task (test_learning.py then test_db.py) — unrelated to static-only changes, verified via node --check + id cross-reference + endpoint grep."
+}

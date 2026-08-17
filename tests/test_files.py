@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 
 import pytest
 
@@ -37,6 +38,7 @@ def test_save_and_get(conn, settings):
 def test_save_then_list_orders_by_recency(conn, settings):
     service = _service(conn, settings)
     first = service.save_upload(filename="a.md", content=b"# a\ncontent about alpha", content_type="text/markdown")
+    time.sleep(0.02)
     second = service.save_upload(filename="b.txt", content=b"content about beta", content_type="text/plain")
     ids = [r.id for r in service.list()]
     assert ids[0] == second.id
@@ -76,7 +78,9 @@ def test_total_storage_limit_raises(conn, settings):
     payload = b"y" * (10 * 1024 * 1024)
     service.save_upload(filename="one.txt", content=payload, content_type="text/plain")
     with pytest.raises(StorageFullError):
-        service.save_upload(filename="two.txt", content=payload, content_type="text/plain")
+        service.save_upload(
+            filename="two.txt", content=b"z" * (10 * 1024 * 1024), content_type="text/plain"
+        )
 
 
 def test_storage_name_is_safe(conn, settings):

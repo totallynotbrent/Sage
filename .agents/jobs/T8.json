@@ -1,0 +1,18 @@
+{
+  "task_id": "T8",
+  "agent": "turing",
+  "status": "done",
+  "summary": "Show the Retry affordance for check questions answered with outcome idk, matching the existing incorrect branch",
+  "files": {
+    "modified": ["static/quiz.js"],
+    "created": [],
+    "deleted": []
+  },
+  "line_counts": {
+    "before": { "static/quiz.js": 341 },
+    "after": { "static/quiz.js": 341 }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "notes": ""
+}
