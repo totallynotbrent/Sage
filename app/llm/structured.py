@@ -124,6 +124,8 @@ def validate_plan(raw: Any) -> Plan | None:
             isinstance(d, str) for d in depends_on
         ):
             return None
+        if node_key in keys:
+            return None
         keys.add(node_key)
         nodes.append(
             PlanNode(
@@ -206,15 +208,24 @@ def _plan_from_fragments(raw: Any) -> Plan | None:
     if not isinstance(raw, list) or not raw:
         return None
     nodes: list[PlanNode] = []
+    seen: set[str] = set()
     for index, item in enumerate(raw):
         if not isinstance(item, dict):
             continue
         title = item.get("title")
         node_key = item.get("node_key")
         if isinstance(title, str) and title.strip():
+            node_key = (
+                node_key
+                if isinstance(node_key, str) and node_key
+                else f"step-{index + 1}"
+            )
+            if node_key in seen:
+                return None
+            seen.add(node_key)
             nodes.append(
                 PlanNode(
-                    node_key=(node_key if isinstance(node_key, str) and node_key else f"step-{index + 1}"),
+                    node_key=node_key,
                     title=title.strip(),
                     description=item.get("description") if isinstance(item.get("description"), str) else None,
                     depends_on=[],

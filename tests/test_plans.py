@@ -6,6 +6,7 @@ import json
 import pytest
 
 from app.errors import ModelOutputError, NotFoundError, ProviderError
+from app.services.learning import LearningService
 from app.services.plans import PlansService
 from app.services.sessions import SessionService
 from app.services.teach import TeachService
@@ -63,6 +64,27 @@ def test_generate_plan_garbage_raises(conn, settings, fake_llm):
         asyncio.run(PlansService(conn, settings).generate_plan(session.id, fake_llm))
     assert excinfo.value.status_code == 422
     assert excinfo.value.retryable is True
+
+
+def test_generate_plan_duplicate_node_key_raises_422(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    dup = json.dumps(
+        {
+            "nodes": [
+                {"node_key": "k1", "title": "A", "depends_on": []},
+                {"node_key": "k1", "title": "B", "depends_on": []},
+            ]
+        }
+    )
+    fake_llm.complete_json_responses = [dup, dup]
+    with pytest.raises(ModelOutputError) as excinfo:
+        asyncio.run(PlansService(conn, settings).generate_plan(session.id, fake_llm))
+    assert excinfo.value.status_code == 422
+    assert excinfo.value.retryable is True
+    stored = conn.execute(
+        "SELECT COUNT(*) AS n FROM plan_nodes WHERE session_id = ?", (session.id,)
+    ).fetchone()["n"]
+    assert stored == 0
 
 
 def test_generate_plan_missing_session(conn, settings, fake_llm):
@@ -135,6 +157,34 @@ def test_skip_current_node_advances(conn, settings, fake_llm):
     assert k2["status"] == "current"
     assert result["session"]["current_node_id"] == k2["id"]
     assert result["session"]["phase"] == "teach"
+
+
+def test_skip_current_node_during_check_clears_current(conn, settings, fake_llm):
+    session, plan = _planned_session(conn, settings, fake_llm)
+    PlansService(conn, settings).approve(session.id)
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            [
+                {
+                    "question": "Check Q?",
+                    "options": ["x", "y"],
+                    "correct_index": 0,
+                    "explanation": "e",
+                    "topic": None,
+                    "difficulty": 3,
+                }
+            ]
+        )
+    ]
+    check = asyncio.run(LearningService(conn, settings).generate_check(session.id, fake_llm))
+    assert check["session"]["phase"] == "check"
+    result = PlansService(conn, settings).skip_node(session.id, "k1")
+    k1 = next(n for n in result["plan"] if n["node_key"] == "k1")
+    k2 = next(n for n in result["plan"] if n["node_key"] == "k2")
+    assert k1["status"] == "skipped"
+    assert k2["status"] == "pending"
+    assert result["session"]["phase"] == "check"
+    assert result["session"]["current_node_id"] is None
 
 
 def test_expand_appends_child_nodes(conn, settings, fake_llm):

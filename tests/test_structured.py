@@ -9,6 +9,7 @@ import pytest
 
 from app.errors import ModelOutputError
 from app.llm.structured import (
+    _plan_from_fragments,
     parse_json,
     request_plan,
     request_questions,
@@ -74,6 +75,26 @@ def test_validate_plan_not_dict_is_none():
     assert validate_plan("nope") is None
     assert validate_plan({"nodes": []}) is None
     assert validate_plan({"nodes": [{"title": "no key"}]}) is None
+
+
+def test_validate_plan_duplicate_node_key_is_none():
+    raw = {
+        "nodes": [
+            {"node_key": "k1", "title": "A", "depends_on": []},
+            {"node_key": "k1", "title": "B", "depends_on": []},
+        ]
+    }
+    assert validate_plan(raw) is None
+
+
+def test_plan_from_fragments_rejects_duplicate_node_keys():
+    raw = {
+        "nodes": [
+            {"node_key": "k1", "title": "A"},
+            {"node_key": "k1", "title": "B"},
+        ]
+    }
+    assert _plan_from_fragments(raw) is None
 
 
 # --------------------------------------------------------------------- #

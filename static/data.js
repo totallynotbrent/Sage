@@ -13,7 +13,7 @@
       const prefs = await window.Sage.api("/api/preferences");
       el("pref-depth").value = prefs.depth || "standard";
       el("pref-pacing").value = prefs.pacing || "normal";
-      el("pref-style").value = prefs.style || "examples-first";
+      el("pref-style").value = prefs.style || "analogy-first";
       el("pref-notes").value = prefs.notes || "";
     } catch (err) {
       window.Sage.toast(`Could not load preferences: ${err.message}`);
@@ -71,7 +71,7 @@
       await window.Sage.api("/api/preferences", { method: "DELETE" });
       el("pref-depth").value = "standard";
       el("pref-pacing").value = "normal";
-      el("pref-style").value = "examples-first";
+      el("pref-style").value = "analogy-first";
       el("pref-notes").value = "";
       window.Sage.toast("Preferences cleared.");
     } catch (err) {
