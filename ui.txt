@@ -1,0 +1,532 @@
+SAGE WEB UI NOTES
+==================
+
+Purpose
+-------
+Sage is a local-first AI tutor for a computer science student or any learner.
+A user uploads study material, creates a learning session around a goal, and
+then works through an adaptive learning loop:
+
+    study files -> extracted searchable chunks -> session
+    -> optional diagnostic probe -> model-generated learning plan
+    -> teach each plan node -> periodic checks -> remediation or completion
+
+It also provides a grounded streaming chat tutor. The tutor retrieves relevant
+chunks from the files selected for the current session and can cite those exact
+chunks. SQLite stores session state, plans, quiz questions, messages, mastery,
+and preferences. The backend currently exposes an API only; this file is a
+suggested contract and flow for building a frontend.
+
+Important deployment facts
+--------------------------
+- Base URL is the same host serving FastAPI, normally http://<host>:8000.
+- There is no authentication. Treat Sage as a trusted-network-only application.
+- The model API key stays on the server and must never be put in browser code.
+- The backend accepts JSON except for file upload and returns JSON or SSE.
+- Uploaded files are not served directly. Use the excerpts endpoint for source
+  previews.
+- Supported file types: .pdf, .docx, .pptx, .md, .markdown, and .txt.
+- Session phases are: setup, probe, plan, teach, check, remediate, complete.
+- Grounding modes are:
+    grounded: the model may answer from selected sources and general knowledge.
+    strict: answers must be supported by selected sources; with no matching
+            chunks, chat returns a source-insufficiency notice without calling
+            the model.
+
+Suggested screens
+-----------------
+1. Library
+   - List files, upload files, show ingestion status/warnings/errors/chunk count.
+   - Allow retry for failed files, deletion, and opening source excerpts.
+2. Session home
+   - List existing sessions and create a session with a goal, selected files,
+     and grounding mode.
+3. Session workspace
+   - Show phase, goal, selected files, current plan node, mastery, and messages.
+   - Restore all of this with GET /api/sessions/{session_id}.
+4. Probe screen
+   - Render the three diagnostic questions and answer each one.
+5. Plan screen
+   - Render dependency-aware nodes; allow reorder, skip, expand, regenerate,
+     select, and approve.
+6. Teaching screen
+   - Show the current node, chat box, progress, and an Advance button.
+   - When check_due is true, route the learner to a check question.
+7. Check/remediation screen
+   - Render the check question; after an incorrect answer or "I don't know",
+     offer chat/hint/reveal and then Continue.
+8. Settings
+   - Edit teaching preferences and offer separate reset actions for preferences
+     and mastery.
+9. Health indicator
+   - Poll GET /api/health and show model/dependency problems without exposing
+     secrets.
+
+Common response and error rules
+--------------------------------
+Successful JSON responses use the shapes described below. Error responses from
+normal HTTP routes have this shape:
+
+    {
+      "error": {
+        "code": "...",
+        "message": "...",
+        "detail": "...",
+        "retryable": false
+      }
+    }
+
+Useful status codes include:
+- 400 bad request/configuration/invalid state
+- 401 model authentication failure
+- 404 missing session, file, question, plan node, or chunk
+- 409 duplicate file or generation conflict
+- 413 file too large
+- 415 unsupported file format
+- 422 invalid model output, extraction failure, or request validation
+- 429 model rate limit
+- 502 model connection/upstream failure
+- 504 model timeout
+- 507 library storage full
+
+For model-dependent routes, a missing or invalid BROT_API_KEY or
+BROT_BASE_URL produces a config_error. Use /api/health to detect this
+before displaying model actions.
+
+Endpoint reference
+------------------
+
+SYSTEM
+
+GET /api/health
+  Purpose: Check configuration, model reachability, and extraction-library
+  dependencies.
+  Response:
+    {
+      "status": "ok" | "degraded" | "error",
+      "model_configured": true | false,
+      "endpoint_reachable": true | false | null,
+      "dependency_errors": ["..."],
+      "checked_at": "..."
+    }
+  UI reaction:
+  - status=ok: normal operation.
+  - status=degraded: show a warning; the model may be unreachable or an
+    extraction dependency may be missing.
+  - status=error: disable model-dependent actions and show the configuration
+    problem. The server still boots so health can report it.
+
+FILES / LIBRARY
+
+POST /api/files
+  Body: multipart/form-data with one or more fields named files.
+  Response: an array of FileRecord objects.
+  Each record contains id, display_name, mime_type, size_bytes, sha256, status,
+  warnings, error, num_chunks, created_at, and updated_at.
+  Behavior: validates extension and size, rejects duplicate content, stores the
+  blob, extracts text, chunks it, and synchronously records the result.
+  status normally becomes ready, partial (text plus warnings), or failed.
+  Only ready files contribute context to chat, probes, plans, and checks.
+  UI reaction: refresh the library and allow only ready/partial files to be
+  selected; show the error and Retry action for failed files.
+
+GET /api/files
+  Response: array of all FileRecord objects, newest first.
+  UI reaction: use for the library page and to refresh after upload, retry, or
+  delete.
+
+GET /api/files/{file_id}
+  Response: one FileRecord.
+  UI reaction: show file details or remove it from the UI if the response is
+  404.
+
+GET /api/files/{file_id}/excerpts?chunk={chunk_id}
+  Response:
+    {
+      "chunk_id": "...",
+      "file_name": "notes.md",
+      "location": "...",
+      "text": "exact extracted chunk text",
+      "context_around": {"before": "..." | null, "after": "..." | null}
+    }
+  Behavior: returns the cited chunk and its immediate neighboring chunks.
+  UI reaction: use when a citation is clicked; display the source name,
+  location, exact text, and surrounding context. A missing chunk is a 404.
+
+POST /api/files/{file_id}/retry
+  Response: the updated FileRecord.
+  Behavior: clears old chunks and reruns extraction/chunking for the stored blob.
+  UI reaction: show a loading state, then refresh the file record.
+
+DELETE /api/files/{file_id}
+  Response: 204 No Content.
+  Behavior: deletes the stored blob, file record, and cascaded chunks. Existing
+  sessions retain the old file id and show it as missing in their full state.
+  UI reaction: remove it from the library and warn that it will no longer be
+  usable for retrieval in those sessions.
+
+SESSIONS
+
+POST /api/sessions
+  Body:
+    {
+      "goal": "Understand graph algorithms",
+      "file_ids": ["file-id-1"],
+      "grounding_mode": "grounded" | "strict"
+    }
+  file_ids and grounding_mode are optional; defaults are [] and grounded.
+  Response: Session with phase=setup, file_ids, goal, and timestamps.
+  UI reaction: navigate to the session workspace. This endpoint only creates
+  the session; it does not generate a probe or plan automatically.
+
+GET /api/sessions
+  Response: array of Session summaries, newest updated first.
+  UI reaction: populate the session picker/history.
+
+GET /api/sessions/{session_id}
+  Response: a complete resumable workspace state:
+    {
+      "session": { ...Session },
+      "messages": [ ...complete persisted messages... ],
+      "plan": [ ...plan nodes... ],
+      "quiz": [ ...probe/check questions... ],
+      "mastery": [ ...mastery topics... ],
+      "preferences": { ...Preferences },
+      "selected_files": [ ...FileRecords or missing-file placeholders... ]
+    }
+  UI reaction: call on session open, page reload, and after reconnecting. This
+  is the main endpoint for rebuilding the whole workspace.
+
+POST /api/sessions/{session_id}/files
+  Body: {"file_ids": ["file-id-1", "file-id-2"]}
+  Response: updated Session.
+  Behavior: replaces the session's selected-file list. It does not generate
+  new learning content by itself.
+  UI reaction: call after the user changes source selection; new chat/probe/
+  plan/check requests then retrieve from the new ready files.
+
+PATCH /api/sessions/{session_id}
+  Body: {"grounding_mode": "grounded" | "strict"}
+  Response: updated Session.
+  UI reaction: update the grounding badge before the next chat or model action.
+  This affects retrieval and chat behavior; it does not delete existing data.
+
+DELETE /api/sessions/{session_id}
+  Response: 204 No Content.
+  Behavior: cancels in-flight generation and deletes the session plus cascaded
+  messages, plan nodes, quiz questions, and feedback actions.
+  UI reaction: leave the workspace and remove the session from history.
+
+DIAGNOSTIC LEARNING
+
+POST /api/sessions/{session_id}/probe
+  Body: {}.
+  Response:
+    {"session": { ...Session with phase=probe }, "questions": [ ...3 questions... ]}
+  Behavior: asks the model for an adaptive three-question diagnostic using the
+  goal, ready selected-file chunks, mastery summary, and grounding mode. The
+  server appends an "I don't know" option. If pending probe questions already
+  exist, the endpoint returns them without another model call.
+  UI reaction: show the probe screen. Call the answer endpoint for each question.
+  After all probe answers, the session remains in probe; the UI should offer
+  Generate plan next.
+
+POST /api/sessions/{session_id}/quiz/{question_id}/answer
+  Body for a normal answer: {"choice_index": 0}
+  Body for explicit uncertainty: {"idk": true}
+  Response:
+    {
+      "session": { ...possibly updated Session },
+      "result": {
+        "question_id": "...",
+        "outcome": "correct" | "incorrect" | "idk",
+        "correct_index": 0,
+        "explanation": "...",
+        "probe_complete": true | false,
+        "retry_allowed": true | false,
+        "next_node": { ... } | null,
+        "check_due": true | false
+      }
+    }
+  Behavior: grades probe or check questions, persists the answer, and records
+  mastery evidence. The last option ("I don't know") is treated as idk.
+  - Probe incorrect/idk: stay in probe and permit retry behavior as indicated.
+  - Check incorrect/idk: change phase check -> remediate.
+  - Check correct while in check/remediate: change to teach and advance to the
+    next pending plan node; if no node remains, phase becomes complete.
+  UI reaction: show the explanation and outcome. If retry_allowed is true,
+  offer another attempt or remediation. If next_node is present, show it; if
+  check_due is true, call the check-generation endpoint.
+
+PLANNING
+
+POST /api/sessions/{session_id}/plan
+  Body: {}.
+  Response:
+    {"session": { ...Session with phase=plan }, "plan": [ ...PlanNode... ]}
+  Behavior: asks the model for a dependency-aware plan using the session goal,
+  ready source chunks, mastery, and grounding mode. Existing plan nodes are
+  returned unchanged, so this is idempotent. Requires model configuration.
+  UI reaction: display nodes and dependencies. Offer Approve, Reorder, Skip,
+  Expand, Regenerate, and Select controls.
+
+POST /api/sessions/{session_id}/plan/approve
+  Body: {}.
+  Response: updated session plus plan.
+  Behavior: marks the first pending node current, sets phase=teach, sets
+  current_node_id, and resets nodes_since_check.
+  UI reaction: enter the teaching view at the returned current node.
+
+POST /api/sessions/{session_id}/plan/reorder
+  Body: {"node_keys": ["basics", "advanced", "expert"]}
+  Response: updated session plus plan.
+  Behavior: the array must contain every existing node key exactly once. It
+  changes display/advance position only.
+
+POST /api/sessions/{session_id}/plan/skip
+  Body: {"node_key": "basics"}
+  Response: updated session plus plan.
+  Behavior: marks the node skipped. If it was current during teach, it advances
+  to the next pending node; otherwise the current phase is preserved.
+
+POST /api/sessions/{session_id}/plan/expand
+  Body: {"node_key": "basics", "detail": "More practice with BFS"}
+  detail is optional.
+  Response: updated session plus plan.
+  Behavior: asks the model for child/sub-nodes, appends them as pending nodes,
+  and makes them depend on the selected parent. Requires model configuration.
+
+POST /api/sessions/{session_id}/plan/regenerate
+  Body: {}.
+  Response: a new generated plan.
+  Behavior: deletes the current plan, clears current_node_id and the check
+  counter, then performs the same work as /plan. Requires model configuration.
+
+POST /api/sessions/{session_id}/plan/select
+  Body: {"node_key": "advanced"}
+  Response: updated session plus plan.
+  Behavior: makes any existing node current, sets phase=teach, and clears the
+  previous current status. Useful when a user chooses a node manually.
+
+TEACHING AND CHECKS
+
+POST /api/sessions/{session_id}/advance
+  Body: {}.
+  Response:
+    {"session": { ...Session }, "node": { ...PlanNode } | null,
+     "check_due": true | false}
+  Behavior: requires phase=teach. Marks the current node done and moves to the
+  next pending node. After two nodes, check_due becomes true. When no pending
+  node exists, phase becomes complete and node is null.
+  UI reaction: update progress from the returned session/plan state. When
+  check_due is true, call /check rather than continuing indefinitely.
+
+POST /api/sessions/{session_id}/check
+  Body: {}.
+  Response: {"session": { ...Session with phase=check }, "questions": [one question]}
+  Behavior: generates one check question about the current plan node (or the
+  session goal if no current node exists). Pending check generation is
+  idempotent. Requires model configuration.
+  UI reaction: open the check screen and submit its answer.
+
+POST /api/sessions/{session_id}/continue
+  Body: {}.
+  Response: {"session": { ...Session }, "node": { ... } | null,
+             "check_due": false | true}
+  Behavior: requires phase=remediate, returns to teach, resets the check counter,
+  marks the current node done, and advances to the next pending node.
+  UI reaction: use after remediation when the learner wants to continue.
+
+POST /api/sessions/{session_id}/complete
+  Body: {}.
+  Response: {"session": { ...Session with phase=complete }}
+  Behavior: manually ends the session without deleting its history.
+  UI reaction: show a completion summary and retain read-only history.
+
+POST /api/sessions/{session_id}/quiz/{question_id}/hint
+  Body: {}.
+  Response: {"hint": "short hint text"}
+  Behavior: requires an answered probe/check question and asks the model for a
+  short hint without directly revealing the answer. Requires model
+  configuration. Records a feedback action.
+  UI reaction: show the hint inline; keep the question outcome visible.
+
+POST /api/sessions/{session_id}/quiz/{question_id}/reveal
+  Body: {}.
+  Response:
+    {"question_id": "...", "correct_index": 0,
+     "correct_option": "...", "explanation": "..."}
+  Behavior: requires an answered question, reveals the stored answer without a
+  model call, and records a feedback action.
+  UI reaction: show the answer/explanation and offer Continue or retry as
+  appropriate.
+
+POST /api/sessions/{session_id}/quiz/{question_id}/skip
+  Body: {}.
+  Response: {"session": { ...Session with phase=plan }}
+  Behavior: only check questions can be skipped. Marks the question skipped,
+  resets nodes_since_check, and returns the session to phase=plan.
+  UI reaction: return to the plan screen. A skipped question cannot later be
+  answered.
+
+STREAMING CHAT
+
+POST /api/sessions/{session_id}/turns
+  Body:
+    {"message": "Explain breadth-first search", "client_msg_id": "uuid"}
+  Response: text/event-stream, not a normal JSON response. Every data line is
+  JSON in this form:
+
+    data: {"type": "...", ...}
+
+  Event sequence and UI behavior:
+  1. meta
+       {"type":"meta", "chunks":[{"chunk_id":"...","file_name":"...",
+       "location":"...","preview":"..."}], "insufficient":false}
+       Show which source chunks were selected and whether strict mode lacks
+       support.
+  2. delta
+       {"type":"delta", "delta":"text fragment"}
+       Append fragments to the assistant bubble as they arrive.
+  3. citation (zero or more)
+       {"type":"citation", "chunk_id":"..."}
+       Make the citation clickable and load its text with /excerpts.
+  4. done
+       {"type":"done", "message_id":"...","client_msg_id":"...",
+       "replayed":false}
+       Mark the message complete. A duplicate completed client_msg_id returns
+       only done with replayed=true and does not call the model again.
+  5. error (if generation fails)
+       {"type":"error","code":"...","message":"...",
+       "detail":"...","retryable":true|false}
+       Keep partial UI text if present and offer Retry when retryable is true.
+
+  Additional behavior:
+  - Grounded mode can call the model with no matching chunks.
+  - Strict mode with no matching chunks emits a normal notice as delta and a
+    done event; it does not call the model or emit citations.
+  - The model may include citation markers in its text, but the server only
+    emits citations for chunk IDs that were actually sent in meta.
+  - Keep the stream open and parse heartbeat comment lines (`: ping`) without
+    treating them as data events.
+  - Response headers include text/event-stream, Cache-Control: no-cache, and
+    keep-alive.
+
+POST /api/sessions/{session_id}/retry
+  Body: {"client_msg_id": "uuid"}
+  Response: the same SSE event format as /turns.
+  Behavior:
+  - completed message: replay only done with replayed=true;
+  - failed/leftover partial message: regenerate the turn and stream deltas;
+  - unknown client_msg_id: emit an error/not-found event.
+  UI reaction: use the same message bubble and client_msg_id; do not create a
+  second message bubble.
+
+POST /api/sessions/{session_id}/stop
+  Body: none.
+  Response: {"ok": true}
+  Behavior: requests cancellation of model generation for that session. The
+  active stream may finish with an error event whose code is cancelled.
+  UI reaction: disable Stop, enable Retry if the resulting event is retryable.
+
+PREFERENCES AND MASTERY
+
+GET /api/preferences
+  Response: {"depth":"brief|standard|deep", "pacing":"slow|normal|fast",
+  "style":"analogy-first|examples-first|formal-first", "notes":"...",
+  "updated_at":"..."}.
+  Defaults are standard, normal, and analogy-first.
+
+PATCH /api/preferences
+  Body: any subset of depth, pacing, style, and notes.
+  Response: complete updated Preferences object.
+  Behavior: partial update; omitted fields stay unchanged. Preferences are
+  included in GET /api/sessions/{session_id} for the UI to display and retain;
+  prompt-level use of these preferences is not currently wired into the model
+  service.
+
+DELETE /api/preferences
+  Response: 204 No Content.
+  Behavior: resets preferences to defaults and clears notes.
+
+DELETE /api/mastery
+  Response: 204 No Content.
+  Behavior: deletes all mastery topics/evidence. It does not delete sessions,
+  files, plans, or quiz history. The next model request sees no prior mastery.
+
+Recommended complete UI flow
+----------------------------
+
+A. App startup
+   1. GET /api/health.
+   2. GET /api/files and GET /api/sessions in parallel.
+   3. GET /api/preferences for settings.
+
+B. New session
+   1. Upload files with POST /api/files.
+   2. Select records whose status is ready or partial.
+   3. POST /api/sessions with the goal, file IDs, and grounding mode.
+   4. GET /api/sessions/{id} to initialize the workspace.
+   5. Optional: POST /probe, answer every returned question, then POST /plan.
+      The UI may also skip the probe and call /plan immediately.
+
+C. Plan approval
+   1. Render the returned plan.
+   2. Optional plan changes use reorder/skip/expand/regenerate/select.
+   3. POST /plan/approve, then render the returned current node.
+
+D. Teach/check loop
+   1. Let the learner use /turns for explanations and source citations.
+   2. POST /advance when the learner finishes the current node.
+   3. If check_due is false, continue teaching.
+   4. If check_due is true, POST /check and answer the returned question.
+   5. Correct check -> the answer response advances to the next node or
+      completes the session.
+   6. Incorrect/idk check -> phase=remediate; use /hint, /reveal, chat, and then
+      /continue. Alternatively use /plan/{node}/skip or /quiz/{question}/skip
+      where appropriate.
+
+E. Resume/delete
+   - On reload, use GET /api/sessions/{id}; do not reconstruct state only from
+     browser storage.
+   - On delete, call DELETE /api/sessions/{id}; on a missing source file, update
+     selection through POST /api/sessions/{id}/files.
+
+State transition summary
+------------------------
+
+    create session
+          |
+        setup
+          |  optional /probe + /quiz/{q}/answer
+        probe
+          |  /plan
+        plan <----------------------- /quiz/{check}/skip
+          |  /plan/approve or /plan/select
+        teach -- /advance --> teach -- after two nodes --> /check --> check
+          |                                                |          |
+          |                                                |          +-- correct --> teach/next node
+          |                                                |          +-- incorrect/idk --> remediate
+          |                                                |
+          +-- no pending nodes --> complete               +-- /continue --> teach
+
+The session can also be manually moved to complete with /complete. Chat turns,
+source excerpts, preferences, and mastery are supporting features around this
+state machine; they do not replace the explicit plan/teach/check transitions.
+
+Data consistency rules for the frontend
+-----------------------------------------
+- Treat the Session object returned by each mutation as authoritative; replace
+  local phase/current-node/check-counter values with it.
+- Treat returned plan arrays and question objects as authoritative after every
+  mutation; question answers are persisted and repeated identical answers may
+  be replayed safely.
+- Use a stable client_msg_id for each chat turn. Never generate a new ID when
+  retrying the same turn.
+- Do not show partial persisted assistant messages after a reload; the full
+  session endpoint intentionally returns only complete messages. Offer Retry
+  when a stream ended with a retryable error.
+- Citation IDs are chunk IDs, not file IDs. Call /api/files/{file_id}/excerpts
+  with the chunk ID to show source evidence.
+- Refresh session state after file deletion, plan actions, quiz answers, and
+  stream completion if another browser tab may be using the same session.

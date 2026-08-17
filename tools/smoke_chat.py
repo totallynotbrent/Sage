@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Manual live-endpoint smoke check for Sage.
 
-Sends a "ping" to the configured Freebuff endpoint and prints the result.
+Sends a "ping" to the configured BROT endpoint and prints the result.
 Not part of the pytest suite — requires a running local model endpoint and a
 configured API key (`.env` in the working directory or environment variables).
 
@@ -28,8 +28,8 @@ async def main() -> int:
         print("Fix your .env file first.")
         return 2
 
-    print(f"Endpoint: {settings.freebuff_base_url}")
-    print(f"Model:    {settings.freebuff_model}")
+    print(f"Endpoint: {settings.BROT_base_url}")
+    print(f"Model:    {settings.BROT_model}")
 
     client = LLMClient(settings)
     print("Sending ping …")

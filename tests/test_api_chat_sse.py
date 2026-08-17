@@ -278,7 +278,7 @@ def test_turn_missing_session_404(client, override_llm):
 def test_turn_rejects_missing_config(tmp_path):
     from fastapi.testclient import TestClient
 
-    settings = Settings(data_dir=tmp_path / "data", freebuff_api_key="")
+    settings = Settings(data_dir=tmp_path / "data", BROT_api_key="")
     app = create_app(settings)
     with TestClient(app) as test_client:
         response = test_client.post(

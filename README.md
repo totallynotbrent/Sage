@@ -6,7 +6,7 @@ streaming chat tutor that cites the exact excerpts it used.
 
 - **Backend:** Python 3.11, FastAPI, uvicorn — Sage currently ships as an
   API-only service (JSON/SSE endpoints; no web UI for now).
-- **Model:** any OpenAI-compatible endpoint (default: local Freebuff at
+- **Model:** any OpenAI-compatible endpoint (default: local BROT at
   `http://127.0.0.1:8877/v1`).
 - **Storage:** SQLite + files in `DATA_DIR` (default `~/.local/share/sage`),
   uploads kept outside any served path.
@@ -63,9 +63,9 @@ by the single local endpoint. A shared access token is a planned follow-up.
 
 | Variable           | Default                          | Purpose                             |
 | ------------------ | -------------------------------- | ----------------------------------- |
-| `FREEBUFF_BASE_URL`| `http://127.0.0.1:8877/v1`       | OpenAI-compatible endpoint base URL |
-| `FREEBUFF_API_KEY` | *(required)*                     | Secret key, server-side only        |
-| `FREEBUFF_MODEL`   | `deepseek/deepseek-v4-pro`       | Model name                          |
+| `BROT_BASE_URL`| `http://127.0.0.1:8877/v1`       | OpenAI-compatible endpoint base URL |
+| `BROT_API_KEY` | *(required)*                     | Secret key, server-side only        |
+| `BROT_MODEL`   | `deepseek/deepseek-v4-pro`       | Model name                          |
 | `HOST`             | `0.0.0.0`                        | Bind address                        |
 | `PORT`             | `8000`                           | Bind port                           |
 | `DATA_DIR`         | `~/.local/share/sage`            | SQLite DB + uploads location        |

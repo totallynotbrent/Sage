@@ -1,4 +1,4 @@
-"""Thin wrapper around the OpenAI-compatible (Freebuff) endpoint.
+"""Thin wrapper around the OpenAI-compatible (BROT) endpoint.
 
 Responsibilities:
   - streaming chat completions with per-session cancellation,
@@ -43,15 +43,15 @@ GENERATION_TIMEOUT = httpx.Timeout(connect=30, read=900, write=60, pool=30)
 
 
 class LLMClient:
-    """An OpenAI-compatible client for the configured Freebuff endpoint."""
+    """An OpenAI-compatible client for the configured BROT endpoint."""
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         # A non-empty placeholder keeps openai>=1.0 happy when the key is unset;
         # config-valid routes reject before reaching the client anyway.
-        api_key = settings.freebuff_api_key or "unset"
+        api_key = settings.BROT_api_key or "unset"
         self._client = AsyncOpenAI(
-            base_url=settings.freebuff_base_url,
+            base_url=settings.BROT_base_url,
             api_key=api_key,
             timeout=GENERATION_TIMEOUT,
         )
@@ -116,7 +116,7 @@ class LLMClient:
         )
         try:
             stream = await self._client.chat.completions.create(
-                model=self._settings.freebuff_model,
+                model=self._settings.BROT_model,
                 messages=messages,
                 stream=True,
                 max_tokens=max_tokens,
@@ -170,7 +170,7 @@ class LLMClient:
         """
         try:
             response = await self._client.chat.completions.create(
-                model=self._settings.freebuff_model,
+                model=self._settings.BROT_model,
                 messages=messages,
                 stream=False,
                 max_tokens=max_tokens,
@@ -197,7 +197,7 @@ class LLMClient:
         probe_client = self._client.with_options(timeout=_PROBE_TIMEOUT)
         try:
             await probe_client.chat.completions.create(
-                model=self._settings.freebuff_model,
+                model=self._settings.BROT_model,
                 messages=[{"role": "user", "content": "ping"}],
                 max_tokens=1,
                 temperature=0,
