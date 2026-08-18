@@ -1,0 +1,69 @@
+{
+  "task_id": "T13",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ses_t13_sage_writer",
+  "declared_at": "2026-08-18T19:50:40-04:00",
+  "finalized_by": "Turing",
+  "summary": "code-quality pass: deduplicate api helpers into app/api/deps.py, hoist inline imports, remove dead check and unused imports in api/sessions.py, hoist logging import, fix test hygiene, annotate RaisingFakeLLM.stream_chat, drop f prefix on plain string",
+  "files": {
+    "modified": [
+      "app/api/chat.py",
+      "app/api/learning.py",
+      "app/api/plans.py",
+      "app/api/teach.py",
+      "app/api/sessions.py",
+      "app/errors.py",
+      "app/llm/structured.py",
+      "app/services/sessions.py",
+      "app/services/plans.py",
+      "app/services/files.py",
+      "tests/test_db.py",
+      "tests/test_api_chat_sse.py",
+      "tests/fakes/fake_llm.py"
+    ],
+    "created": ["app/api/deps.py"],
+    "deleted": []
+  },
+  "base_commit": "3247b5f11448691f6db5fce6d879582016503906",
+  "committed_at": "",
+  "line_counts": {
+    "before": {
+      "app/api/deps.py": 0,
+      "app/api/chat.py": 83,
+      "app/api/learning.py": 59,
+      "app/api/plans.py": 117,
+      "app/api/teach.py": 106,
+      "app/api/sessions.py": 85,
+      "app/errors.py": 176,
+      "app/llm/structured.py": 318,
+      "app/services/sessions.py": 513,
+      "app/services/plans.py": 230,
+      "app/services/files.py": 259,
+      "tests/test_db.py": 171,
+      "tests/test_api_chat_sse.py": 339,
+      "tests/fakes/fake_llm.py": 102
+    },
+    "after": {
+      "app/api/deps.py": 16,
+      "app/api/chat.py": 77,
+      "app/api/learning.py": 53,
+      "app/api/plans.py": 107,
+      "app/api/teach.py": 96,
+      "app/api/sessions.py": 85,
+      "app/errors.py": 171,
+      "app/llm/structured.py": 317,
+      "app/services/sessions.py": 518,
+      "app/services/plans.py": 247,
+      "app/services/files.py": 276,
+      "tests/test_db.py": 180,
+      "tests/test_api_chat_sse.py": 338,
+      "tests/fakes/fake_llm.py": 111
+    }
+  },
+  "modules_created": ["app/api/deps.py"],
+  "documentation": [],
+  "final_report": "CQ1+CQ2: created app/api/deps.py with require_configured(settings) and handle_value_error(exc); all 4 api modules (chat, learning, plans, teach) now import and use them; local _require_configured/_handle_value_error copies deleted; learning.py inline ValueError->HTTPException replaced with handle_value_error. CQ3: deleted dead grounding_mode membership check in api/sessions.py patch_session; removed now-unused GROUNDING_MODES and HTTPException imports. CQ4: hoisted import logging to module top of app/errors.py; removed inline import in on_unhandled. CQ5: hoisted app.llm.messages imports (chunk_block, make_system_prompt) to module level in app/llm/structured.py (3 inline sites removed); hoisted summarize_mastery into app/services/sessions.py imports and inlined _config_problems wrapper (module-level validation_problems from app.config; 1 call site in turn() updated; wrapper deleted); hoisted TeachService into app/services/plans.py imports, removed inline import in skip_node. CQ6: tests/test_db.py hoisted import pytest to module top; renamed pytest_raises_foreign_key -> raises_foreign_key (plain function, no fixture decorator); updated 3 call sites. CQ7: tests/test_api_chat_sse.py hoisted import json to module top; removed inline import in for-loop. CQ8: app/services/files.py removed f prefix on plain conflict-error string. CQ10: tests/fakes/fake_llm.py RaisingFakeLLM.stream_chat fully annotated matching FakeLLM.stream_chat signature. VERIFICATION: python -m pytest tests/ -q -> 211 passed in 21.89s (0 failures); python -m compileall -q app tests tools -> OK; grep checks: 0 matches for 'def _require_configured', 'def _handle_value_error', 'def _config_problems', 'pytest_raises_foreign_key', indented 'import logging'/'import json'/'import pytest'; module-level 'from app.llm.messages import chunk_block, make_system_prompt' in structured.py, 'from app.services.mastery import summarize_mastery' and 'from app.config import Settings, validation_problems' in services/sessions.py, 'from app.services.teach import TeachService' in services/plans.py, 'from app.api.deps import' present in all 4 api modules. format_on_edit reflowed lines in touched files (allowed by task); no other refactors.",
+  "verification": "laika",
+  "notes": "pytest full suite run by writer: 211 passed, 0 failed. format_on_edit applied black-style rewrapping in touched files (services/files.py, services/plans.py, services/sessions.py, tests/test_db.py, tests/fakes/fake_llm.py, app/errors.py, app/llm/structured.py) — cosmetic only, no semantic change. sessions.py working tree was reformatted between read and edit (format_on_edit on save); edits reconciled against actual file content. app/main.py and tests/conftest.py/test_config.py LSP diagnostics observed are pre-existing and outside file set; not modified."
+}

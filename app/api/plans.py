@@ -2,26 +2,16 @@ from __future__ import annotations
 
 import sqlite3
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
-from app.config import Settings, get_app_settings, validation_problems
+from app.api.deps import handle_value_error, require_configured
+from app.config import Settings, get_app_settings
 from app.db import get_conn
-from app.errors import ConfigError
 from app.llm.client import LLMClient, get_llm_client
 from app.models import ExpandPlanBody, PlanNodeActionBody, ReorderPlanBody
 from app.services.plans import PlansService
 
 router = APIRouter()
-
-
-def _require_configured(settings: Settings) -> None:
-    problems = validation_problems(settings)
-    if problems:
-        raise ConfigError(problems)
-
-
-def _handle_value_error(exc: ValueError) -> HTTPException:
-    return HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/api/sessions/{session_id}/plan")
@@ -31,7 +21,7 @@ async def generate_plan(
     settings: Settings = Depends(get_app_settings),
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> dict:
-    _require_configured(settings)
+    require_configured(settings)
     return await PlansService(conn, settings).generate_plan(session_id, llm)
 
 
@@ -45,7 +35,7 @@ async def approve_plan(
     try:
         return service.approve(session_id)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/plan/reorder")
@@ -59,7 +49,7 @@ async def reorder_plan(
     try:
         return service.reorder(session_id, body.node_keys)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/plan/skip")
@@ -73,7 +63,7 @@ async def skip_plan_node(
     try:
         return service.skip_node(session_id, body.node_key)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/plan/expand")
@@ -84,12 +74,12 @@ async def expand_plan(
     settings: Settings = Depends(get_app_settings),
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> dict:
-    _require_configured(settings)
+    require_configured(settings)
     service = PlansService(conn, settings)
     try:
         return await service.expand(session_id, body.node_key, body.detail, llm)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/plan/regenerate")
@@ -99,7 +89,7 @@ async def regenerate_plan(
     settings: Settings = Depends(get_app_settings),
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> dict:
-    _require_configured(settings)
+    require_configured(settings)
     return await PlansService(conn, settings).regenerate(session_id, llm)
 
 
@@ -114,4 +104,4 @@ async def select_plan_node(
     try:
         return service.select_node(session_id, body.node_key)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)

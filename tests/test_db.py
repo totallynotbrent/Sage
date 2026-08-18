@@ -2,19 +2,26 @@ from __future__ import annotations
 
 import sqlite3
 
+import pytest
+
 from app.db import SCHEMA_VERSION, init_db
 
 TABLES = {
-    "files", "chunks", "sessions", "messages", "quiz_questions",
-    "plan_nodes", "feedback_actions", "mastery_topics", "preferences",
+    "files",
+    "chunks",
+    "sessions",
+    "messages",
+    "quiz_questions",
+    "plan_nodes",
+    "feedback_actions",
+    "mastery_topics",
+    "preferences",
     "schema_version",
 }
 
 
 def _table_names(conn: sqlite3.Connection) -> set[str]:
-    rows = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table'"
-    ).fetchall()
+    rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
     return {r["name"] for r in rows}
 
 
@@ -130,15 +137,13 @@ def test_file_delete_cascades_chunks(conn):
 
 
 def test_foreign_keys_enforced(conn):
-    with pytest_raises_foreign_key():
+    with raises_foreign_key():
         conn.execute(
             "INSERT INTO chunks (id, file_id, chunk_index, text) VALUES ('c1', 'ghost', 0, 'x')"
         )
 
 
-def pytest_raises_foreign_key():
-    import pytest
-
+def raises_foreign_key():
     return pytest.raises(sqlite3.IntegrityError)
 
 
@@ -150,9 +155,13 @@ def test_unique_file_chunk_index(conn):
         VALUES ('f1', 'n.md', 'f1.md', 10, 'y'*64, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')
         """
     )
-    conn.execute("INSERT INTO chunks (id, file_id, chunk_index, text) VALUES ('c1', 'f1', 0, 'a')")
-    with pytest_raises_foreign_key():
-        conn.execute("INSERT INTO chunks (id, file_id, chunk_index, text) VALUES ('c2', 'f1', 0, 'b')")
+    conn.execute(
+        "INSERT INTO chunks (id, file_id, chunk_index, text) VALUES ('c1', 'f1', 0, 'a')"
+    )
+    with raises_foreign_key():
+        conn.execute(
+            "INSERT INTO chunks (id, file_id, chunk_index, text) VALUES ('c2', 'f1', 0, 'b')"
+        )
 
 
 def test_messages_duplicate_physical_id_raises(conn):
@@ -165,7 +174,7 @@ def test_messages_duplicate_physical_id_raises(conn):
     conn.execute(
         "INSERT INTO messages (id, session_id, role, content, created_at) VALUES ('m', 's', 'user', 'x', '2026-01-01T00:00:00Z')"
     )
-    with pytest_raises_foreign_key():
+    with raises_foreign_key():
         conn.execute(
             "INSERT INTO messages (id, session_id, role, content, created_at) VALUES ('m', 's', 'user', 'x', '2026-01-01T00:00:00Z')"
         )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 
 from fastapi.testclient import TestClient
@@ -331,8 +332,6 @@ def test_sse_format_and_heartbeat_comment(client, override_llm, settings):
     parsed = 0
     for line in lines:
         if line.startswith("data: "):
-            import json
-
             payload = json.loads(line[6:])
             assert "type" in payload
             parsed += 1

@@ -8,6 +8,7 @@ from app.errors import ModelOutputError, NotFoundError
 from app.llm.structured import request_plan
 from app.models import Plan
 from app.services.sessions import SessionService, plan_node_dict
+from app.services.teach import TeachService
 from app.util import new_id, utc_now
 
 
@@ -37,7 +38,10 @@ class PlansService:
             raise error
         self._replace_nodes(session_id, plan)
         self.sessions.set_phase(session_id, "plan")
-        return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
+        return {
+            "session": self.sessions.get(session_id).model_dump(),
+            "plan": self._nodes(session_id),
+        }
 
     def approve(self, session_id: str) -> dict:
         session = self.sessions.get(session_id)
@@ -58,7 +62,10 @@ class PlansService:
             (next_node["id"], now, session_id),
         )
         self.conn.commit()
-        return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
+        return {
+            "session": self.sessions.get(session_id).model_dump(),
+            "plan": self._nodes(session_id),
+        }
 
     def reorder(self, session_id: str, node_keys: list[str]) -> dict:
         nodes = self._nodes(session_id)
@@ -71,7 +78,10 @@ class PlansService:
                 (index, session_id, node_key),
             )
         self.conn.commit()
-        return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
+        return {
+            "session": self.sessions.get(session_id).model_dump(),
+            "plan": self._nodes(session_id),
+        }
 
     def skip_node(self, session_id: str, node_key: str) -> dict:
         session = self.sessions.get(session_id)
@@ -89,8 +99,6 @@ class PlansService:
         self.conn.commit()
         if node["status"] == "current":
             if session.phase == "teach":
-                from app.services.teach import TeachService
-
                 TeachService(self.conn, self.settings).advance(session_id)
             else:
                 now = utc_now()
@@ -99,9 +107,14 @@ class PlansService:
                     (now, session_id),
                 )
                 self.conn.commit()
-        return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
+        return {
+            "session": self.sessions.get(session_id).model_dump(),
+            "plan": self._nodes(session_id),
+        }
 
-    async def expand(self, session_id: str, node_key: str, detail: str | None, llm) -> dict:
+    async def expand(
+        self, session_id: str, node_key: str, detail: str | None, llm
+    ) -> dict:
         session = self.sessions.get(session_id)
         row = self.conn.execute(
             "SELECT * FROM plan_nodes WHERE session_id = ? AND node_key = ?",
@@ -156,7 +169,10 @@ class PlansService:
             (json.dumps(parent_children), parent["id"], session_id),
         )
         self.conn.commit()
-        return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
+        return {
+            "session": self.sessions.get(session_id).model_dump(),
+            "plan": self._nodes(session_id),
+        }
 
     async def regenerate(self, session_id: str, llm) -> dict:
         self.sessions.get(session_id)
@@ -196,7 +212,10 @@ class PlansService:
             (node["id"], now, session_id),
         )
         self.conn.commit()
-        return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
+        return {
+            "session": self.sessions.get(session_id).model_dump(),
+            "plan": self._nodes(session_id),
+        }
 
     def _nodes(self, session_id: str) -> list[dict]:
         rows = self.conn.execute(
@@ -209,9 +228,7 @@ class PlansService:
         self.conn.execute("DELETE FROM plan_nodes WHERE session_id = ?", (session_id,))
         now = utc_now()
         for index, node in enumerate(plan.nodes):
-            children = [
-                n.node_key for n in plan.nodes if node.node_key in n.depends_on
-            ]
+            children = [n.node_key for n in plan.nodes if node.node_key in n.depends_on]
             self.conn.execute(
                 "INSERT INTO plan_nodes (id, session_id, node_key, title, description, "
                 "depends_on_json, status, position, children_json) "

@@ -7,7 +7,6 @@ from app.errors import GenerationCancelled, ProviderError
 
 
 class FakeLLM:
-
     def __init__(self) -> None:
         self._scripted: list[tuple[str, str]] = []
         self.complete_json_responses: list[str] = []
@@ -22,7 +21,9 @@ class FakeLLM:
 
     def _match(self, messages: list[dict]) -> str:
         joined = "\n".join(
-            (str(m.get("content") or "")) for m in messages if m.get("role") in ("user", "system")
+            (str(m.get("content") or ""))
+            for m in messages
+            if m.get("role") in ("user", "system")
         )
         for substring, text in reversed(self._scripted):
             if substring in joined:
@@ -59,9 +60,7 @@ class FakeLLM:
         max_tokens: int = 1200,
         temperature: float = 0.1,
     ) -> tuple[str | None, str | None]:
-        self.calls.append(
-            {"kind": "complete_json", "messages": list(messages)}
-        )
+        self.calls.append({"kind": "complete_json", "messages": list(messages)})
         if self.complete_json_responses:
             return (self.complete_json_responses.pop(0), None)
         return (self._match(messages), None)
@@ -91,12 +90,22 @@ class FakeLLM:
 
 
 class RaisingFakeLLM(FakeLLM):
-
     def __init__(self, error: Exception | None = None) -> None:
         super().__init__()
-        self.stream_error: Exception = error or ProviderError("upstream", "fake upstream error")
+        self.stream_error: Exception = error or ProviderError(
+            "upstream", "fake upstream error"
+        )
 
-    async def stream_chat(self, messages, *, max_tokens=1500, temperature=0.3,
-                          session_id=None, cancel_event=None):
-        self.calls.append({"kind": "stream", "session_id": session_id, "messages": list(messages)})
+    async def stream_chat(
+        self,
+        messages: list[dict],
+        *,
+        max_tokens: int = 1500,
+        temperature: float = 0.3,
+        session_id: str | None = None,
+        cancel_event: asyncio.Event | None = None,
+    ) -> AsyncIterator[str]:
+        self.calls.append(
+            {"kind": "stream", "session_id": session_id, "messages": list(messages)}
+        )
         raise self.stream_error

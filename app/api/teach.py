@@ -2,25 +2,15 @@ from __future__ import annotations
 
 import sqlite3
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
-from app.config import Settings, get_app_settings, validation_problems
+from app.api.deps import handle_value_error, require_configured
+from app.config import Settings, get_app_settings
 from app.db import get_conn
-from app.errors import ConfigError
 from app.llm.client import LLMClient, get_llm_client
 from app.services.teach import TeachService
 
 router = APIRouter()
-
-
-def _require_configured(settings: Settings) -> None:
-    problems = validation_problems(settings)
-    if problems:
-        raise ConfigError(problems)
-
-
-def _handle_value_error(exc: ValueError) -> HTTPException:
-    return HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/api/sessions/{session_id}/advance")
@@ -33,7 +23,7 @@ async def advance(
     try:
         return service.advance(session_id)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/continue")
@@ -46,7 +36,7 @@ async def continue_after_remediate(
     try:
         return service.continue_after_remediate(session_id)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/complete")
@@ -59,7 +49,7 @@ async def complete_session(
     try:
         return service.complete(session_id)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/quiz/{question_id}/hint")
@@ -70,12 +60,12 @@ async def quiz_hint(
     settings: Settings = Depends(get_app_settings),
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> dict:
-    _require_configured(settings)
+    require_configured(settings)
     service = TeachService(conn, settings)
     try:
         return await service.hint(session_id, question_id, llm)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/quiz/{question_id}/reveal")
@@ -89,7 +79,7 @@ async def quiz_reveal(
     try:
         return service.reveal(session_id, question_id)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)
 
 
 @router.post("/api/sessions/{session_id}/quiz/{question_id}/skip")
@@ -103,4 +93,4 @@ async def quiz_skip(
     try:
         return service.skip_quiz(session_id, question_id)
     except ValueError as exc:
-        raise _handle_value_error(exc)
+        raise handle_value_error(exc)

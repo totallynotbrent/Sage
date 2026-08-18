@@ -42,7 +42,6 @@ def sanitize_display_name(filename: str) -> str:
 
 
 class FileService:
-
     def __init__(self, conn: sqlite3.Connection, settings: Settings) -> None:
         self.conn = conn
         self.settings = settings
@@ -72,7 +71,7 @@ class FileService:
         ).fetchone()
         if existing is not None:
             raise ConflictError(
-                f"A file with identical content already exists in the library.",
+                "A file with identical content already exists in the library.",
                 detail={"file_id": existing["id"], "sha256": digest},
             )
 
@@ -90,21 +89,33 @@ class FileService:
         (self.uploads_dir / storage_name).write_bytes(content)
 
         now = utc_now()
-        mime_type = content_type or _MIME_BY_EXT.get(extension, "application/octet-stream")
+        mime_type = content_type or _MIME_BY_EXT.get(
+            extension, "application/octet-stream"
+        )
         self.conn.execute(
             """
             INSERT INTO files (id, display_name, storage_name, mime_type, size_bytes,
                                sha256, status, warnings, error, num_chunks, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, 'pending', '[]', NULL, 0, ?, ?)
             """,
-            (file_id, display_name, storage_name, mime_type, len(content),
-             digest, now, now),
+            (
+                file_id,
+                display_name,
+                storage_name,
+                mime_type,
+                len(content),
+                digest,
+                now,
+                now,
+            ),
         )
         self.conn.commit()
         return self._ingest(file_id)
 
     def _ingest(self, file_id: str) -> FileRecord:
-        row = self.conn.execute("SELECT * FROM files WHERE id = ?", (file_id,)).fetchone()
+        row = self.conn.execute(
+            "SELECT * FROM files WHERE id = ?", (file_id,)
+        ).fetchone()
         record = row_to_dict(row)
         if record is None:
             raise NotFoundError("file", file_id)
@@ -126,7 +137,9 @@ class FileService:
 
         try:
             extractor = get_extractor(extension)
-            result: ExtractionResult = extractor.extract(data, filename=record["display_name"])
+            result: ExtractionResult = extractor.extract(
+                data, filename=record["display_name"]
+            )
         except (ExtractionError, UnsupportedFormatError) as exc:
             return self._mark_failed(file_id, exc.message)
 
@@ -173,9 +186,7 @@ class FileService:
         return self.get(file_id)
 
     def _mark_failed(self, file_id: str, error: str) -> FileRecord:
-        self.conn.execute(
-            "DELETE FROM chunks WHERE file_id = ?", (file_id,)
-        )
+        self.conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
         self.conn.execute(
             "UPDATE files SET status='failed', error=?, num_chunks=0, updated_at=? WHERE id=?",
             (error[:2000], utc_now(), file_id),
@@ -190,14 +201,18 @@ class FileService:
         return [self._to_record(row_to_dict(r)) for r in rows]
 
     def get(self, file_id: str) -> FileRecord:
-        row = self.conn.execute("SELECT * FROM files WHERE id = ?", (file_id,)).fetchone()
+        row = self.conn.execute(
+            "SELECT * FROM files WHERE id = ?", (file_id,)
+        ).fetchone()
         record = row_to_dict(row)
         if record is None:
             raise NotFoundError("file", file_id)
         return self._to_record(record)
 
     def delete(self, file_id: str) -> None:
-        row = self.conn.execute("SELECT storage_name FROM files WHERE id = ?", (file_id,)).fetchone()
+        row = self.conn.execute(
+            "SELECT storage_name FROM files WHERE id = ?", (file_id,)
+        ).fetchone()
         if row is None:
             raise NotFoundError("file", file_id)
         blob = self.uploads_dir / row["storage_name"]
@@ -241,7 +256,9 @@ class FileService:
     def _to_record(record: dict) -> FileRecord:
         warnings = record.get("warnings") or "[]"
         try:
-            warnings_list = json.loads(warnings) if isinstance(warnings, str) else warnings
+            warnings_list = (
+                json.loads(warnings) if isinstance(warnings, str) else warnings
+            )
         except (json.JSONDecodeError, TypeError):
             warnings_list = []
         return FileRecord(
