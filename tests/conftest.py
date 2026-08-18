@@ -17,9 +17,9 @@ from tests.fakes.fake_llm import FakeLLM
 def settings(tmp_path) -> Settings:
     return Settings(
         data_dir=tmp_path / "data",
-        BROT_api_key="test-key",
-        BROT_base_url="http://127.0.0.1:9/v1",
-        BROT_model="test-model",
+        brot_api_key="test-key",
+        brot_base_url="http://127.0.0.1:9/v1",
+        brot_model="test-model",
         max_upload_mb=30,
         max_total_mb=500,
         chunk_chars=100,
@@ -62,7 +62,9 @@ def override_llm(app, fake_llm):
 
 
 def sse_events(response):
-    assert response.status_code == 200, f"expected 200, got {response.status_code}: {response.text[:300]}"
+    assert response.status_code == 200, (
+        f"expected 200, got {response.status_code}: {response.text[:300]}"
+    )
     for line in response.iter_lines():
         if line.startswith("data: "):
             yield json.loads(line[6:])

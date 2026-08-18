@@ -15,7 +15,7 @@ logger = logging.getLogger("app")
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
-    setup_logging(settings.BROT_api_key)
+    setup_logging(settings.brot_api_key)
     reset_llm_client()
 
     app = FastAPI(title="Sage", version="0.1.0")
@@ -27,12 +27,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     for problem in validation_problems(settings):
         logger.warning("Configuration problem: %s", problem)
     logger.info(
-        "Sage ready: data_dir=%s model=%s", settings.data_dir, settings.BROT_model
+        "Sage ready: data_dir=%s model=%s", settings.data_dir, settings.brot_model
     )
 
-    register_exception_handlers(app, secret=settings.BROT_api_key)
+    register_exception_handlers(app, secret=settings.brot_api_key)
 
-    from app.api import chat, files, learning, plans, preferences, sessions, system, teach
+    from app.api import (
+        chat,
+        files,
+        learning,
+        plans,
+        preferences,
+        sessions,
+        system,
+        teach,
+    )
 
     app.include_router(system.router)
     app.include_router(files.router)

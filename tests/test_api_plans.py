@@ -12,9 +12,24 @@ def _create_session(client, goal="learn algebra"):
 def _good_plan():
     return {
         "nodes": [
-            {"node_key": "k1", "title": "Basics", "description": "d1", "depends_on": []},
-            {"node_key": "k2", "title": "Advanced", "description": "d2", "depends_on": ["k1"]},
-            {"node_key": "k3", "title": "Expert", "description": "d3", "depends_on": ["k2"]},
+            {
+                "node_key": "k1",
+                "title": "Basics",
+                "description": "d1",
+                "depends_on": [],
+            },
+            {
+                "node_key": "k2",
+                "title": "Advanced",
+                "description": "d2",
+                "depends_on": ["k1"],
+            },
+            {
+                "node_key": "k3",
+                "title": "Expert",
+                "description": "d3",
+                "depends_on": ["k2"],
+            },
         ]
     }
 
@@ -124,8 +139,8 @@ def test_plan_config_missing_400(tmp_path):
 
     settings = Settings(
         data_dir=tmp_path / "data",
-        BROT_api_key="",
-        BROT_base_url="http://127.0.0.1:9/v1",
+        brot_api_key="",
+        brot_base_url="http://127.0.0.1:9/v1",
     )
     app = create_app(settings)
     with TestClient(app) as client:
@@ -209,7 +224,10 @@ def test_expand_endpoint(client, override_llm):
 
 def test_regenerate_endpoint(client, override_llm):
     session = _create_session(client)
-    override_llm.complete_json_responses = [json.dumps(_good_plan()), json.dumps(_good_plan())]
+    override_llm.complete_json_responses = [
+        json.dumps(_good_plan()),
+        json.dumps(_good_plan()),
+    ]
     _plan(client, session["id"])
     client.post(f"/api/sessions/{session['id']}/plan/approve", json={})
     response = client.post(f"/api/sessions/{session['id']}/plan/regenerate", json={})

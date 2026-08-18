@@ -28,12 +28,11 @@ GENERATION_TIMEOUT = httpx.Timeout(connect=30, read=900, write=60, pool=30)
 
 
 class LLMClient:
-
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        api_key = settings.BROT_api_key or "unset"
+        api_key = settings.brot_api_key or "unset"
         self._client = AsyncOpenAI(
-            base_url=settings.BROT_base_url,
+            base_url=settings.brot_base_url,
             api_key=api_key,
             timeout=GENERATION_TIMEOUT,
         )
@@ -79,7 +78,7 @@ class LLMClient:
         )
         try:
             stream = await self._client.chat.completions.create(
-                model=self._settings.BROT_model,
+                model=self._settings.brot_model,
                 messages=messages,
                 stream=True,
                 max_tokens=max_tokens,
@@ -124,7 +123,7 @@ class LLMClient:
     ) -> tuple[str | None, str | None]:
         try:
             response = await self._client.chat.completions.create(
-                model=self._settings.BROT_model,
+                model=self._settings.brot_model,
                 messages=messages,
                 stream=False,
                 max_tokens=max_tokens,
@@ -134,7 +133,10 @@ class LLMClient:
             return (content or "", None)
         except Exception as exc:  # noqa: BLE001 - normalize every failure
             provider_error = self._normalize(exc)
-            return (None, f"{provider_error.code}: {provider_error.detail or provider_error.message}")
+            return (
+                None,
+                f"{provider_error.code}: {provider_error.detail or provider_error.message}",
+            )
 
     async def quick_probe(self) -> tuple[bool, str]:
         now = time.monotonic()
@@ -144,7 +146,7 @@ class LLMClient:
         probe_client = self._client.with_options(timeout=_PROBE_TIMEOUT)
         try:
             await probe_client.chat.completions.create(
-                model=self._settings.BROT_model,
+                model=self._settings.brot_model,
                 messages=[{"role": "user", "content": "ping"}],
                 max_tokens=1,
                 temperature=0,
@@ -168,7 +170,11 @@ class LLMClient:
         if isinstance(exc, RateLimitError):
             headers = getattr(exc, "headers", None) or {}
             retry_after = headers.get("retry-after") or headers.get("Retry-After")
-            detail = f"retry-after={retry_after}" if retry_after else "retry the request later"
+            detail = (
+                f"retry-after={retry_after}"
+                if retry_after
+                else "retry the request later"
+            )
             return ProviderError(
                 "rate_limit",
                 "The model endpoint is rate-limited.",

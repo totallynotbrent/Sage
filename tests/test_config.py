@@ -5,9 +5,9 @@ from app.config import PLACEHOLDER_KEY, Settings, get_settings, validation_probl
 
 def test_defaults():
     settings = Settings(_env_file=None)
-    assert settings.BROT_base_url == "http://127.0.0.1:8877/v1"
-    assert settings.BROT_api_key == ""
-    assert settings.BROT_model == "deepseek/deepseek-v4-pro"
+    assert settings.brot_base_url == "http://127.0.0.1:8877/v1"
+    assert settings.brot_api_key == ""
+    assert settings.brot_model == "deepseek/deepseek-v4-pro"
     assert settings.host == "0.0.0.0"
     assert settings.port == 8000
     assert settings.max_upload_mb == 30
@@ -25,26 +25,28 @@ def test_db_and_uploads_paths(tmp_path):
 
 
 def test_missing_key_problem():
-    settings = Settings(BROT_api_key="", _env_file=None)
+    settings = Settings(brot_api_key="", _env_file=None)
     problems = validation_problems(settings)
     assert any("BROT_API_KEY" in p for p in problems)
 
 
 def test_placeholder_key_problem():
-    settings = Settings(BROT_api_key=PLACEHOLDER_KEY, _env_file=None)
+    settings = Settings(brot_api_key=PLACEHOLDER_KEY, _env_file=None)
     problems = validation_problems(settings)
     assert any("placeholder" in p for p in problems)
 
 
 def test_bad_url_problem():
-    settings = Settings(BROT_api_key="k", BROT_base_url="not-a-url", _env_file=None)
+    settings = Settings(brot_api_key="k", brot_base_url="not-a-url", _env_file=None)
     problems = validation_problems(settings)
     assert any("not a valid" in p for p in problems)
 
 
 def test_good_config_has_no_problems():
     settings = Settings(
-        BROT_api_key="some-key", BROT_base_url="http://127.0.0.1:8877/v1", _env_file=None
+        brot_api_key="some-key",
+        brot_base_url="http://127.0.0.1:8877/v1",
+        _env_file=None,
     )
     assert validation_problems(settings) == []
 
@@ -57,8 +59,8 @@ def test_env_overrides(monkeypatch):
     get_settings.cache_clear()
     try:
         settings = get_settings()
-        assert settings.BROT_base_url == "http://example.com:1234/v1"
-        assert settings.BROT_model == "some-model"
+        assert settings.brot_base_url == "http://example.com:1234/v1"
+        assert settings.brot_model == "some-model"
         assert settings.host == "127.0.0.1"
         assert settings.port == 9000
     finally:

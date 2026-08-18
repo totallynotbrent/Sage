@@ -11,16 +11,15 @@ PLACEHOLDER_KEY = "replace-with-your-local-key"
 
 
 class Settings(BaseSettings):
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
-    BROT_base_url: str = "http://127.0.0.1:8877/v1"
-    BROT_api_key: str = ""
-    BROT_model: str = "deepseek/deepseek-v4-pro"
+    brot_base_url: str = "http://127.0.0.1:8877/v1"
+    brot_api_key: str = ""
+    brot_model: str = "deepseek/deepseek-v4-pro"
 
     host: str = "0.0.0.0"
     port: int = 8000
@@ -54,7 +53,7 @@ def get_app_settings(request: Request) -> Settings:
 def validation_problems(settings: Settings) -> list[str]:
     problems: list[str] = []
 
-    key = (settings.BROT_api_key or "").strip()
+    key = (settings.brot_api_key or "").strip()
     if not key:
         problems.append(
             "BROT_API_KEY is not set. Copy .env.example to .env and fill it in."
@@ -65,13 +64,11 @@ def validation_problems(settings: Settings) -> list[str]:
             "your local BROT key."
         )
 
-    url = settings.BROT_base_url.strip()
+    url = settings.brot_base_url.strip()
     parsed = urlparse(url)
     if not url:
         problems.append("BROT_BASE_URL is empty.")
     elif parsed.scheme not in ("http", "https") or not parsed.netloc:
-        problems.append(
-            f"BROT_BASE_URL is not a valid http(s) URL: {url!r}"
-        )
+        problems.append(f"BROT_BASE_URL is not a valid http(s) URL: {url!r}")
 
     return problems
