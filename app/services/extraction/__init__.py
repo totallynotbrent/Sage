@@ -1,10 +1,3 @@
-"""Extraction handlers.
-
-Handlers import their backing libraries lazily inside guarded ``try/except``
-blocks; a missing library registers an unavailable extractor so dispatch stays
-actionable instead of raising ImportError.
-"""
-
 from __future__ import annotations
 
 from .base import EXTRACTORS, ExtractionResult, ExtractedUnit, Extractor, LocationInfo, get_extractor, register, register_unavailable  # noqa: F401

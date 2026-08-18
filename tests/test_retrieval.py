@@ -1,5 +1,3 @@
-"""Retrieval: ranking, budget, per-file cap, empty-query ordering."""
-
 from __future__ import annotations
 
 from app.services.retrieval import Retriever, tokenize

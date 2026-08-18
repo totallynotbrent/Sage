@@ -1,10 +1,3 @@
-"""Chat endpoints: streaming turns, stop, and retry (all SSE over POST).
-
-Streaming routes open their own SQLite connection (instead of the request-scoped
-dependency) because yield-dependencies are torn down before a StreamingResponse
-body is sent. The turn generators own and close that connection.
-"""
-
 from __future__ import annotations
 
 import sqlite3
@@ -36,12 +29,11 @@ async def stream_turn(
     llm: LLMClient = Depends(get_llm_client),
     settings: Settings = Depends(get_app_settings),
 ):
-    """Stream one assistant turn as an SSE event stream."""
     _require_configured(settings)
     conn = open_db(settings.db_path)
     service = SessionService(conn, settings)
     try:
-        service.get(session_id)  # 404 fast when the session is missing
+        service.get(session_id)
     except Exception:
         conn.close()
         raise
@@ -61,7 +53,6 @@ async def stop_generation(
     session_id: str,
     llm: LLMClient = Depends(get_llm_client),
 ) -> dict:
-    """Request cancellation of the session's in-flight generation."""
     llm.cancel_inflight(session_id)
     return {"ok": True}
 
@@ -74,7 +65,6 @@ async def retry_turn(
     llm: LLMClient = Depends(get_llm_client),
     settings: Settings = Depends(get_app_settings),
 ):
-    """Re-run a turn by its ``client_msg_id`` (idempotent, SSE stream)."""
     _require_configured(settings)
     conn = open_db(settings.db_path)
     service = SessionService(conn, settings)

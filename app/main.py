@@ -1,9 +1,3 @@
-"""Application factory: wiring and startup validation.
-
-The same FastAPI process exposes the JSON/SSE API only (no static frontend).
-Uploads live under ``DATA_DIR/uploads`` — never served by the API.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -20,12 +14,6 @@ logger = logging.getLogger("app")
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """Create and configure the Sage application.
-
-    ``settings`` is optional for tests; the process singleton is used otherwise.
-    Startup validation is non-fatal: configuration problems are logged and
-    surfaced via /api/health instead of preventing the app from booting.
-    """
     settings = settings or get_settings()
     setup_logging(settings.BROT_api_key)
     reset_llm_client()
@@ -33,7 +21,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Sage", version="0.1.0")
     app.state.settings = settings
 
-    # Startup validation (non-fatal).
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
     init_db(settings.db_path)

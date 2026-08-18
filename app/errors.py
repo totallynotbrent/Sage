@@ -1,14 +1,3 @@
-"""Domain exceptions and the JSON error handler.
-
-Every Sage error is serialized as::
-
-    {"error": {"code": ..., "message": ..., "detail": ..., "retryable": ...}}
-
-Provider errors carry a machine code (auth|rate_limit|timeout|connection|
-bad_request|upstream) that maps to an HTTP status. The API key is stripped
-from every message before it is returned to the client.
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -19,7 +8,6 @@ from fastapi.responses import JSONResponse
 
 from app.logging_setup import mask_secret
 
-#: Provider error code -> HTTP status.
 PROVIDER_STATUS = {
     "auth": 401,
     "rate_limit": 429,
@@ -29,12 +17,10 @@ PROVIDER_STATUS = {
     "upstream": 502,
 }
 
-#: Provider codes that a client retry may fix.
 RETRYABLE_CODES = {"rate_limit", "timeout", "connection", "upstream"}
 
 
 class SageError(Exception):
-    """Base class for all domain errors raised by Sage."""
 
     status_code = 500
     code = "internal_error"
@@ -47,7 +33,6 @@ class SageError(Exception):
 
 
 class ConfigError(SageError):
-    """The endpoint configuration is missing or invalid."""
 
     status_code = 400
     code = "config_error"
@@ -62,7 +47,6 @@ class ConfigError(SageError):
 
 
 class ProviderError(SageError):
-    """The configured model endpoint returned an error."""
 
     def __init__(
         self,
@@ -130,11 +114,6 @@ class ContextTooLongError(SageError):
 
 
 class GenerationCancelled(SageError):
-    """Raised internally when a generation is cancelled or the client goes away.
-
-    This never reaches the HTTP exception handler: streaming routes convert it
-    into an SSE ``error`` event.
-    """
 
     status_code = 499
     code = "cancelled"
@@ -153,7 +132,6 @@ def _error_body(code: str, message: str, detail: Any, retryable: bool) -> dict:
 
 
 def register_exception_handlers(app: FastAPI, secret: str = "") -> None:
-    """Attach JSON exception handlers to ``app`` for every Sage error shape."""
 
     @app.exception_handler(SageError)
     async def on_sage_error(request: Request, exc: SageError) -> JSONResponse:
@@ -187,7 +165,6 @@ def register_exception_handlers(app: FastAPI, secret: str = "") -> None:
 
     @app.exception_handler(Exception)
     async def on_unhandled(request: Request, exc: Exception) -> JSONResponse:
-        # Log the real error server-side; never leak internals to the client.
         import logging
 
         logging.getLogger("app").exception("Unhandled error on %s", request.url.path)

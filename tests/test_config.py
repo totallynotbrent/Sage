@@ -1,5 +1,3 @@
-"""Configuration defaults, env overrides, and validation problems."""
-
 from __future__ import annotations
 
 from app.config import PLACEHOLDER_KEY, Settings, get_settings, validation_problems

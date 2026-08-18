@@ -18,7 +18,6 @@ class PlansService:
         self.sessions = SessionService(conn, settings)
 
     async def generate_plan(self, session_id: str, llm) -> dict:
-        """Generate and persist a learning plan (idempotent per session)."""
         session = self.sessions.get(session_id)
         existing = self._nodes(session_id)
         if existing:
@@ -41,7 +40,6 @@ class PlansService:
         return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
 
     def approve(self, session_id: str) -> dict:
-        """Approve the plan: start teaching at the first pending node."""
         session = self.sessions.get(session_id)
         nodes = self._nodes(session_id)
         if not nodes:
@@ -63,7 +61,6 @@ class PlansService:
         return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
 
     def reorder(self, session_id: str, node_keys: list[str]) -> dict:
-        """Apply a new ordering over all plan nodes (exact key set required)."""
         nodes = self._nodes(session_id)
         keys = {n["node_key"] for n in nodes}
         if set(node_keys) != keys or len(node_keys) != len(keys):
@@ -77,7 +74,6 @@ class PlansService:
         return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
 
     def skip_node(self, session_id: str, node_key: str) -> dict:
-        """Skip a plan node; advances when the skipped node is the current one."""
         session = self.sessions.get(session_id)
         row = self.conn.execute(
             "SELECT * FROM plan_nodes WHERE session_id = ? AND node_key = ?",
@@ -106,7 +102,6 @@ class PlansService:
         return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
 
     async def expand(self, session_id: str, node_key: str, detail: str | None, llm) -> dict:
-        """Ask the model for sub-nodes of an existing node and append them."""
         session = self.sessions.get(session_id)
         row = self.conn.execute(
             "SELECT * FROM plan_nodes WHERE session_id = ? AND node_key = ?",
@@ -164,7 +159,6 @@ class PlansService:
         return {"session": self.sessions.get(session_id).model_dump(), "plan": self._nodes(session_id)}
 
     async def regenerate(self, session_id: str, llm) -> dict:
-        """Delete the current plan and generate a fresh one."""
         self.sessions.get(session_id)
         now = utc_now()
         self.conn.execute("DELETE FROM plan_nodes WHERE session_id = ?", (session_id,))
@@ -177,7 +171,6 @@ class PlansService:
         return await self.generate_plan(session_id, llm)
 
     def select_node(self, session_id: str, node_key: str) -> dict:
-        """Select any existing node as the current one and enter teach phase."""
         session = self.sessions.get(session_id)
         if not self._nodes(session_id):
             raise ValueError("no plan has been generated yet")

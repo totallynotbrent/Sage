@@ -1,6 +1,3 @@
-"""Chat SSE integration tests: event sequence, partial persistence, retry,
-dedupe, strict-mode insufficiency, and config rejection."""
-
 from __future__ import annotations
 
 import sqlite3
@@ -76,7 +73,6 @@ def test_turn_event_sequence(client, override_llm, settings):
     assert events[0]["chunks"][0]["chunk_id"] == chunk_id
     assert events[-1]["replayed"] is False
 
-    # Message persisted complete with the real citation.
     full = client.get(f"/api/sessions/{session['id']}").json()
     messages = full["messages"]
     assert messages[-1]["role"] == "assistant"
@@ -87,7 +83,6 @@ def test_turn_event_sequence(client, override_llm, settings):
 
 def test_turn_filters_fake_citations(client, override_llm, settings):
     session, chunk_id = _ready_session(client, settings)
-    # Model cites a chunk that was NOT sent — must be dropped.
     override_llm.script("group", f"answer [cit:{chunk_id}] [cit:bogus:0:9]")
 
     with client.stream(
@@ -123,7 +118,6 @@ def test_mid_stream_failure_persists_partial(client, override_llm, settings):
     assert error_event["type"] == "error"
     assert error_event["code"] == "upstream"
 
-    # Partial marker persisted with the client_msg_id; not exposed as complete.
     row = _message_row(settings, session["id"], "c3")
     assert row["partial"] == 1
     full = client.get(f"/api/sessions/{session['id']}").json()
@@ -145,7 +139,6 @@ def test_retry_regenerates_partial(client, override_llm, settings):
     assert events[-1]["type"] == "error"
     assert _message_row(settings, session["id"], "c4")["partial"] == 1
 
-    # Now the model succeeds; retry regenerates and completes.
     override_llm.fail_after = None
     override_llm.failure = ProviderError("upstream", "unused")
     override_llm.script("group", "A group has an identity element. [cit:" + chunk_id + "]")
@@ -175,7 +168,6 @@ def test_retry_completed_replays_done_only(client, override_llm, settings):
     ) as response:
         list(sse_events(response))
 
-    # Retrying a completed turn must only replay `done`, no model call.
     before = len(override_llm.calls)
     with client.stream(
         "POST",
@@ -200,7 +192,6 @@ def test_turn_duplicate_client_msg_id_replays_done(client, override_llm, setting
     ) as response:
         list(sse_events(response))
 
-    # Duplicate turn with the same client_msg_id: replay done, no model call.
     before = len(override_llm.calls)
     with client.stream(
         "POST",
@@ -213,14 +204,11 @@ def test_turn_duplicate_client_msg_id_replays_done(client, override_llm, setting
     assert events[0]["replayed"] is True
     assert len(override_llm.calls) == before
 
-    # Exactly one message row persisted for c6.
     full = client.get(f"/api/sessions/{session['id']}").json()
     assert len([m for m in full["messages"] if m["client_msg_id"] == "c6"]) == 1
 
 
 def test_strict_mode_insufficiency(client, override_llm):
-    # No ready files -> strict mode must emit the insufficiency notice without
-    # ever calling the model.
     session = _create_session(client, file_ids=[], goal="answer from sources only")
     client.patch(
         f"/api/sessions/{session['id']}",
@@ -241,7 +229,6 @@ def test_strict_mode_insufficiency(client, override_llm):
     assert "delta" in types
     assert types[-1] == "done"
     assert not any(e["type"] == "citation" for e in events)
-    # Model was never contacted.
     assert override_llm.calls == []
 
     full = client.get(f"/api/sessions/{session['id']}").json()
@@ -249,7 +236,6 @@ def test_strict_mode_insufficiency(client, override_llm):
 
 
 def test_grounded_mode_proceeds_without_chunks(client, override_llm, settings):
-    # Grounded mode with no ready files still calls the model.
     session = _create_session(client, file_ids=[], goal="anything")
     override_llm.script("anything", "general knowledge answer")
 
@@ -335,7 +321,6 @@ def test_sse_format_and_heartbeat_comment(client, override_llm, settings):
         assert response.headers.get("cache-control") == "no-cache"
         lines = list(response.iter_lines())
 
-    # Every data line carries a JSON payload with a type field.
     parsed = 0
     for line in lines:
         if line.startswith("data: "):
@@ -344,4 +329,4 @@ def test_sse_format_and_heartbeat_comment(client, override_llm, settings):
             payload = json.loads(line[6:])
             assert "type" in payload
             parsed += 1
-    assert parsed >= 3  # meta + delta + done
+    assert parsed >= 3

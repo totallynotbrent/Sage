@@ -1,5 +1,3 @@
-"""PPTX extraction via python-pptx: one unit per slide (concatenated shapes)."""
-
 from __future__ import annotations
 
 from io import BytesIO
@@ -25,7 +23,6 @@ else:
 
     @register("pptx")
     class PptxExtractor:
-        """Concatenate the text of every shape on each slide."""
 
         def extract(self, data: bytes, *, filename: str) -> ExtractionResult:
             try:

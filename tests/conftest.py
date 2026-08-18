@@ -1,9 +1,3 @@
-"""Shared test fixtures.
-
-Every test uses an isolated temporary DATA_DIR and a real (offline) FastAPI
-app; the LLM client dependency is swapped for a scripted fake.
-"""
-
 from __future__ import annotations
 
 import json
@@ -21,7 +15,6 @@ from tests.fakes.fake_llm import FakeLLM
 
 @pytest.fixture
 def settings(tmp_path) -> Settings:
-    """Isolated settings pointing at a throwaway data directory."""
     return Settings(
         data_dir=tmp_path / "data",
         BROT_api_key="test-key",
@@ -42,14 +35,12 @@ def app(settings) -> "object":
 
 @pytest.fixture
 def client(app):
-    """TestClient with lifespan enabled (DB initialized on enter)."""
     with TestClient(app) as test_client:
         yield test_client
 
 
 @pytest.fixture
 def conn(settings) -> sqlite3.Connection:
-    """A direct DB connection for service-level tests."""
     init_db(settings.db_path)
     connection = sqlite3.connect(str(settings.db_path), check_same_thread=False)
     connection.row_factory = sqlite3.Row
@@ -65,24 +56,21 @@ def fake_llm() -> FakeLLM:
 
 @pytest.fixture
 def override_llm(app, fake_llm):
-    """Swap the LLM dependency for a scripted fake."""
     app.dependency_overrides[get_llm_client] = lambda: fake_llm
     yield fake_llm
     app.dependency_overrides.clear()
 
 
 def sse_events(response):
-    """Consume a streaming response and yield parsed SSE event dicts."""
     assert response.status_code == 200, f"expected 200, got {response.status_code}: {response.text[:300]}"
     for line in response.iter_lines():
         if line.startswith("data: "):
             yield json.loads(line[6:])
         elif line.startswith(": "):
-            continue  # heartbeat comment
+            continue
 
 
 def upload_txt(client, name: str, text: str, content_type: str = "text/plain"):
-    """Upload a small text file through the API and return the FileRecord dict."""
     response = client.post(
         "/api/files",
         files={"files": (name, text.encode("utf-8"), content_type)},

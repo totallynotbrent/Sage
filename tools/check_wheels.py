@@ -1,18 +1,4 @@
 #!/usr/bin/env python3
-"""Preflight dependency check for Sage.
-
-Verifies that every package in requirements.txt can be downloaded as a
-wheel for the current platform, and that the extraction libraries import
-cleanly. On Linux (the deployment target) it additionally checks that
-downloaded wheels carry an ARM64/aarch64 tag or a platform-independent
-``any`` tag, so that a package without an ARM64 Python wheel fails fast
-at setup time instead of surfacing as a mid-session runtime traceback.
-
-Usage:
-    python tools/check_wheels.py
-
-Exit status is non-zero if any check fails.
-"""
 
 from __future__ import annotations
 
@@ -23,19 +9,15 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Packages that must import cleanly at runtime (used by /api/health too).
 EXTRACTION_LIBS = ["pymupdf", "docx", "pptx"]
 
-# Wheel filename tags that satisfy an ARM64/aarch64 Python install.
 ARM64_TAGS = ("aarch64", "arm64")
-# Pure-python wheels use ``py3-none-any`` / ``py2.py3-none-any`` tags.
 ANY_TAG = "any"
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
 def read_requirements() -> list[str]:
-    """Return non-comment, non-empty dependency lines from requirements.txt."""
     reqs: list[str] = []
     for raw in (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
         line = raw.strip()
@@ -50,14 +32,12 @@ def is_wheel(filename: str) -> bool:
 
 
 def wheel_is_arm64_ok(filename: str) -> bool:
-    """Return True when a wheel filename satisfies an aarch64 install."""
     if ANY_TAG in filename:
         return True
     return any(tag in filename for tag in ARM64_TAGS)
 
 
 def check_wheels(reqs: list[str]) -> list[str]:
-    """Download each requirement without deps and validate the artifacts."""
     problems: list[str] = []
     platform_system = platform.system()
     on_linux = platform_system == "Linux"
@@ -83,7 +63,6 @@ def check_wheels(reqs: list[str]) -> list[str]:
 
             artifacts = list(dest.glob("*"))
             dest = Path(dest)
-            # Reset dest for the next iteration.
             wheels = [a.name for a in artifacts if a.is_file() and is_wheel(a.name)]
             sdist = [a.name for a in artifacts if a.is_file() and a.name.endswith((".tar.gz", ".zip"))]
 
@@ -115,7 +94,6 @@ def check_wheels(reqs: list[str]) -> list[str]:
 
 
 def check_imports() -> list[str]:
-    """Import the extraction libraries and report any that are missing."""
     problems: list[str] = []
     for lib in EXTRACTION_LIBS:
         try:

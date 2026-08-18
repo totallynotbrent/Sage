@@ -1,5 +1,3 @@
-"""Structured model output: JSON parsing, plan and question validation, retry."""
-
 from __future__ import annotations
 
 import asyncio
@@ -19,9 +17,6 @@ from app.llm.structured import (
 from tests.fakes.fake_llm import FakeLLM
 
 
-# --------------------------------------------------------------------- #
-# parse_json
-# --------------------------------------------------------------------- #
 def test_parse_plain_json():
     assert parse_json('{"a": 1}') == {"a": 1}
     assert parse_json('[1, 2, 3]') == [1, 2, 3]
@@ -46,9 +41,6 @@ def test_parse_broken_raises():
         parse_json("")
 
 
-# --------------------------------------------------------------------- #
-# validate_plan
-# --------------------------------------------------------------------- #
 def test_validate_plan_ok():
     raw = {
         "nodes": [
@@ -97,9 +89,6 @@ def test_plan_from_fragments_rejects_duplicate_node_keys():
     assert _plan_from_fragments(raw) is None
 
 
-# --------------------------------------------------------------------- #
-# validate_questions
-# --------------------------------------------------------------------- #
 def _good_questions():
     return [
         {
@@ -139,7 +128,7 @@ def test_validate_questions_too_few_options_is_none():
 
 def test_validate_questions_mixed_bad_item_is_none():
     raw = _good_questions()
-    raw.append({"question": "broken"})  # no options
+    raw.append({"question": "broken"})
     assert validate_questions(raw) is None
 
 
@@ -149,15 +138,11 @@ def test_validate_questions_wrapped_in_dict():
 
 
 def test_validate_questions_rejects_idk_option_length():
-    # "I don't know" is appended by the server; an oversized options list fails.
     raw = _good_questions()
-    raw[0]["options"] = ["a", "b", "c", "d", "e", "f", "g"]  # 7 options
+    raw[0]["options"] = ["a", "b", "c", "d", "e", "f", "g"]
     assert validate_questions(raw) is None
 
 
-# --------------------------------------------------------------------- #
-# request_plan / request_questions with fake LLM
-# --------------------------------------------------------------------- #
 def _session():
     return {"id": "s1", "goal": "learn x", "phase": "setup", "grounding_mode": "grounded"}
 
@@ -188,7 +173,7 @@ def test_request_plan_corrective_retry():
         request_plan(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
     )
     assert plan is not None
-    assert len(llm.calls) == 2  # original + corrective retry
+    assert len(llm.calls) == 2
 
 
 def test_request_plan_degrades_to_outline():
@@ -202,7 +187,6 @@ def test_request_plan_degrades_to_outline():
     plan = asyncio.run(
         request_plan(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
     )
-    # Graceful degradation: linear outline from fragments.
     assert plan is not None
     assert [n.title for n in plan.nodes] == ["First"]
 
@@ -246,7 +230,6 @@ def test_request_questions_keeps_valid_questions():
     questions = asyncio.run(
         request_questions(llm, session=_session(), chunks=[], mastery_summary="", mode="grounded")
     )
-    # Only the valid question survives degradation.
     assert len(questions) == 1
     assert questions[0].question == "What is water?"
 
