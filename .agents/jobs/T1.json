@@ -1,0 +1,39 @@
+{
+  "task_id": "T1",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ses_t1_sage_writer",
+  "declared_at": "2026-08-18T23:15:00Z",
+  "finalized_by": "Turing",
+  "summary": "repo hygiene and secrets: created oc-issues.txt/oc-wants.txt/.gitattributes, gitignored harness state + !.env.example exception, removed hardcoded OPENCODE_SERVER_PASSWORD from oc.bat, made .env.example trackable, deleted stray docs/.agents/",
+  "files": {
+    "modified": [".gitignore", "oc.bat", ".env.example"],
+    "created": ["oc-issues.txt", "oc-wants.txt", ".gitattributes"],
+    "deleted": ["docs/.agents/"]
+  },
+  "base_commit": "00b67326d655e55ecb516fcb1fa221e93e6209d4",
+  "committed_at": "39e34017f79129cd2ae93db502126de4c14dbd64",
+  "line_counts": {
+    "before": {
+      ".gitignore": 33,
+      "oc.bat": 7,
+      ".env.example": 0,
+      "oc-issues.txt": 0,
+      "oc-wants.txt": 0,
+      ".gitattributes": 0
+    },
+    "after": {
+      ".gitignore": 41,
+      "oc.bat": 5,
+      ".env.example": 15,
+      "oc-issues.txt": 2,
+      "oc-wants.txt": 2,
+      ".gitattributes": 23
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T1 repo hygiene done on branch feature/conventions-audit-fix, commit 39e3401. Created oc-issues.txt (2 lines, no entries), oc-wants.txt (2 lines, no entries), .gitattributes (verbatim copy of canonical, byte-identical per git diff --no-index exit 0). .gitignore: appended oc-issues.txt, oc-wants.txt, .pytest_cache/, .agents/shared/, docs/.agents/ and added !.env.example after .env.* (all existing entries kept, LF endings preserved). oc.bat: removed line 6 `set \"OPENCODE_SERVER_PASSWORD=Brent8\"` plus its trailing blank line; grep confirms no OPENCODE_SERVER_PASSWORD= literal remains; CRLF preserved. docs/.agents/ deleted from disk (was untracked runtime state: shared/session_activity.json). .env.example was untracked+ignored before; now trackable via the negation rule and committed with unchanged content. Verification: git check-ignore returns IGNORED for oc-issues.txt, oc-wants.txt, .pytest_cache, .agents/shared/, docs/.agents/; NOT-IGNORED for oc.bat (tracked, correct); .env.example NOT ignored (exit 1, no output, shows as ?? in status). Committed only .gitignore, oc.bat, .env.example, .gitattributes in 39e3401; T2.json left dirty/unstaged (Hermes' append); .agents/shared/ and docs/.agents/ not staged. Deviations: session id not discoverable from env or swarm registry, recorded placeholder ses_t1_sage_writer; task text listed oc.bat among 'all ignored' targets but it is a tracked file that must not be ignored (it is not). pytest NOT run by this writer (verification=laika for a later stage).",
+  "verification": "laika",
+  "notes": "session_id is a placeholder (no env/spawn-registry discovery available); oc.bat password removed from working tree only — git history (base_commit 00b6732 and earlier) still contains it and must be flagged to the user separately; pytest NOT run by writer; line counts via newline-byte count of git blobs (wc -l semantics, wc binary absent)"
+}
