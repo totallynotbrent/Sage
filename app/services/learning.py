@@ -6,6 +6,7 @@ import sqlite3
 from app.config import Settings
 from app.db import rows_to_dicts
 from app.errors import ModelOutputError, NotFoundError
+from app.llm.notes import request_notes_questions
 from app.llm.structured import request_questions
 from app.models import QuizQuestionInput, Session
 from app.services import mastery
@@ -83,6 +84,54 @@ class LearningService:
             "questions": self._pending_questions(session_id, "check"),
         }
 
+    async def generate_notes_quiz(
+        self, session_id: str, llm, count: int = 3, subject: str | None = None
+    ) -> dict:
+        if count < 1 or count > 10:
+            raise ValueError("count must be between 1 and 10")
+        session = self.sessions.get(session_id)
+        existing = self._pending_questions(session_id, "notes")
+        if existing:
+            return {"session": session.model_dump(), "questions": existing}
+        self._delete_pending_questions(session_id, "notes")
+        seed_chunks = self._notes_seed_chunks(session, subject)
+        if not seed_chunks:
+            error = ModelOutputError(
+                "No notes chunks with structured environments are available "
+                "for this session."
+            )
+            error.retryable = True
+            raise error
+        questions = await request_notes_questions(
+            llm,
+            session=session.model_dump(),
+            seed_chunks=seed_chunks,
+            count=count,
+            subject=subject,
+        )
+        if len(questions) < count:
+            error = ModelOutputError("The model returned no usable notes questions.")
+            error.retryable = True
+            raise error
+        for question in questions:
+            self._insert_question(
+                session_id,
+                "notes",
+                QuizQuestionInput(
+                    question=question["question"],
+                    options=question["options"],
+                    correct_index=question["correct_index"],
+                    explanation=question.get("explanation"),
+                    topic=question.get("topic"),
+                    difficulty=question.get("difficulty", 3),
+                ),
+                source_ref=json.dumps(question["source_ref"]),
+            )
+        return {
+            "session": self.sessions.get(session_id).model_dump(),
+            "questions": self._pending_questions(session_id, "notes"),
+        }
+
     def answer_quiz(
         self,
         session_id: str,
@@ -98,18 +147,24 @@ class LearningService:
         if row is None:
             raise NotFoundError("question", question_id)
         question = dict(row)
-        if question["kind"] not in ("probe", "check"):
+        if question["kind"] not in ("probe", "check", "notes"):
             raise ValueError(f"question kind {question['kind']!r} cannot be answered")
         if question["status"] == "skipped":
             raise ValueError("this question was skipped and cannot be answered")
         try:
             options = json.loads(question["options_json"] or "[]")
         except (json.JSONDecodeError, TypeError) as exc:
-            raise ValueError("stored question options are corrupted and cannot be graded") from exc
+            raise ValueError(
+                "stored question options are corrupted and cannot be graded"
+            ) from exc
         idk_index = len(options) - 1
 
-        if not idk and (choice_index is None or choice_index < 0 or choice_index >= len(options)):
-            raise ValueError("choice_index is required and must be within the options range")
+        if not idk and (
+            choice_index is None or choice_index < 0 or choice_index >= len(options)
+        ):
+            raise ValueError(
+                "choice_index is required and must be within the options range"
+            )
         if idk or choice_index == idk_index:
             choice = -1
             outcome = "idk"
@@ -147,12 +202,23 @@ class LearningService:
             ).fetchone()
             if fresh is None:
                 raise NotFoundError("question", question_id)
-            return self._answer_response(session_id, dict(fresh), dict(fresh)["outcome"])
+            return self._answer_response(
+                session_id, dict(fresh), dict(fresh)["outcome"]
+            )
 
         question.update(
-            {"status": "answered", "user_choice": choice, "outcome": outcome, "answered_at": now}
+            {
+                "status": "answered",
+                "user_choice": choice,
+                "outcome": outcome,
+                "answered_at": now,
+            }
         )
-        source = "probe" if question["kind"] == "probe" else "check"
+        source = (
+            question["kind"]
+            if question["kind"] in ("probe", "check", "notes")
+            else "check"
+        )
         mastery.record_evidence(
             self.conn, question["topic"], source, outcome, question_id=question_id
         )
@@ -222,14 +288,29 @@ class LearningService:
         )
         self.conn.commit()
 
+    def _notes_seed_chunks(self, session: Session, subject: str | None) -> list[dict]:
+        ready_ids = self.sessions.files.get_ready_file_ids(session.file_ids)
+        ready_ids = self.sessions.files.expand_pairings(ready_ids)
+        chunks = self.sessions.files.get_chunks_for_files(ready_ids)
+        return [
+            chunk
+            for chunk in chunks
+            if chunk.get("environment") is not None
+            and (subject is None or chunk.get("subject") == subject)
+        ]
+
     def _insert_question(
-        self, session_id: str, kind: str, question: QuizQuestionInput
+        self,
+        session_id: str,
+        kind: str,
+        question: QuizQuestionInput,
+        source_ref: str | None = None,
     ) -> str:
         question_id = new_id()
         now = utc_now()
         options = list(question.options) + [IDK_OPTION]
         self.conn.execute(
-            "INSERT INTO quiz_questions (id, session_id, kind, topic, difficulty, question, options_json, correct_index, explanation, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
+            "INSERT INTO quiz_questions (id, session_id, kind, topic, difficulty, question, options_json, correct_index, explanation, source_ref, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
             (
                 question_id,
                 session_id,
@@ -240,6 +321,7 @@ class LearningService:
                 json.dumps(options),
                 question.correct_index,
                 question.explanation,
+                source_ref,
                 now,
             ),
         )

@@ -1,0 +1,42 @@
+{
+  "task_id": "T17.6",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ses_t17_6_sage_writer",
+  "declared_at": "2026-08-18T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Notes folder watcher: config watch_dirs/watch_scan_seconds; app/services/watcher.py (sync_watch_sources, scan_once, watcher_loop, list/delete); files.ingest_from_disk; app/api/watch.py + /api/files subject filter; main.py lifespan starts the loop guarded by a stop Event; tests.",
+  "files": {
+    "modified": ["app/config.py", "app/main.py", "app/api/files.py", "app/models.py", "app/services/files.py", "tests/test_config.py"],
+    "created": ["app/services/watcher.py", "app/api/watch.py", "tests/test_watcher.py"],
+    "deleted": []
+  },
+  "base_commit": "39dbdfd",
+  "committed_at": "6f03b56",
+  "line_counts": {
+    "before": {
+      "app/config.py": 74,
+      "app/main.py": 58,
+      "app/api/files.py": 113,
+      "app/models.py": 182,
+      "app/services/files.py": 368,
+      "tests/test_config.py": 67
+    },
+    "after": {
+      "app/config.py": 83,
+      "app/main.py": 74,
+      "app/api/files.py": 114,
+      "app/models.py": 186,
+      "app/services/files.py": 388,
+      "app/services/watcher.py": 150,
+      "app/api/watch.py": 76,
+      "tests/test_watcher.py": 191,
+      "tests/test_config.py": 81
+    }
+  },
+  "modules_created": ["app/services/watcher.py", "app/api/watch.py"],
+  "documentation": [],
+  "final_report": "T17.6 finalize (continuation session): verified the declared file set landed on disk and committed it as 6f03b56 (feat(watcher): notes folder watcher with config and scan api) on feature/latex-notes. config.py: watch_dirs (validation_alias SAGE_WATCH_DIRS, list) + watch_scan_seconds (validation_alias SAGE_WATCH_SCAN_SECONDS, default 300), SettingsConfigDict gains populate_by_name=True so tests can pass watch_dirs=... by field name. app/services/watcher.py: sync_watch_sources INSERT OR IGNORE per configured dir; list_watch_sources; delete_watch_source raises NotFoundError; scan_once walks the root recursively, hashes each allowed-extension file, ingests new (subject = first path segment), delete+re-ingests changed, skips unchanged, records missing-from-disk warnings; watcher_loop sleeps one full interval before the first scan (never races explicit POST /api/watch scans in tests) and iterates only enabled sources. files.py: FileService.ingest_from_disk(path, subject) resolving to absolute path and routing through save_upload with source_path+subject; list(subject=None) filters on subject. api/watch.py: GET/POST /api/watch, POST /api/watch/scan, DELETE /api/watch/{id}; POST /api/watch returns {source, scan} and scans immediately. api/files.py GET /api/files?subject=... main.py: lifespan starts watcher_loop with a stop Event, stops it on shutdown (10s timeout then cancel); watch router included. Two test bugs found and fixed inside the declared set before committing: (1) scan_once returned a summary without the warnings key while test_missing_from_disk_keeps_file_with_warning asserted summary['warnings'] — _finish_scan now returns {**summary, 'warnings': warnings} (the API response carries warnings; last_error still persists them to the row); (2) test_delete_watch_source_removes_row called _single_source with the fixture settings whose watch_dirs is [] so no source was synced — it now uses _watcher_settings with a tmp root. Verified: tests/test_watcher.py test_config.py test_api_files.py test_api_learning.py test_api_chat_sse.py 57 passed; full offline suite 250 passed (242 at T17.5 + 8 new watcher/api tests; test_watcher.py holds 8 tests, 1 grew in test_config). Job log .agents/jobs/T17.6.json. TASK STATUS: T17.6 -> done.",
+  "verification": "laika",
+  "notes": "Finalizing session (continuation): the T17.6 files landed uncommitted in the working tree by the prior writer; this session fixed the two test bugs above, committed, and finalized the log. app/services/files.py is in the set because the plan places ingest_from_disk under the watcher work. Job logs for T16/T17.1-T17.6 were left untracked by the prior sessions and will be committed in a final chore(jobs) commit after T17.8."
+}

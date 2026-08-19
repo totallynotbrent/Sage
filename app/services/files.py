@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sqlite3
 from pathlib import Path
@@ -21,7 +22,7 @@ from app.services.chunking import chunk_units
 from app.services.extraction.base import ExtractionResult, get_extractor
 from app.util import new_id, utc_now
 
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".md", ".txt", ".markdown"}
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".md", ".txt", ".markdown", ".tex"}
 
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
@@ -32,12 +33,15 @@ _MIME_BY_EXT = {
     ".md": "text/markdown",
     ".markdown": "text/markdown",
     ".txt": "text/plain",
+    ".tex": "text/x-tex",
 }
 
 
 def sanitize_display_name(filename: str) -> str:
     name = Path(filename or "").name
     name = _CONTROL_CHARS.sub("", name).strip()
+    if re.search(r"\[/?doc\]", filename or "", flags=re.IGNORECASE):
+        raise ValueError("file names may not contain [DOC] or [/DOC] markers")
     return name or "untitled"
 
 
@@ -49,7 +53,13 @@ class FileService:
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
     def save_upload(
-        self, *, filename: str, content: bytes, content_type: str | None = None
+        self,
+        *,
+        filename: str,
+        content: bytes,
+        content_type: str | None = None,
+        source_path: str | None = None,
+        subject: str | None = None,
     ) -> FileRecord:
         display_name = sanitize_display_name(filename)
         extension = Path(display_name).suffix.lower()
@@ -95,8 +105,10 @@ class FileService:
         self.conn.execute(
             """
             INSERT INTO files (id, display_name, storage_name, mime_type, size_bytes,
-                               sha256, status, warnings, error, num_chunks, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending', '[]', NULL, 0, ?, ?)
+                               sha256, status, warnings, error, num_chunks,
+                               paired_file_id, subject, source_path,
+                               created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', '[]', NULL, 0, NULL, ?, ?, ?, ?)
             """,
             (
                 file_id,
@@ -105,6 +117,8 @@ class FileService:
                 mime_type,
                 len(content),
                 digest,
+                subject,
+                source_path,
                 now,
                 now,
             ),
@@ -154,10 +168,10 @@ class FileService:
         )
         self.conn.executemany(
             """
-            INSERT INTO chunks (id, file_id, chunk_index, text, location_kind,
-                                page, slide, section, start_line, end_line,
-                                char_start, char_end)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO chunks (id, file_id, chunk_index, text, unicode_text,
+                                environment, label, location_kind, page, slide,
+                                section, start_line, end_line, char_start, char_end)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
@@ -165,6 +179,9 @@ class FileService:
                     file_id,
                     chunk.chunk_index,
                     chunk.text,
+                    chunk.unicode_text,
+                    chunk.location.environment if chunk.location else None,
+                    chunk.location.label if chunk.location else None,
                     chunk.location.kind if chunk.location else None,
                     chunk.location.page if chunk.location else None,
                     chunk.location.slide if chunk.location else None,
@@ -183,7 +200,45 @@ class FileService:
             (status, json.dumps(result.warnings), len(chunks), utc_now(), file_id),
         )
         self.conn.commit()
+        self._pair(file_id)
         return self.get(file_id)
+
+    def _pair(self, file_id: str) -> None:
+        row = self.conn.execute(
+            "SELECT display_name FROM files WHERE id = ?", (file_id,)
+        ).fetchone()
+        if row is None:
+            return
+        display_name = row["display_name"]
+        stem = Path(display_name).stem
+        own_suffix = Path(display_name).suffix.lower()
+        candidates = self.conn.execute(
+            "SELECT id, display_name FROM files WHERE id != ? ORDER BY rowid",
+            (file_id,),
+        ).fetchall()
+        match_id: str | None = None
+        for candidate in candidates:
+            other_name = candidate["display_name"]
+            if (
+                Path(other_name).stem == stem
+                and Path(other_name).suffix.lower() != own_suffix
+            ):
+                match_id = candidate["id"]
+                break
+        if match_id is not None:
+            self.conn.execute(
+                "UPDATE files SET paired_file_id = ? WHERE id = ?",
+                (match_id, file_id),
+            )
+            self.conn.execute(
+                "UPDATE files SET paired_file_id = ? WHERE id = ?",
+                (file_id, match_id),
+            )
+        else:
+            self.conn.execute(
+                "UPDATE files SET paired_file_id = NULL WHERE id = ?", (file_id,)
+            )
+        self.conn.commit()
 
     def _mark_failed(self, file_id: str, error: str) -> FileRecord:
         self.conn.execute("DELETE FROM chunks WHERE file_id = ?", (file_id,))
@@ -192,12 +247,19 @@ class FileService:
             (error[:2000], utc_now(), file_id),
         )
         self.conn.commit()
+        self._pair(file_id)
         return self.get(file_id)
 
-    def list(self) -> list[FileRecord]:
-        rows = self.conn.execute(
-            "SELECT * FROM files ORDER BY created_at DESC"
-        ).fetchall()
+    def list(self, subject: str | None = None) -> list[FileRecord]:
+        if subject is not None:
+            rows = self.conn.execute(
+                "SELECT * FROM files WHERE subject = ? ORDER BY created_at DESC",
+                (subject,),
+            ).fetchall()
+        else:
+            rows = self.conn.execute(
+                "SELECT * FROM files ORDER BY created_at DESC"
+            ).fetchall()
         return [self._to_record(row_to_dict(r)) for r in rows]
 
     def get(self, file_id: str) -> FileRecord:
@@ -211,10 +273,16 @@ class FileService:
 
     def delete(self, file_id: str) -> None:
         row = self.conn.execute(
-            "SELECT storage_name FROM files WHERE id = ?", (file_id,)
+            "SELECT storage_name, paired_file_id FROM files WHERE id = ?",
+            (file_id,),
         ).fetchone()
         if row is None:
             raise NotFoundError("file", file_id)
+        if row["paired_file_id"]:
+            self.conn.execute(
+                "UPDATE files SET paired_file_id = NULL WHERE id = ?",
+                (row["paired_file_id"],),
+            )
         blob = self.uploads_dir / row["storage_name"]
         try:
             blob.unlink(missing_ok=True)
@@ -226,6 +294,52 @@ class FileService:
     def retry(self, file_id: str) -> FileRecord:
         self.get(file_id)
         return self._ingest(file_id)
+
+    def ingest_from_disk(
+        self, path: str, subject: str | None = None, root: str | None = None
+    ) -> FileRecord:
+        candidate = Path(path)
+        if candidate.is_symlink():
+            raise ValueError(f"refusing to ingest symlink: {path}")
+        abs_path = str(candidate.resolve())
+        blob = Path(abs_path)
+        if blob.is_symlink():
+            raise ValueError(f"refusing to ingest symlink target: {path}")
+        if not blob.is_file():
+            raise NotFoundError("file on disk", path)
+        if root is not None:
+            resolved_root = str(Path(root).resolve())
+            try:
+                common = os.path.commonpath([abs_path, resolved_root])
+            except ValueError:
+                common = ""
+            if common != resolved_root:
+                raise ValueError(f"file resolves outside watched root: {path}")
+        if blob.stat().st_size > self.settings.max_upload_mb * 1024 * 1024:
+            raise FileTooLargeError(
+                f"File {blob.name!r} exceeds the {self.settings.max_upload_mb} MB "
+                "per-file limit."
+            )
+        content = blob.read_bytes()
+        return self.save_upload(
+            filename=blob.name,
+            content=content,
+            content_type=_MIME_BY_EXT.get(blob.suffix.lower()),
+            source_path=abs_path,
+            subject=subject,
+        )
+
+    def replace_from_disk(
+        self,
+        path: str,
+        old_file_id: str,
+        subject: str | None = None,
+        root: str | None = None,
+    ) -> FileRecord:
+        record = self.ingest_from_disk(path, subject, root=root)
+        self.delete(old_file_id)
+        self._pair(record.id)
+        return record
 
     def get_ready_file_ids(self, file_ids: list[str]) -> list[str]:
         if not file_ids:
@@ -243,14 +357,44 @@ class FileService:
         placeholders = ",".join("?" * len(file_ids))
         rows = self.conn.execute(
             f"""
-            SELECT c.*, f.display_name AS file_name
-            FROM chunks c JOIN files f ON f.id = c.file_id
+            SELECT c.*, f.display_name AS file_name, f.subject AS subject,
+                   fp.display_name AS pair_display_name
+            FROM chunks c
+            JOIN files f ON f.id = c.file_id
+            LEFT JOIN files fp ON fp.id = f.paired_file_id AND fp.status = 'ready'
             WHERE c.file_id IN ({placeholders})
             ORDER BY c.file_id, c.chunk_index
             """,
             file_ids,
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def expand_pairings(self, file_ids: list[str]) -> list[str]:
+        if not file_ids:
+            return []
+        placeholders = ",".join("?" * len(file_ids))
+        rows = self.conn.execute(
+            f"""
+            SELECT paired_file_id FROM files
+            WHERE id IN ({placeholders})
+              AND paired_file_id IS NOT NULL
+              AND paired_file_id IN (SELECT id FROM files WHERE status = 'ready')
+            """,
+            file_ids,
+        ).fetchall()
+        expanded = list(file_ids)
+        for row in rows:
+            pair_id = row["paired_file_id"]
+            if pair_id not in expanded:
+                expanded.append(pair_id)
+        return expanded
+
+    def get_subjects(self) -> list[str]:
+        rows = self.conn.execute(
+            "SELECT DISTINCT subject FROM files "
+            "WHERE subject IS NOT NULL AND subject != '' ORDER BY subject"
+        ).fetchall()
+        return [r["subject"] for r in rows]
 
     @staticmethod
     def _to_record(record: dict) -> FileRecord:
@@ -271,6 +415,9 @@ class FileService:
             warnings=warnings_list,
             error=record.get("error"),
             num_chunks=record.get("num_chunks", 0),
+            paired_file_id=record.get("paired_file_id"),
+            subject=record.get("subject"),
+            source_path=record.get("source_path"),
             created_at=record["created_at"],
             updated_at=record["updated_at"],
         )

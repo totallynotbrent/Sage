@@ -16,6 +16,7 @@ TABLES = {
     "feedback_actions",
     "mastery_topics",
     "preferences",
+    "watch_sources",
     "schema_version",
 }
 
@@ -90,6 +91,68 @@ def test_init_migrates_nodes_since_check(settings):
     try:
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(sessions)")}
         assert "nodes_since_check" in cols
+    finally:
+        conn.close()
+
+
+def test_init_migrates_v1_db_to_v2(settings):
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(settings.db_path))
+    conn.executescript(
+        """
+        CREATE TABLE files (
+            id TEXT PRIMARY KEY, display_name TEXT NOT NULL,
+            storage_name TEXT NOT NULL, mime_type TEXT, size_bytes INTEGER NOT NULL,
+            sha256 TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+            warnings TEXT NOT NULL DEFAULT '[]', error TEXT,
+            num_chunks INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE TABLE chunks (
+            id TEXT PRIMARY KEY, file_id TEXT NOT NULL, chunk_index INTEGER NOT NULL,
+            text TEXT NOT NULL, location_kind TEXT, page INTEGER, slide INTEGER,
+            section TEXT, start_line INTEGER, end_line INTEGER,
+            char_start INTEGER, char_end INTEGER, UNIQUE (file_id, chunk_index)
+        );
+        CREATE TABLE quiz_questions (
+            id TEXT PRIMARY KEY, session_id TEXT NOT NULL, kind TEXT NOT NULL,
+            topic TEXT, difficulty INTEGER, question TEXT NOT NULL,
+            options_json TEXT NOT NULL, correct_index INTEGER NOT NULL,
+            explanation TEXT, status TEXT NOT NULL DEFAULT 'pending',
+            user_choice INTEGER, outcome TEXT, created_at TEXT NOT NULL,
+            answered_at TEXT
+        );
+        """
+    )
+    conn.commit()
+    conn.close()
+    init_db(settings.db_path)
+    conn = sqlite3.connect(str(settings.db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        version = conn.execute("SELECT version FROM schema_version").fetchone()[0]
+        assert version == SCHEMA_VERSION
+        assert version == 2
+        files_cols = {r["name"] for r in conn.execute("PRAGMA table_info(files)")}
+        for name in ("paired_file_id", "subject", "source_path"):
+            assert name in files_cols
+        chunks_cols = {r["name"] for r in conn.execute("PRAGMA table_info(chunks)")}
+        for name in ("unicode_text", "environment", "label"):
+            assert name in chunks_cols
+        quiz_cols = {
+            r["name"] for r in conn.execute("PRAGMA table_info(quiz_questions)")
+        }
+        assert "source_ref" in quiz_cols
+        watch = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='watch_sources'"
+        ).fetchone()
+        assert watch is not None
+        indexes = {
+            r["name"]
+            for r in conn.execute("SELECT name FROM sqlite_master WHERE type='index'")
+        }
+        assert "idx_files_subject" in indexes
+        assert "idx_files_source_path" in indexes
     finally:
         conn.close()
 

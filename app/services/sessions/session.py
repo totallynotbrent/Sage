@@ -206,6 +206,7 @@ class SessionService(TurnMixin):
 
     def _select_chunks(self, session: Session, user_text: str) -> list[dict]:
         ready_ids = self.files.get_ready_file_ids(session.file_ids)
+        ready_ids = self.files.expand_pairings(ready_ids)
         all_chunks = self.files.get_chunks_for_files(ready_ids)
         query = f"{session.goal}\n{user_text}"
         return self.retriever.select(

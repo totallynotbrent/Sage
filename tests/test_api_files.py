@@ -10,7 +10,8 @@ def _chunk_ids(settings, file_id: str) -> list[str]:
     conn.row_factory = sqlite3.Row
     try:
         rows = conn.execute(
-            "SELECT id, text FROM chunks WHERE file_id=? ORDER BY chunk_index", (file_id,)
+            "SELECT id, text FROM chunks WHERE file_id=? ORDER BY chunk_index",
+            (file_id,),
         ).fetchall()
         return [r["id"] for r in rows]
     finally:
@@ -18,7 +19,9 @@ def _chunk_ids(settings, file_id: str) -> list[str]:
 
 
 def test_upload_list_detail(client):
-    record = upload_txt(client, "notes.md", "# Title\n\nBody about biology cells.", "text/markdown")
+    record = upload_txt(
+        client, "notes.md", "# Title\n\nBody about biology cells.", "text/markdown"
+    )
     assert record["status"] == "ready"
     assert record["num_chunks"] >= 1
     assert len(record["warnings"]) == 0
@@ -64,6 +67,20 @@ def test_upload_unsupported_returns_415(client):
     )
     assert response.status_code == 415
     assert response.json()["error"]["code"] == "unsupported_format"
+
+
+def test_upload_doc_marker_filename_returns_400(client):
+    response = client.post(
+        "/api/files",
+        files={"files": ("[DOC]notes.txt", b"content", "text/plain")},
+    )
+    assert response.status_code == 400
+    assert "[DOC]" in response.json()["error"]["message"]
+    response = client.post(
+        "/api/files",
+        files={"files": ("[/doc]notes.md", b"content", "text/markdown")},
+    )
+    assert response.status_code == 400
 
 
 def test_upload_empty_file_fails_extraction(client):

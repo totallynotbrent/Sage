@@ -7,7 +7,6 @@ from app.services.extraction.base import LocationInfo
 
 @dataclass
 class Chunk:
-
     id: str
     file_id: str
     chunk_index: int
@@ -15,6 +14,7 @@ class Chunk:
     location: LocationInfo | None
     char_start: int
     char_end: int
+    unicode_text: str | None = None
 
 
 def chunk_units(
@@ -45,6 +45,7 @@ def chunk_units(
                     location=unit.location,
                     char_start=start,
                     char_end=end,
+                    unicode_text=getattr(unit, "unicode_text", None),
                 )
             )
     return chunks

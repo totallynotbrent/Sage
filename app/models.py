@@ -8,7 +8,6 @@ GroundingMode = Literal["strict", "grounded"]
 
 
 class FileRecord(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -20,19 +19,20 @@ class FileRecord(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     error: str | None = None
     num_chunks: int = 0
+    paired_file_id: str | None = None
+    subject: str | None = None
+    source_path: str | None = None
     created_at: str
     updated_at: str
 
 
 class SessionCreate(BaseModel):
-
     goal: str = Field(min_length=1, max_length=2000)
     file_ids: list[str] = Field(default_factory=list)
     grounding_mode: GroundingMode = "grounded"
 
 
 class Session(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -48,7 +48,6 @@ class Session(BaseModel):
 
 
 class Message(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -63,7 +62,6 @@ class Message(BaseModel):
 
 
 class HealthReport(BaseModel):
-
     status: Literal["ok", "degraded", "error"]
     model_configured: bool
     endpoint_reachable: bool | None = None
@@ -72,7 +70,6 @@ class HealthReport(BaseModel):
 
 
 class QuizQuestionInput(BaseModel):
-
     topic: str | None = None
     difficulty: int = 3
     question: str = Field(min_length=1)
@@ -85,7 +82,6 @@ class QuizQuestionInput(BaseModel):
 
 
 class QuizQuestion(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -97,6 +93,7 @@ class QuizQuestion(BaseModel):
     options: list[str]
     correct_index: int
     explanation: str | None = None
+    source_ref: str | None = None
     status: str = "pending"
     user_choice: int | None = None
     outcome: str | None = None
@@ -105,7 +102,6 @@ class QuizQuestion(BaseModel):
 
 
 class PlanNode(BaseModel):
-
     node_key: str = Field(min_length=1)
     title: str = Field(min_length=1)
     description: str | None = None
@@ -116,7 +112,6 @@ class PlanNode(BaseModel):
 
 
 class Plan(BaseModel):
-
     nodes: list[PlanNode]
 
     def validate_dependencies(self) -> bool:
@@ -125,7 +120,6 @@ class Plan(BaseModel):
 
 
 class MasteryTopic(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
 
     topic: str
@@ -140,13 +134,11 @@ class MasteryTopic(BaseModel):
 
 
 class TurnBody(BaseModel):
-
     message: str = Field(min_length=1, max_length=8000)
     client_msg_id: str = Field(min_length=1, max_length=200)
 
 
 class RetryBody(BaseModel):
-
     client_msg_id: str = Field(min_length=1, max_length=200)
 
 
@@ -158,29 +150,34 @@ class CheckBody(BaseModel):
     pass
 
 
+class NotesQuizBody(BaseModel):
+    count: int = 3
+    subject: str | None = None
+
+
 class QuizAnswerBody(BaseModel):
     choice_index: int | None = None
     idk: bool = False
 
 
-class ReorderPlanBody(BaseModel):
+class WatchBody(BaseModel):
+    path: str = Field(min_length=1)
 
+
+class ReorderPlanBody(BaseModel):
     node_keys: list[str] = Field(min_length=1)
 
 
 class PlanNodeActionBody(BaseModel):
-
     node_key: str = Field(min_length=1)
 
 
 class ExpandPlanBody(BaseModel):
-
     node_key: str = Field(min_length=1)
     detail: str | None = None
 
 
 class PreferencesBody(BaseModel):
-
     depth: Literal["brief", "standard", "deep"] | None = None
     pacing: Literal["slow", "normal", "fast"] | None = None
     style: Literal["analogy-first", "examples-first", "formal-first"] | None = None
@@ -188,7 +185,6 @@ class PreferencesBody(BaseModel):
 
 
 class Preferences(BaseModel):
-
     depth: Literal["brief", "standard", "deep"]
     pacing: Literal["slow", "normal", "fast"]
     style: Literal["analogy-first", "examples-first", "formal-first"]

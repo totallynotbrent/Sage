@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings
@@ -336,3 +337,59 @@ def test_sse_format_and_heartbeat_comment(client, override_llm, settings):
             assert "type" in payload
             parsed += 1
     assert parsed >= 3
+
+
+def test_environment_location_and_pair_in_citation_meta(client, override_llm):
+    pytest.importorskip("pylatexenc")
+    pymupdf = pytest.importorskip("pymupdf")
+
+    tex_source = (
+        "\\documentclass{article}\n"
+        "\\begin{document}\n"
+        "\\section{Rolle's Theorem}\n"
+        "\\begin{theorem}[Rolle]\n"
+        "If $f$ is continuous then $\\int_a^b f(x)\\,dx$ exists.\n"
+        "\\label{thm:rolle}\n"
+        "\\end{theorem}\n"
+        "\\end{document}\n"
+    )
+    tex_response = client.post(
+        "/api/files",
+        files={"files": ("calc.tex", tex_source.encode("utf-8"), "text/x-tex")},
+    )
+    assert tex_response.status_code == 200, tex_response.text
+    tex_record = tex_response.json()[0]
+
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "Calculus notes on Rolle's theorem")
+    pdf_response = client.post(
+        "/api/files",
+        files={"files": ("calc.pdf", document.tobytes(), "application/pdf")},
+    )
+    assert pdf_response.status_code == 200, pdf_response.text
+    pdf_record = pdf_response.json()[0]
+
+    session = _create_session(client, [tex_record["id"]], goal="learn analysis")
+    override_llm.script("continuous", "Rolle's theorem is stated in the notes.")
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "continuous integral exists", "client_msg_id": "c12"},
+    ) as response:
+        events = list(sse_events(response))
+
+    meta_chunks = events[0]["chunks"]
+    assert any("Theorem (thm:rolle)" in c["location"] for c in meta_chunks)
+    assert any("section" in c["location"] for c in meta_chunks)
+
+    user_messages = [
+        m["content"]
+        for call in override_llm.calls
+        for m in call["messages"]
+        if m.get("role") == "user"
+    ]
+    joined = "\n".join(user_messages)
+    assert f'pair="{pdf_record["display_name"]}"' in joined
+    assert f'file="{tex_record["display_name"]}"' in joined

@@ -8,7 +8,11 @@ python -m pytest tests/ -q
 
 All tests run offline (no live model required); the LLM is faked. The
 extraction tests generate tiny PDF/DOCX/PPTX fixtures on the fly and skip
-gracefully if a library is unavailable.
+gracefully if a library is unavailable; the tex extractor tests skip when
+`pylatexenc` is not installed (`pytest.importorskip`). The suite also covers
+the math-aware tokenizer, the notes folder watcher (`tests/test_watcher.py`),
+and the notes quiz (`tests/test_notes_quiz.py`, including the answerability
+drop gate with a scripted fake LLM).
 
 ## Preflight wheel check
 

@@ -10,13 +10,14 @@ LocationKind = Literal["page", "slide", "section", "lines"]
 
 @dataclass
 class LocationInfo:
-
     kind: LocationKind = "lines"
     page: int | None = None
     slide: int | None = None
     section: str | None = None
     start_line: int | None = None
     end_line: int | None = None
+    environment: str | None = None
+    label: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -26,19 +27,20 @@ class LocationInfo:
             "section": self.section,
             "start_line": self.start_line,
             "end_line": self.end_line,
+            "environment": self.environment,
+            "label": self.label,
         }
 
 
 @dataclass
 class ExtractedUnit:
-
     text: str
     location: LocationInfo | None = None
+    unicode_text: str | None = None
 
 
 @dataclass
 class ExtractionResult:
-
     units: list[ExtractedUnit] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     error: str | None = None
@@ -49,13 +51,10 @@ class ExtractionResult:
 
 
 class Extractor(Protocol):
-
-    def extract(self, data: bytes, *, filename: str) -> ExtractionResult:
-        ...
+    def extract(self, data: bytes, *, filename: str) -> ExtractionResult: ...
 
 
 class MissingDependencyExtractor:
-
     def __init__(self, dependency: str, extension: str) -> None:
         self.dependency = dependency
         self.extension = extension
@@ -94,10 +93,12 @@ def get_extractor(extension: str) -> Extractor:
     if extractor is None:
         raise UnsupportedFormatError(
             f"Unsupported file format: .{key}. Supported: "
-            + ", ".join(sorted(EXTRACTORS)) + "."
+            + ", ".join(sorted(EXTRACTORS))
+            + "."
         )
     if isinstance(extractor, MissingDependencyExtractor):
         raise ExtractionError(
-            extractor.extract(b"", filename="").error or f"Unavailable extractor for .{key}"
+            extractor.extract(b"", filename="").error
+            or f"Unavailable extractor for .{key}"
         )
     return extractor

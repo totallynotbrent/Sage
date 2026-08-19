@@ -13,7 +13,7 @@ from app.errors import (
     StorageFullError,
     UnsupportedFormatError,
 )
-from app.services.files import FileService
+from app.services.files import FileService, sanitize_display_name
 
 
 def _service(conn: sqlite3.Connection, settings: Settings) -> FileService:
@@ -35,9 +35,15 @@ def test_save_and_get(conn, settings):
 
 def test_save_then_list_orders_by_recency(conn, settings):
     service = _service(conn, settings)
-    first = service.save_upload(filename="a.md", content=b"# a\ncontent about alpha", content_type="text/markdown")
+    first = service.save_upload(
+        filename="a.md",
+        content=b"# a\ncontent about alpha",
+        content_type="text/markdown",
+    )
     time.sleep(0.02)
-    second = service.save_upload(filename="b.txt", content=b"content about beta", content_type="text/plain")
+    second = service.save_upload(
+        filename="b.txt", content=b"content about beta", content_type="text/plain"
+    )
     ids = [r.id for r in service.list()]
     assert ids[0] == second.id
     assert ids[1] == first.id
@@ -45,9 +51,13 @@ def test_save_then_list_orders_by_recency(conn, settings):
 
 def test_duplicate_content_raises_conflict(conn, settings):
     service = _service(conn, settings)
-    service.save_upload(filename="a.md", content=b"identical content", content_type="text/markdown")
+    service.save_upload(
+        filename="a.md", content=b"identical content", content_type="text/markdown"
+    )
     with pytest.raises(ConflictError) as exc_info:
-        service.save_upload(filename="b.md", content=b"identical content", content_type="text/markdown")
+        service.save_upload(
+            filename="b.md", content=b"identical content", content_type="text/markdown"
+        )
     assert "already exists" in exc_info.value.message
     detail = exc_info.value.detail
     assert isinstance(detail, dict) and detail.get("file_id")
@@ -56,9 +66,13 @@ def test_duplicate_content_raises_conflict(conn, settings):
 def test_unsupported_extension_raises(conn, settings):
     service = _service(conn, settings)
     with pytest.raises(UnsupportedFormatError):
-        service.save_upload(filename="virus.exe", content=b"x", content_type="application/octet-stream")
+        service.save_upload(
+            filename="virus.exe", content=b"x", content_type="application/octet-stream"
+        )
     with pytest.raises(UnsupportedFormatError):
-        service.save_upload(filename="noextension", content=b"x", content_type="text/plain")
+        service.save_upload(
+            filename="noextension", content=b"x", content_type="text/plain"
+        )
 
 
 def test_upload_too_large_raises(conn, settings):
@@ -66,7 +80,9 @@ def test_upload_too_large_raises(conn, settings):
     service = _service(conn, small)
     with pytest.raises(FileTooLargeError):
         service.save_upload(
-            filename="big.txt", content=b"x" * (1 * 1024 * 1024 + 1), content_type="text/plain"
+            filename="big.txt",
+            content=b"x" * (1 * 1024 * 1024 + 1),
+            content_type="text/plain",
         )
 
 
@@ -77,7 +93,9 @@ def test_total_storage_limit_raises(conn, settings):
     service.save_upload(filename="one.txt", content=payload, content_type="text/plain")
     with pytest.raises(StorageFullError):
         service.save_upload(
-            filename="two.txt", content=b"z" * (10 * 1024 * 1024), content_type="text/plain"
+            filename="two.txt",
+            content=b"z" * (10 * 1024 * 1024),
+            content_type="text/plain",
         )
 
 
@@ -96,19 +114,30 @@ def test_storage_name_is_safe(conn, settings):
 
 def test_delete_removes_blob_and_cascade(conn, settings):
     service = _service(conn, settings)
-    record = service.save_upload(filename="d.md", content=b"# d\ncontent", content_type="text/markdown")
-    chunks = conn.execute("SELECT COUNT(*) AS n FROM chunks WHERE file_id=?", (record.id,)).fetchone()["n"]
+    record = service.save_upload(
+        filename="d.md", content=b"# d\ncontent", content_type="text/markdown"
+    )
+    chunks = conn.execute(
+        "SELECT COUNT(*) AS n FROM chunks WHERE file_id=?", (record.id,)
+    ).fetchone()["n"]
     assert chunks >= 1
     service.delete(record.id)
     assert not (settings.uploads_dir / f"{record.id}.md").exists()
-    assert conn.execute("SELECT COUNT(*) AS n FROM chunks WHERE file_id=?", (record.id,)).fetchone()["n"] == 0
+    assert (
+        conn.execute(
+            "SELECT COUNT(*) AS n FROM chunks WHERE file_id=?", (record.id,)
+        ).fetchone()["n"]
+        == 0
+    )
     with pytest.raises(NotFoundError):
         service.get(record.id)
 
 
 def test_failed_extraction_status(conn, settings):
     service = _service(conn, settings)
-    record = service.save_upload(filename="empty.txt", content=b"", content_type="text/plain")
+    record = service.save_upload(
+        filename="empty.txt", content=b"", content_type="text/plain"
+    )
     assert record.status == "failed"
     assert record.error
     assert record.num_chunks == 0
@@ -116,8 +145,175 @@ def test_failed_extraction_status(conn, settings):
 
 def test_retry_refreshes_status(conn, settings):
     service = _service(conn, settings)
-    record = service.save_upload(filename="ok.md", content=b"# ok\ncontent here", content_type="text/markdown")
+    record = service.save_upload(
+        filename="ok.md", content=b"# ok\ncontent here", content_type="text/markdown"
+    )
     assert record.status == "ready"
     retried = service.retry(record.id)
     assert retried.status == "ready"
     assert retried.num_chunks == record.num_chunks
+
+
+_TEX_SOURCE = r"""\documentclass{article}
+\begin{document}
+\section{Calculus}
+\begin{theorem}[Rolle]
+If $f$ is continuous then $\int_a^b f(x)\,dx$ exists.
+\label{thm:rolle}
+\end{theorem}
+\end{document}
+"""
+
+
+def test_tex_upload_is_ready_with_chunks(conn, settings):
+    pytest.importorskip("pylatexenc")
+    record = _service(conn, settings).save_upload(
+        filename="calc.tex",
+        content=_TEX_SOURCE.encode("utf-8"),
+        content_type="text/x-tex",
+    )
+    assert record.status == "ready"
+    assert record.num_chunks > 0
+
+
+def test_tex_chunk_fields_persisted(conn, settings):
+    pytest.importorskip("pylatexenc")
+    record = _service(conn, settings).save_upload(
+        filename="calc.tex",
+        content=_TEX_SOURCE.encode("utf-8"),
+        content_type="text/x-tex",
+    )
+    row = conn.execute(
+        "SELECT unicode_text, environment, label FROM chunks "
+        "WHERE file_id = ? AND environment IS NOT NULL LIMIT 1",
+        (record.id,),
+    ).fetchone()
+    assert row["environment"] == "theorem"
+    assert row["label"] == "thm:rolle"
+    assert "∫" in row["unicode_text"]
+
+
+def test_same_stem_tex_pdf_pairing_both_ways(conn, settings):
+    pytest.importorskip("pylatexenc")
+    pymupdf = pytest.importorskip("pymupdf")
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "Calculus notes on Rolle's theorem")
+    pdf_bytes = document.tobytes()
+    service = _service(conn, settings)
+    tex_record = service.save_upload(
+        filename="calc.tex",
+        content=_TEX_SOURCE.encode("utf-8"),
+        content_type="text/x-tex",
+    )
+    pdf_record = service.save_upload(
+        filename="calc.pdf", content=pdf_bytes, content_type="application/pdf"
+    )
+    assert service.get(tex_record.id).paired_file_id == pdf_record.id
+    assert service.get(pdf_record.id).paired_file_id == tex_record.id
+
+
+def test_delete_unpairs_survivor(conn, settings):
+    pytest.importorskip("pylatexenc")
+    pymupdf = pytest.importorskip("pymupdf")
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "More calculus content for pairing")
+    service = _service(conn, settings)
+    tex_record = service.save_upload(
+        filename="calc2.tex",
+        content=_TEX_SOURCE.encode("utf-8"),
+        content_type="text/x-tex",
+    )
+    pdf_record = service.save_upload(
+        filename="calc2.pdf", content=document.tobytes(), content_type="application/pdf"
+    )
+    assert service.get(tex_record.id).paired_file_id == pdf_record.id
+    service.delete(pdf_record.id)
+    survivor = service.get(tex_record.id)
+    assert survivor.paired_file_id is None
+
+
+def test_source_path_and_subject_persisted(conn, settings):
+    service = _service(conn, settings)
+    record = service.save_upload(
+        filename="calc.tex",
+        content=_TEX_SOURCE.encode("utf-8"),
+        content_type="text/x-tex",
+        source_path="/notes/calculus/calc.tex",
+        subject="calculus",
+    )
+    fetched = service.get(record.id)
+    assert fetched.source_path == "/notes/calculus/calc.tex"
+    assert fetched.subject == "calculus"
+    assert service.get_subjects() == ["calculus"]
+
+
+def test_sanitize_display_name_rejects_doc_markers():
+    for name in ("[DOC]notes.txt", "[/doc]notes.md", "notes[/DOC].tex"):
+        with pytest.raises(ValueError):
+            sanitize_display_name(name)
+    assert sanitize_display_name("notes.txt") == "notes.txt"
+    assert sanitize_display_name("folder/notes.txt") == "notes.txt"
+
+
+def test_ingest_from_disk_rejects_symlink(conn, settings, tmp_path):
+    secret = tmp_path / "secret_data.txt"
+    secret.write_text("SECRET=value", encoding="utf-8")
+    link = tmp_path / "notes.txt"
+    try:
+        link.symlink_to(secret)
+    except OSError:
+        pytest.skip("symlinks not permitted in this environment")
+    with pytest.raises(ValueError, match="symlink"):
+        _service(conn, settings).ingest_from_disk(str(link))
+
+
+def test_ingest_from_disk_rejects_outside_root(conn, settings, tmp_path):
+    root = tmp_path / "watch"
+    root.mkdir()
+    outside = tmp_path / "outside.tex"
+    outside.write_text(_TEX_SOURCE, encoding="utf-8")
+    with pytest.raises(ValueError, match="outside watched root"):
+        _service(conn, settings).ingest_from_disk(str(outside), root=str(root))
+
+
+def test_ingest_from_disk_accepts_inside_root(conn, settings, tmp_path):
+    pytest.importorskip("pylatexenc")
+    root = tmp_path / "watch"
+    subject = root / "calculus"
+    subject.mkdir(parents=True)
+    tex_path = subject / "calc.tex"
+    tex_path.write_text(_TEX_SOURCE, encoding="utf-8")
+    record = _service(conn, settings).ingest_from_disk(
+        str(tex_path), subject="calculus", root=str(root)
+    )
+    assert record.status == "ready"
+    assert record.subject == "calculus"
+
+
+def test_ingest_from_disk_skips_oversized(conn, settings, tmp_path):
+    small = settings.model_copy(update={"max_upload_mb": 1})
+    big = tmp_path / "big.txt"
+    big.write_bytes(b"x" * (1024 * 1024 + 1))
+    with pytest.raises(FileTooLargeError):
+        _service(conn, small).ingest_from_disk(str(big))
+
+
+def test_expand_pairings_includes_ready_pairs(conn, settings):
+    pytest.importorskip("pylatexenc")
+    pymupdf = pytest.importorskip("pymupdf")
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "Paired pdf content")
+    service = _service(conn, settings)
+    tex_record = service.save_upload(
+        filename="calc3.tex",
+        content=_TEX_SOURCE.encode("utf-8"),
+        content_type="text/x-tex",
+    )
+    pdf_record = service.save_upload(
+        filename="calc3.pdf", content=document.tobytes(), content_type="application/pdf"
+    )
+    expanded = service.expand_pairings([tex_record.id])
+    assert expanded == [tex_record.id, pdf_record.id]

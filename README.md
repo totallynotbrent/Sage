@@ -9,16 +9,16 @@
 
 ## Summary
 
-Sage is a local-first web application that acts as a personalized AI tutor: attach study files (PDF, DOCX, PPTX, Markdown, text), and Sage chunks them, probes what you already know, builds a learning plan, teaches each node, checks understanding with quiz questions, and remediates weak spots — all through a grounded, streaming chat that cites the exact excerpts it used. It ships as an API-only Python 3.11 FastAPI service (JSON/SSE endpoints; no web UI for now) that talks to any OpenAI-compatible model endpoint (default: the local BROT server at `http://127.0.0.1:8877/v1`), and stores everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads kept outside any served path.
+Sage is a local-first web application that acts as a personalized AI tutor: attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches automatically, and Sage chunks them, probes what you already know, builds a learning plan, teaches each node, checks understanding with quiz questions — including questions grounded in your LaTeX theorem/definition environments — and remediates weak spots, all through a grounded, streaming chat that cites the exact excerpts it used. It ships as an API-only Python 3.11 FastAPI service (JSON/SSE endpoints; no web UI for now) that talks to any OpenAI-compatible model endpoint (default: the local BROT server at `http://127.0.0.1:8877/v1`), and stores everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads kept outside any served path.
 
 ## Project structure
 
 ```
 sage/
 ├── app/
-│   ├── main.py                      # FastAPI app factory · init_db · 8 routers
-│   ├── config.py                    # Settings — BROT_* / HOST / PORT / limits, read from .env
-│   ├── db.py                        # SQLite schema v1 · connection helpers
+│   ├── main.py                      # FastAPI app factory · init_db · 9 routers
+│   ├── config.py                    # Settings — BROT_* / SAGE_WATCH_* / HOST / PORT / limits, read from .env
+│   ├── db.py                        # SQLite schema v2 · connection helpers
 │   ├── models.py                    # Pydantic request/response models
 │   ├── errors.py                    # error envelope + exception handlers
 │   ├── sse.py                       # SSE helper — 15s heartbeat · sse_response
@@ -30,13 +30,15 @@ sage/
 │   │   ├── files.py                 #   /api/files upload · list · excerpts · retry · delete
 │   │   ├── sessions.py              #   /api/sessions CRUD · select files · grounding
 │   │   ├── chat.py                  #   /turns · /retry (SSE) · /stop
-│   │   ├── learning.py              #   /probe · /check · quiz answer
+│   │   ├── learning.py              #   /probe · /check · /notes-quiz · quiz answer
 │   │   ├── plans.py                 #   /plan generate · approve · reorder · skip · expand · regenerate · select
 │   │   ├── teach.py                 #   /advance · /continue · /complete · quiz hint/reveal/skip
+│   │   ├── watch.py                 #   /api/watch list · add · scan · delete
 │   │   └── preferences.py           #   /api/preferences · /api/mastery reset
 │   ├── llm/
 │   │   ├── client.py                # AsyncOpenAI client → BROT · stream_chat · cancel_inflight
 │   │   ├── messages.py              # chat message builder · citation markers
+│   │   ├── notes.py                 # notes-quiz generation · answerability check
 │   │   └── structured.py            # structured probe/plan question requests
 │   └── services/
 │       ├── sessions/                # session state machine package
@@ -44,28 +46,31 @@ sage/
 │       │   ├── session.py           #   PHASES · CRUD · select_files · grounding
 │       │   ├── turn.py              #   SSE turn/retry stream generators
 │       │   └── rows.py              #   plan node / quiz question row mappers
-│       ├── files.py                 # upload · storage · chunk persistence
+│       ├── files.py                 # upload · storage · chunk persistence · pairing
 │       ├── chunking.py              # CHUNK_CHARS / CHUNK_OVERLAP splitter
 │       ├── retrieval.py             # context-budget chunk selection
-│       ├── learning.py              # probe/check generation · quiz grading
+│       ├── math_tokens.py           # math-aware tokenizer (Greek · LaTeX · unicode)
+│       ├── learning.py              # probe/check/notes generation · quiz grading
 │       ├── plans.py                 # plan generate/approve/reorder/skip/expand
 │       ├── teach.py                 # advance/continue/complete · hint/reveal
 │       ├── mastery.py               # mastery_topics confidence tracking
-│       └── extraction/              # PDF · DOCX · PPTX · Markdown · text → plain text
+│       ├── watcher.py               # notes folder watcher (scan loop · watch_sources)
+│       └── extraction/              # base · pdf · docx · pptx · md · txt · tex → plain text
 ├── tools/
 │   ├── check_wheels.py              # ARM64 wheel preflight check
 │   └── smoke_chat.py                # live endpoint smoke test
 ├── tests/                           # offline pytest suite (faked LLM)
 │   ├── conftest.py
 │   ├── fakes/fake_llm.py
-│   └── test_*.py                    # API, chunking, retrieval, plans, teach, mastery…
+│   └── test_*.py                    # API, chunking, retrieval, plans, teach, mastery,
+│                                    #   extraction_tex, math_tokens, watcher, notes_quiz…
 ├── docs/                            # operational docs + mermaid diagram sources
 │   ├── README.md                    #   index
-│   ├── setup.md                     #   install · run · LAN access
+│   ├── setup.md                     #   install · run · LAN access · notes watch
 │   ├── security.md                  #   trusted-network-only warning
 │   ├── environment.md               #   env var reference
 │   ├── testing.md                   #   tests · wheel preflight · smoke test
-│   └── *.mmd                        #   UI notes diagrams (01-system-architecture … 07-ui-screens)
+│   └── *.mmd                        #   UI notes diagrams (01-system-architecture … 08-latex-notes)
 ├── run.sh                           # one-command start (Linux/Pi)
 ├── run.bat                          # one-command start (Windows)
 ├── oc.bat                           # opencode web launcher (SMB-safe)
@@ -84,14 +89,16 @@ flowchart LR
     B["BROT — local OpenAI-compatible endpoint<br/>http://127.0.0.1:8877/v1 · POST /chat/completions<br/>model deepseek/deepseek-v4-pro"]
 
     subgraph APP["Sage — FastAPI service · uvicorn app.main:app"]
-        MAIN["app/main.py<br/>create_app · init_db · 8 routers"]
-        API["app/api/<br/>system · files · sessions · chat<br/>learning · plans · teach · preferences"]
+        MAIN["app/main.py<br/>create_app · init_db · 9 routers"]
+        API["app/api/<br/>system · files · sessions · chat<br/>learning · plans · teach · preferences · watch"]
         DEPS["app/api/deps.py<br/>require_configured<br/>BROT_API_KEY / BROT_BASE_URL validation"]
-        SVC["app/services/<br/>sessions · files · chunking · retrieval<br/>learning · plans · teach · mastery · extraction"]
-        DB[("SQLite<br/>DATA_DIR/sage.db · 10 tables")]
+        SVC["app/services/<br/>sessions · files · chunking · retrieval · math_tokens<br/>learning · plans · teach · mastery · extraction · watcher"]
+        WATCH["app/services/watcher.py<br/>watcher_loop · scan_once · sync_watch_sources"]
+        DB[("SQLite<br/>DATA_DIR/sage.db · 11 tables")]
         UP["uploads on disk<br/>DATA_DIR/uploads · outside served paths"]
         LLM["app/llm/client.py<br/>AsyncOpenAI · stream_chat · quick_probe<br/>cancel_inflight · inflight registry"]
     end
+    NOTES["Notes folders<br/>SAGE_WATCH_DIRS · .tex/.md files<br/>scanned on startup + every interval"]
 
     API --> MAIN
     API --> DEPS
@@ -99,6 +106,9 @@ flowchart LR
     SVC --> DB
     SVC --> UP
     SVC --> LLM
+    WATCH --> NOTES
+    WATCH --> DB
+    WATCH --> SVC
     LLM -->|"httpx · OpenAI SDK"| B
 ```
 
@@ -167,7 +177,7 @@ sequenceDiagram
 
 ### SQLite data model
 
-Schema in `app/db.py` (SCHEMA_VERSION 1). Sessions reference files by JSON array in `file_ids_json` — there is no `session_files` join table. `mastery_topics` and `preferences` are global (not per-session).
+Schema in `app/db.py` (SCHEMA_VERSION 2). Sessions reference files by JSON array in `file_ids_json` — there is no `session_files` join table. `mastery_topics` and `preferences` are global (not per-session). `watch_sources` records the notes folders the watcher scans.
 
 ```mermaid
 erDiagram
@@ -185,12 +195,18 @@ erDiagram
         text status "pending / ready / error"
         integer num_chunks
         text sha256 UK
+        text paired_file_id "same-stem pair (tex/pdf)"
+        text subject "first path segment of watch source"
+        text source_path "absolute path on disk"
     }
     chunks {
         text id PK
         text file_id FK
         integer chunk_index
         text text
+        text unicode_text "math rendered in unicode"
+        text environment "theorem / definition / equation …"
+        text label "environment label (thm:rolle)"
         text location_kind
         integer page
         integer slide
@@ -227,10 +243,11 @@ erDiagram
     quiz_questions {
         text id PK
         text session_id FK
-        text kind "probe / check"
+        text kind "probe / check / notes"
         text question
         text options_json
         integer correct_index
+        text source_ref "JSON: chunk_id, file_id, file_name, section, environment, label, page"
         text status "pending / answered / skipped"
         text outcome "correct / incorrect / idk"
     }
@@ -252,5 +269,12 @@ erDiagram
         text depth
         text pacing
         text style
+    }
+    watch_sources {
+        text id PK
+        text path UK "watched folder"
+        integer enabled
+        text last_scan_at
+        text last_error "JSON warnings from last scan"
     }
 ```

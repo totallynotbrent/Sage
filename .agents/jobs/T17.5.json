@@ -1,0 +1,33 @@
+{
+  "task_id": "T17.5",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ses_t17_5_sage_writer",
+  "declared_at": "2026-08-18T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Citation/location formatting: _format_location appends environment display + label (e.g. 'Theorem (thm:rolle)'), chunk_block gains pair=\"<paired display_name>\" attr when the chunk's file has a ready paired file; get_chunks_for_files exposes pair display name via LEFT JOIN; additive SSE tests.",
+  "files": {
+    "modified": ["app/llm/messages.py", "app/services/files.py", "tests/test_api_chat_sse.py"],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "aa00f45",
+  "committed_at": "39dbdfd",
+  "line_counts": {
+    "before": {
+      "app/llm/messages.py": 150,
+      "app/services/files.py": 365,
+      "tests/test_api_chat_sse.py": 338
+    },
+    "after": {
+      "app/llm/messages.py": 175,
+      "app/services/files.py": 368,
+      "tests/test_api_chat_sse.py": 395
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T17.5 done. messages.py: _format_location now appends the environment display when present — theorem-like envs (theorem/definition/example/lemma/proposition/corollary/proof/remark) capitalized ('Theorem'), math envs kept as-is ('equation'), with the label rendered when set: 'section \"Rolle's Theorem\"; lines 4-7; Theorem (thm:rolle)'. The section part is now also rendered for environment chunks (kind='lines') — the plan's example requires 'section \"3.2\"; lines 120-135; Theorem (Rolle)'; existing non-tex chunks (no environment) render identically to before, so no existing assertion broke. chunk_block gains pair=\"<pair_display_name>\" in the [DOC] opening tag when the chunk's file has a ready paired file. files.py get_chunks_for_files SELECT now LEFT JOINs files fp ON fp.id = f.paired_file_id AND fp.status='ready' exposing fp.display_name AS pair_display_name. tests/test_api_chat_sse.py: +1 additive test (import pytest added at top) — uploads calc.tex (theorem env with label) + paired calc.pdf, runs a turn, asserts the meta event location contains 'Theorem (thm:rolle)' and a section name, and that the DOC blocks sent to the LLM carry both file=\"calc.tex\" and pair=\"calc.pdf\". Verified: test_api_chat_sse 14 passed; full offline suite 242 passed (241 + 1 new). Commit 39dbdfd on feature/latex-notes. TASK STATUS: T17.5 -> done.",
+  "verification": "laika",
+  "notes": "app/services/files.py added to the declared set beyond the plan's file list: chunk dicts must carry the paired file's display name (LEFT JOIN files fp ON fp.id = f.paired_file_id AND fp.status='ready', SELECT fp.display_name AS pair_display_name) so messages.py can render pair=... without DB access — the pair name is not derivable from the chunk alone. Declared before editing. The section-rendering gate change (kind == 'section' OR environment present) is behavior-preserving for all pre-existing chunk kinds."
+}

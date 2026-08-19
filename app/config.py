@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import Request
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PLACEHOLDER_KEY = "replace-with-your-local-key"
@@ -15,6 +16,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     brot_base_url: str = "http://127.0.0.1:8877/v1"
@@ -31,6 +33,13 @@ class Settings(BaseSettings):
     chunk_chars: int = 1500
     chunk_overlap: int = 200
     context_chunk_budget: int = 8
+
+    watch_dirs: list[str] = Field(
+        default_factory=list, validation_alias="SAGE_WATCH_DIRS"
+    )
+    watch_scan_seconds: int = Field(
+        default=300, validation_alias="SAGE_WATCH_SCAN_SECONDS"
+    )
 
     @property
     def db_path(self) -> Path:

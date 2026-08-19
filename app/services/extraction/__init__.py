@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-from .base import EXTRACTORS, ExtractionResult, ExtractedUnit, Extractor, LocationInfo, get_extractor, register, register_unavailable  # noqa: F401
+from .base import (
+    EXTRACTORS,
+    ExtractionResult,
+    ExtractedUnit,
+    Extractor,
+    LocationInfo,
+    get_extractor,
+    register,
+    register_unavailable,
+)  # noqa: F401
 
 try:
     from . import text  # noqa: F401
@@ -16,6 +25,11 @@ try:
     from . import pdf  # noqa: F401
 except Exception:  # noqa: BLE001
     register_unavailable("pdf", "pymupdf")
+
+try:
+    from . import tex  # noqa: F401
+except Exception:  # noqa: BLE001
+    register_unavailable("tex", "pylatexenc")
 
 try:
     from . import docx  # noqa: F401
