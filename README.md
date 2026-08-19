@@ -68,6 +68,8 @@ sage/
 │   └── *.mmd                        #   UI notes diagrams (01-system-architecture … 07-ui-screens)
 ├── run.sh                           # one-command start (Linux/Pi)
 ├── run.bat                          # one-command start (Windows)
+├── oc.bat                           # opencode web launcher (SMB-safe)
+├── ui.txt                           # web UI notes
 ├── requirements.txt
 └── .env.example                     # copy to .env, fill in BROT_API_KEY
 ```
@@ -154,7 +156,7 @@ sequenceDiagram
         C->>CH: POST /api/sessions/{id}/stop
         CH->>LLM: cancel_inflight(session_id)
         LLM-->>T: GenerationCancelled
-        T-->>C: SSE error {code: generation_cancelled}
+        T-->>C: SSE error {code: cancelled}
     else provider / upstream failure
         B-->>LLM: ProviderError
         T-->>C: SSE error {code, message, detail, retryable}
