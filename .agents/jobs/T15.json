@@ -1,0 +1,50 @@
+{
+  "task_id": "T15",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "ses_t15_sage_writer",
+  "declared_at": "2026-08-18T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Restructured README.md to the mandated 4-part format (ASCII logo, one-paragraph summary, project structure tree, mermaid architecture diagrams) and relocated the setup/security/environment/testing content from the old README into docs/. Dropped the stale Roadmap section. Indexed the new docs in docs/README.md.",
+  "files": {
+    "modified": [
+      "README.md",
+      "docs/README.md"
+    ],
+    "created": [
+      "docs/setup.md",
+      "docs/security.md",
+      "docs/environment.md",
+      "docs/testing.md"
+    ],
+    "deleted": []
+  },
+  "base_commit": "b087dfcaebb1e009cd365c2759b8c01b8a1a7dce",
+  "committed_at": "0594f86d4fdcf9d8314dc6359d0c2284f177472b",
+  "line_counts": {
+    "before": {
+      "README.md": 111,
+      "docs/README.md": 18
+    },
+    "after": {
+      "README.md": 254,
+      "docs/README.md": 29,
+      "docs/setup.md": 43,
+      "docs/security.md": 9,
+      "docs/environment.md": 22,
+      "docs/testing.md": 31
+    }
+  },
+  "modules_created": [],
+  "documentation": [
+    "README.md",
+    "docs/README.md",
+    "docs/setup.md",
+    "docs/security.md",
+    "docs/environment.md",
+    "docs/testing.md"
+  ],
+  "final_report": "T6 delivered. README.md rewritten to the exact 4-part mandated structure: ASCII logo (figlet 'Big' font, 8 lines, generated fresh via npx figlet-cli -f Big - not the canonical ANSI Shadow), one-paragraph summary, project structure tree (accurate against current code incl. app/services/sessions/, app/api/deps.py, tools/, tests/, docs/), and 4 mermaid architecture diagrams: (1) system architecture flowchart (client -> routers -> services -> SQLite/uploads + LLM client -> BROT endpoint), (2) session state machine (stateDiagram-v2: setup -> probe -> plan -> teach -> check -> remediate -> complete with the real API endpoints driving each transition, verified against app/services/sessions/session.py PHASES and set_phase call sites), (3) SSE streaming chat sequenceDiagram (POST /turns stream of meta/delta/citation/done, /stop cancel path, /retry replay, 15s heartbeat, error events), (4) accurate ER diagram of the SQLite model with file_ids_json on sessions (no SESSION_FILES entity - the docs/06-data-model-er.mmd error was not replicated). Relocated docs: docs/setup.md (Python 3.11 Bookworm/Trixie notes, cp .env.example .env, run.sh/run.bat, uvicorn command, LAN access with hostname -I and HOST/PORT overrides), docs/security.md (trusted-network-only warning), docs/environment.md (full BROT_*/HOST/PORT env table verbatim, defaults+purposes, BROT_* names unchanged), docs/testing.md (pytest -q offline suite + extraction fixture skip note, tools/check_wheels.py, tools/smoke_chat.py). docs/README.md retitled to Documentation Index; the existing .mmd table kept intact, new Operational docs table added. Roadmap section dropped (the checklist note said phases had not landed; they have). Verification: grep for old section headings (Setup/Security/Environment/Tests/LAN/Roadmap as headings) in README.md = 0 matches; mermaid fences balanced (4 ```mermaid opens + 4 closes, plus logo/tree plain fences: 8 lines matching ^```$ = 2 plain opens + 2 plain closes + 4 diagram closes); all 51 tree paths spot-checked on disk (0 missing); docs heading/content spot-checks pass; docs/README.md tables column-consistent. No code touched; tests unaffected (full suite 211 verified at T14). Job log .agents/jobs/T15.json. Branch feature/conventions-audit-fix.",
+  "verification": "review_only",
+  "notes": "Docs-only task; no tests run (full suite verified at T14, 211 passing). LSP diagnostics surfaced in app/ and tests/ during file writes are pre-existing type-checker noise from T1-T5 landings, not touched here. Line counts use git-show semantics (README.md 111->254, docs/README.md 18->29, new docs 0->N). Task id T15 per orchestrator; job log at .agents/jobs/T15.json. Solo commit on feature/conventions-audit-fix; .agents/jobs/T2.json intentionally left dirty and unstaged."
+}
