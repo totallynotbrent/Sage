@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "turing-t5b-api-security-hardening",
   "declared_at": "2026-08-20T12:24:03Z",
-  "finalized_by": "Turing",
+  "finalized_by": "Turing (batch committer)",
   "summary": "API security hardening: escape chunk text to prevent [DOC]/[/DOC] instruction breakout; cap Mermaid subprocess concurrency; extend Mermaid unsafe-source blacklist to click/href/linkStyle.",
   "files": {
     "modified": [
@@ -30,7 +30,7 @@
     ]
   },
   "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
-  "committed_at": "",
+  "committed_at": "e535bba741523342b68c3b2ac701fa8fa2b8e300",
   "line_counts": {
     "before": {
       "app/llm/messages.py": 175,

@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "merlin-t4-recheck-timeout",
   "declared_at": "2026-08-20T16:45:00Z",
-  "finalized_by": "Merlin",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Re-verified T3-Fix subprocess timeout mapping, structured-output API schema, and SSE regressions.",
   "files": {
     "modified": [".agents/jobs/T4-recheck.json"],
@@ -12,7 +12,7 @@
     "deleted": []
   },
   "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
-  "committed_at": "",
+  "committed_at": "e535bba741523342b68c3b2ac701fa8fa2b8e300",
   "line_counts": {
     "before": {".agents/jobs/T4-recheck.json": 0},
     "after": {".agents/jobs/T4-recheck.json": 51}

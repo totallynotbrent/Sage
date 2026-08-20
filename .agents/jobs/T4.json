@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "verification-t4-structured-output",
   "declared_at": "2026-08-20T15:25:00Z",
-  "finalized_by": "Merlin",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Verified Task T3 structured-output implementation, API contracts, Mermaid fail-closed behavior, and SSE regression coverage.",
   "files": {
     "modified": [".agents/jobs/T4.json", "oc-issues.txt"],
@@ -12,7 +12,7 @@
     "deleted": []
   },
   "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
-  "committed_at": "",
+  "committed_at": "e535bba741523342b68c3b2ac701fa8fa2b8e300",
   "line_counts": {
     "before": {".agents/jobs/T4.json": 11, "oc-issues.txt": 0},
     "after": {".agents/jobs/T4.json": 76, "oc-issues.txt": 101}
