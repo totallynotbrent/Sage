@@ -1,0 +1,71 @@
+{
+  "task_id": "T6-recheck",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "merlin-t6-recheck",
+  "declared_at": "2026-08-20T20:00:00Z",
+  "finalized_by": "Merlin",
+  "summary": "Re-verified the T5a/T5b/T5c structured-output, security-hardening, and provenance corrections against the working tree: full pytest suite, bounded Mermaid repair, strict-no-chunks guard, stable issue codes, DOC-boundary neutralization, Mermaid click/href/linkStyle rejection, concurrency cap, OpenAPI discriminated union, SSE /turns regression, and README/job-log accuracy.",
+  "files": {
+    "modified": [".agents/jobs/T6-recheck.json"],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "committed_at": "",
+  "line_counts": {
+    "before": {".agents/jobs/T6-recheck.json": 0},
+    "after": {".agents/jobs/T6-recheck.json": 68}
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "merlin",
+  "findings": [
+    {
+      "check": "full pytest suite",
+      "result": "PASS",
+      "evidence": "python -m pytest -q -> 329 passed in 31.56s (Python 3.11.9, pytest 9.1.1)."
+    },
+    {
+      "check": "T5a Mermaid bounded repair (invalid-then-valid repaired; exhaustion retryable mermaid_invalid)",
+      "result": "PASS",
+      "evidence": "tests/test_structured_outputs.py::test_request_output_repairs_mermaid_semantics (2 attempts, diagram_type=flowchart, 2 LLM calls) and test_request_output_mermaid_exhaustion_is_retryable (retryable, issue_codes=[mermaid_invalid]) both pass. Direct probe confirmed exhaustion detail is coded mermaid_invalid, not prose."
+    },
+    {
+      "check": "T5a strict session with no chunks returns insufficient_context without an LLM call",
+      "result": "PASS",
+      "evidence": "tests/test_api_outputs.py::test_strict_output_without_chunks_skips_llm passes (422, code=model_output, retryable, detail contains insufficient_context, override_llm.calls == []). Direct service-level probe: issue_codes=[insufficient_context], retryable True, 0 LLM calls."
+    },
+    {
+      "check": "T5a stable issue codes (no prose)",
+      "result": "PASS",
+      "evidence": "Direct probe of _validation_detail: ValueError('empty_text')->[empty_text], unknown ValueError('some_prose_message')->[invalid_output] (not the prose), ModelOutputError detail codes preserved. _repair_prompt emits coded JSON {\"issue_codes\":[...]}, never str(exc) prose. parse_exact_json uses coded invalid_json/trailing_data."
+    },
+    {
+      "check": "T5b chunk boundary markers neutralized",
+      "result": "PASS",
+      "evidence": "tests/test_outputs_security.py::test_chunk_text_{closing,open}_doc_marker_is_escaped and test_chunk_text_instruction_marker_is_escaped pass; [ and ] replaced with fullwidth brackets in chunk text while the [DOC id=...] header and citation marker behavior are preserved."
+    },
+    {
+      "check": "T5b Mermaid click/href/linkStyle rejected + concurrency cap",
+      "result": "PASS",
+      "evidence": "tests/test_outputs_security.py::test_mermaid_rejects_{click,href,link_style}_handler pass (issue_codes=[mermaid_unsafe_source]); test_mermaid_concurrency_is_capped passes (peak==2 under Semaphore(2)) and test_mermaid_default_concurrency_cap asserts default==4."
+    },
+    {
+      "check": "OpenAPI discriminated response union",
+      "result": "PASS",
+      "evidence": "app.openapi() for POST /api/sessions/{session_id}/outputs exposes response schema oneOf [ChatOutputEnvelope, MermaidOutputEnvelope, TodoOutputEnvelope, QuizOutputEnvelope] with discriminator propertyName=kind and complete 4-entry mapping."
+    },
+    {
+      "check": "existing SSE /turns regression",
+      "result": "PASS",
+      "evidence": "tests/test_api_chat_sse.py (14 tests) pass: event sequence, fake-citation filtering, mid-stream partial persistence, retry regenerate/replay, duplicate client_msg_id replay, strict insufficiency, grounded empty context, 404/config errors, CRUD, stop, heartbeat, and LaTeX/pdf location/pair citation meta."
+    },
+    {
+      "check": "README/job-log corrections from T5c",
+      "result": "PASS",
+      "evidence": "README tree lists package.json, package-lock.json, tools/validate_mermaid.mjs and all six static pages (index, sage-workspace, sage-health, sage-library, sage-sessions, sage-settings) matching on-disk static/ and tools/. Architecture UI node lists all six pages. T5c before-count re-anchors verified against git show 1b1a231: app/main.py 74, app/models.py 192, README.md 280, run.sh 22, run.bat 23; app/services/mermaid.py, tests/test_mermaid.py, oc-issues.txt, .agents/jobs/T4-recheck.json, .agents/jobs/T3-Fix.json all ABSENT at base (before=0 correct); .agents/jobs/T4.json 11 lines at base. All seven job logs (T3, T3-Fix, T4, T4-recheck, T5a, T5b, T5c) parse as valid JSON."
+    }
+  ],
+  "notes": "No production or test source files were modified; only .agents/jobs/T6-recheck.json was written. ruff on the T5a/T5b changed files (app/llm/structured_outputs.py, app/services/structured_outputs.py, app/llm/messages.py, app/services/mermaid.py, tests/test_outputs_security.py, tests/test_structured_outputs.py, tests/test_api_outputs.py) reports zero issues, consistent with the writers' 'ruff clean' claims; the 160 pre-existing repo-wide ruff findings (B008/I001/F401 etc. across unrelated api/, services/extraction/, tests/) are outside this task's scope and predate T5. Line counts measured with a Python newline fallback because wc is unavailable on this Windows host (already recorded in oc-issues.txt)."
+}

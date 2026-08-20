@@ -81,13 +81,17 @@ def make_system_prompt(
     return "\n".join(blocks)
 
 
+def _escape_doc_text(text: str) -> str:
+    return text.replace("[", "\uff3b").replace("]", "\uff3d")
+
+
 def chunk_block(chunk: dict[str, Any]) -> str:
     file_name = (
         chunk.get("file_name") or chunk.get("display_name") or chunk.get("file_id", "?")
     )
     location = _format_location(chunk)
     id_value = chunk.get("id", "?")
-    text = chunk.get("text", "")
+    text = _escape_doc_text(chunk.get("text", ""))
     pair_name = chunk.get("pair_display_name")
     pair_attr = f' pair="{pair_name}"' if pair_name else ""
     return (

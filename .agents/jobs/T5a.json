@@ -1,0 +1,56 @@
+{
+  "task_id": "T5a",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "turing-t5a-structured-output-correctness",
+  "declared_at": "2026-08-20T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Fix structured-output Mermaid repair, strict grounding, and stable model-output issue codes.",
+  "files": {
+    "modified": [
+      "app/llm/structured_outputs.py",
+      "app/services/structured_outputs.py",
+      "tests/test_structured_outputs.py",
+      "tests/test_api_outputs.py",
+      ".agents/jobs/T5a.json"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "manifest": {
+    "intended_outputs": [
+      "app/llm/structured_outputs.py",
+      "app/services/structured_outputs.py",
+      "tests/test_structured_outputs.py",
+      "tests/test_api_outputs.py",
+      ".agents/jobs/T5a.json"
+    ],
+    "tests": [
+      "tests/test_structured_outputs.py",
+      "tests/test_api_outputs.py"
+    ]
+  },
+  "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "committed_at": "",
+  "line_counts": {
+    "before": {
+      "app/llm/structured_outputs.py": 156,
+      "app/services/structured_outputs.py": 122,
+      "tests/test_structured_outputs.py": 67,
+      "tests/test_api_outputs.py": 54,
+      ".agents/jobs/T5a.json": 44
+    },
+    "after": {
+      "app/llm/structured_outputs.py": 210,
+      "app/services/structured_outputs.py": 139,
+      "tests/test_structured_outputs.py": 185,
+      "tests/test_api_outputs.py": 107,
+      ".agents/jobs/T5a.json": 56
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "Implemented T5a structured-output correctness changes. (1) request_output now accepts an optional async semantic_validator; for output_kind=mermaid the normalized draft.source is validated via validate_mermaid inside the two-attempt repair loop, diagram_type is captured and returned as a 3-tuple (draft, attempt, diagram_type), a mermaid_validator_unavailable failure propagates immediately with no repair, and exhaustion raises a retryable ModelOutputError with stable issue code mermaid_invalid (not prose). (2) _validation_detail preserves coded ModelOutputError issue codes (invalid_json, trailing_data, ...) and maps uncoded failures to stable codes (empty_text, duplicate_options, correct_index_out_of_range, quiz_count, quiz_shape, unsupported_output_kind, invalid_output); it never emits str(exc) prose as an issue code. (3) StructuredOutputService.generate adds a strict-grounding guard: strict + no selected/ready chunks raises a retryable ModelOutputError with issue code insufficient_context before any LLM call; Mermaid content is built from the diagram_type captured during repair (validate_mermaid runs exactly once, no re-validation). (4) Focused tests: mermaid repair-on-first-invalid, mermaid exhaustion (retryable mermaid_invalid), mermaid validator-unavailable propagation (single LLM call), strict-no-chunks skips LLM and returns insufficient_context, stable issue codes for invalid/trailing JSON and empty/duplicate quiz options, and mermaid diagram_type plumbing end-to-end. Verification: ruff clean (zero issues); focused pytest tests/test_structured_outputs.py + tests/test_api_outputs.py = 18 passed; related smoke (test_mermaid.py + test_structured.py) = 27 passed. Full-suite verification handed to Merlin.",
+  "verification": "analyzer_pending",
+  "notes": "No commit planned (Turing does not commit; batch committer will). Focused pytest passed (18 tests) plus related smoke (27 tests); full-suite verification still owed to Merlin, hence analyzer_pending. Fixed one pre-existing ruff I001 import-order issue in app/services/structured_outputs.py while editing."
+}
