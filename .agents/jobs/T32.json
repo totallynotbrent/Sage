@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "merlin-verify-t32",
   "declared_at": "2026-08-21T13:06:00Z",
-  "finalized_by": "Merlin",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Offline verification of T31a (Ollama provider + thought filter + searxng config) and T31b (teach/latex kinds + SearXNG wiring + hybrid prompts)",
   "files": {
     "modified": [],
@@ -14,7 +14,7 @@
     "deleted": []
   },
   "base_commit": "b26e53da5a5dc758860440faac02a26d99f9f3d2",
-  "committed_at": null,
+  "committed_at": "fbb72e9dc1b82e74ace514c705f46a9bcc07c208",
   "line_counts": {
     "before": {},
     "after": {}

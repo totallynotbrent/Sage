@@ -4,10 +4,10 @@
   "status": "done",
   "session_id": "orpheus-t34-review",
   "declared_at": "2026-08-21T18:45:00Z",
-  "finalized_by": "Orpheus",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Orpheus final review of provider/teach/docs batch T31a+T31b+T35 before commit — 5 checks passed, no blocking defects",
   "base_commit": "b26e53da5a5dc758860440faac02a26d99f9f3d2",
-  "committed_at": null,
+  "committed_at": "fbb72e9dc1b82e74ace514c705f46a9bcc07c208",
   "verification": "review_only",
   "verdict": "APPROVED",
   "checks": {

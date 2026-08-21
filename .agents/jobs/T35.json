@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "turing-t35-docs",
   "declared_at": "2026-08-21T00:00:00Z",
-  "finalized_by": "Turing",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Docs-only refresh for Ollama cloud + SearXNG + teach/latex structured outputs",
   "files": {
     "modified": [
@@ -18,7 +18,7 @@
     "deleted": []
   },
   "base_commit": "b26e53da5a5dc758860440faac02a26d99f9f3d2",
-  "committed_at": null,
+  "committed_at": "fbb72e9dc1b82e74ace514c705f46a9bcc07c208",
   "line_counts": {
     "before": {
       "README.md": 301,

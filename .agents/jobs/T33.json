@@ -4,8 +4,8 @@
   "status": "done",
   "session_id": "merlin-verify-t33",
   "declared_at": "2026-08-21T18:15:00Z",
-  "finalized_by": "Merlin",
-  "summary": "Live verification of Sage API against real Pi at 192.168.1.57:8000 (gemma4:31b-cloud, Ollama https://ollama.com/v1, SearXNG 192.168.1.57:8080) \u2014 completions API + continuity + 6 outputs",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Live verification of Sage API against real Pi at 192.168.1.57:8000 (gemma4:31b-cloud, Ollama https://ollama.com/v1, SearXNG 192.168.1.57:8080) — completions API + continuity + 6 outputs",
   "files": {
     "modified": [],
     "created": [
@@ -14,7 +14,7 @@
     "deleted": []
   },
   "base_commit": "b26e53da5a5dc758860440faac02a26d99f9f3d2",
-  "committed_at": null,
+  "committed_at": "fbb72e9dc1b82e74ace514c705f46a9bcc07c208",
   "line_counts": {
     "before": {},
     "after": {}
