@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from fastapi import Request
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PLACEHOLDER_KEY = "replace-with-your-local-key"
@@ -19,9 +19,12 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
 
-    brot_base_url: str = "http://127.0.0.1:8877/v1"
-    brot_api_key: str = ""
-    brot_model: str = "deepseek/deepseek-v4-pro"
+    brot_base_url: str = Field(
+        default="https://ollama.com/v1", validation_alias="BROT_BASE_URL"
+    )
+    brot_api_key: str = Field(default="", validation_alias="BROT_API_KEY")
+    brot_model: str = Field(default="gemma4:31b-cloud", validation_alias="BROT_MODEL")
+    searxng_url: str = Field(default="", validation_alias="SEARXNG_URL")
 
     host: str = "0.0.0.0"
     port: int = 8000
@@ -40,6 +43,31 @@ class Settings(BaseSettings):
     watch_scan_seconds: int = Field(
         default=300, validation_alias="SAGE_WATCH_SCAN_SECONDS"
     )
+
+    @model_validator(mode="after")
+    def _normalize_urls(self):
+        raw = (self.brot_base_url or "").strip()
+        if raw:
+            parsed = urlparse(raw)
+            host = (parsed.hostname or "").lower()
+            path = parsed.path or ""
+            stripped = path.rstrip("/")
+            if host == "ollama.com" and stripped == "":
+                base = raw.rstrip("/")
+                if not base.lower().endswith("/v1"):
+                    self.brot_base_url = base + "/v1"
+                else:
+                    self.brot_base_url = base
+            else:
+                if raw.endswith("/") and not raw.rstrip("/").lower().endswith("/v1"):
+                    self.brot_base_url = raw.rstrip("/")
+                elif raw.endswith("/") and raw.rstrip("/").lower().endswith("/v1"):
+                    self.brot_base_url = raw.rstrip("/")
+                else:
+                    self.brot_base_url = raw
+        if self.searxng_url:
+            self.searxng_url = self.searxng_url.strip().rstrip("/")
+        return self
 
     @property
     def db_path(self) -> Path:
@@ -64,13 +92,15 @@ def validation_problems(settings: Settings) -> list[str]:
 
     key = (settings.brot_api_key or "").strip()
     if not key:
-        problems.append(
-            "BROT_API_KEY is not set. Copy .env.example to .env and fill it in."
-        )
+        msg = "BROT_API_KEY / OLLAMA_API_KEY is not set. Copy .env.example to .env and fill it in."
+        parsed = urlparse(settings.brot_base_url.strip())
+        if (parsed.hostname or "").lower() == "ollama.com":
+            msg += " Get a key at https://ollama.com/settings/keys."
+        problems.append(msg)
     elif key == PLACEHOLDER_KEY:
         problems.append(
-            "BROT_API_KEY still has the placeholder value; replace it with "
-            "your local BROT key."
+            "BROT_API_KEY / OLLAMA_API_KEY still has the placeholder value; replace it with "
+            "your Ollama key from https://ollama.com/settings/keys."
         )
 
     url = settings.brot_base_url.strip()

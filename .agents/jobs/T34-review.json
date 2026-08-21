@@ -1,0 +1,69 @@
+{
+  "task_id": "T34-review",
+  "agent": "Orpheus",
+  "status": "done",
+  "session_id": "orpheus-t34-review",
+  "declared_at": "2026-08-21T18:45:00Z",
+  "finalized_by": "Orpheus",
+  "summary": "Orpheus final review of provider/teach/docs batch T31a+T31b+T35 before commit — 5 checks passed, no blocking defects",
+  "base_commit": "b26e53da5a5dc758860440faac02a26d99f9f3d2",
+  "committed_at": null,
+  "verification": "review_only",
+  "verdict": "APPROVED",
+  "checks": {
+    "1_ollama_normalization_brot_names_thought_filtering": "PASS",
+    "2_teach_latex_models_validation_union": "PASS",
+    "3_searxng_client_graceful_strict_no_leak": "PASS",
+    "4_static_readme_snake_no_comments": "PASS",
+    "5_job_logs_line_counts_chain": "PASS"
+  },
+  "evidence": {
+    "1_ollama_normalization": {
+      "file": "app/config.py:47-70",
+      "detail": "model_validator _normalize_urls: host==ollama.com case-insensitive (parsed.hostname.lower()), stripped=='' triggers bare->/v1, base.lower().endswith('/v1') prevents double /v1, trailing slash stripped for all hosts. Verified live: https://ollama.com -> https://ollama.com/v1, https://ollama.com/ -> /v1, HTTPS://OLLAMA.COM -> HTTPS://OLLAMA.COM/v1, https://ollama.com/v1 stays, https://ollama.com/v1/ -> /v1, http://example.com/ -> http://example.com, https://ollama.com:443 -> :443/v1, http://192.168.1.57:8080/ stripped via searxng_url.rstrip('/').",
+      "brot_names": "Settings fields use Field(validation_alias='BROT_BASE_URL'/'BROT_API_KEY'/'BROT_MODEL') and SEARXNG_URL preserved; .env.example header Ollama cloud https://ollama.com/v1, defaults https://ollama.com/v1 / gemma4:31b-cloud verified via Settings(_env_file=None)",
+      "thought_filter": "app/llm/client.py:30-46 _THOUGHT_STARTS ('<|channel|>thought','<|think|>') _THOUGHT_ENDS ('channel|>','<|channel|>'), _strip_thought re.sub DOTALL for both markers, stream_chat 107-191 in_thought+buf+longest=18 split-marker buffering, while buf find earliest start/end, keep logic for partial markers, StopAsyncIteration yields _strip_thought(buf) if not in_thought, complete_json 229 _strip_thought, probe 245 chat.completions.create, 126-132 ignores delta.reasoning_content/reasoning/thinking unless raw present. T32 5/5 thought_filter tests + streaming scrubber manual PASS, T33 live zero thought_leak across 106+133 deltas and 6 output kinds.",
+      "no_responses_api": "grep chat.completions.create=3, responses.create=0 confirmed via T33 L99/L221/L245 and client.py inspection",
+      "timeouts": "GENERATION_TIMEOUT httpx.Timeout(connect=30, read=300, write=60, pool=30) at L28 (was 900 read) sensible; _PROBE_TIMEOUT 5/30/10/5"
+    },
+    "2_teach_latex": {
+      "models_extra_forbid": "app/models.py:196,204,210,217,224,231,242,248,258,268,275,281,289,298,305,318,324,334,341,348 all ConfigDict(extra='forbid') including TeachActionDraft 248, TeachOutputDraft 258, LatexOutputDraft 268, TeachOutputContent 324, LatexOutputContent 334",
+      "action_ids": "TeachActionDraft 250-252 id Literal 6: continue/ask_question/practice/example/deeper/next_topic, label 1..60, prompt 0..2000, actions 1..6",
+      "validation": "app/llm/structured_outputs.py:103-137 teach strips content/latex_blocks/label/prompt, requires non-empty, duplicate_action_ids via len(set(ids))!=len(ids) L120, latex strip + case-insensitive '</script' in lower L135 -> script_content, _VALUE_ERROR_CODES 148/150, T32 direct calls verified duplicate_action_ids and script_content rejection including </ScRiPt>",
+      "union": "app/models.py:387-395 StructuredOutputResponse Annotated Chat|Mermaid|Todo|Quiz|Teach|Latex discriminator kind, T32 OpenAPI oneOf 6 + TypeAdapter rejects unknown kind, T33 live 200 for chat/todo/quiz/latex/teach (5/5) + mermaid 422 fail-closed allowed with retry PASS"
+    },
+    "3_searxng": {
+      "client": "app/services/web_search.py:6-53 async search_web(base_url,query,max_results=5) -> [] if empty, url = base.rstrip('/')+'/search', httpx 10s, GET /search?format=json then fallback 404 GET /search?q, status !=200 -> [], handles list/dict results/data shapes, ignores non-dict, raw[:max_results] respects max_results verified T32 10->3 and 10->5, exception -> []",
+      "strict_mode": "app/services/sessions/turn.py:108-113 search_web is not None and searxng_url truthy and mode==grounded and not strict_mode (strict_mode = mode==strict and not chunks), app/services/structured_outputs.py:52-56 same grounded guard, both try/except ImportError -> None and try/except search_web warning -> None preserves SSE/file-only fallback, T32 SSE still streams, T33 SearXNG 200 at 192.168.1.57:8080",
+      "no_leak": "SEARXNG_URL never sent to browser: static/* 7 files clean (no SEARXNG/BROT_API), app/api/system.py health exposes only model_configured/endpoint_reachable, docs/security.md L11 server-side only note, SEARXNG_URL only in config.py Field and server services"
+    },
+    "4_static_readme_conventions": {
+      "static": "HEAD has no static tracked (removed 4dbf8a5 API-only), git diff --stat HEAD shows 0 static entries, working static/ is untracked (app.js etc) not modified vs tracked HEAD -> no static/* touched by batch",
+      "readme_structure": "README.md 357 lines: ASCII logo 1-8, ## Summary 10, ## Project structure 14, ## Architecture 97 with 5 mermaid blocks (System architecture, Session state machine, SSE streaming, Structured outputs teach/latex, SQLite data model) -> 4-part mandated, structure tree lists BROT_*+SEARXNG_URL in config, AsyncOpenAI thought filtering in client, hybrid [WEB] in messages, teach/latex trio, web_search.py entry preserved and accurate vs disk",
+      "snake_case": "files/functions snake_case verified via ast walk, no Pascal funcs, files app/config.py etc snake",
+      "no_comments": "No # comments except allowed pragmas: app/db.py # fmt off/on, client.py # noqa BLE001 (3x), all other batch files 0 comment lines via grep ^\\s*# filtered"
+    },
+    "5_job_logs": {
+      "line_counts": "HEAD b26e53d counts: config 83 client 213 models 339 structured_outputs 210 svc_structured 139 turn 231 messages 179 README 301 docs/env 24 .env 17 etc. Working after: config 113 (+30) client 310 (+97) models 395 (+56) llm/structured 255 (+45) svc_structured 181 (+42) turn 264 (+33) messages 199 (+20) web_search 53 new README 357 (+56) docs/env 27 docs/setup 58 docs/security 37. T31a before/after matches HEAD->working at T31a time (docs/env 24->25, README 301->301), T31b before/after matches HEAD->working (339->395 etc 5/5), T35 before 301->357, 25->27 etc matches chain; T31a docs/env 25 chain to T35 before 25 correctly preserves T31a's SEARXNG row, README chain 301->301->357 preserves ollama+SearXNG+teach",
+      "base_commit_chain": "T31a b26e53da5a5dc758860440faac02a26d99f9f3d2, T31b same, T35 same, T32 b26e53d, T33 b26e53d -> single chain before commit, committed_at null for batch (before commit) accurate",
+      "provenance": "T31a session_id unknown (minor: not real id but declared_at/finalized_by present), T31b ses_fe42db95, T35 turing-t35-docs 00:00:00Z (zero time minor), T32/T33 merlin with verification merlin/review_only/analyzer_pending as facts: T31a/b analyzer_pending, T35 review_only, T32/T33 merlin correct; final_report present in all; notes mention dirty pre-existing correctly",
+      "writer_overlap": "README.md and docs/environment.md concurrently modified by T31a and T35 from same base; final working preserves both (ollama cloud + SearXNG + teach/latex trio), T31a notes declares dirty pre-existing, T35 notes claims no overlap but README overlap exists -> minor hygiene, not blocking as reconciliation preserved both; turn.py 231->264 includes web_search + persist_user_message/partial (continuity fix from unlogged dirty) but both preserved in working 264; no committed loss",
+      "git_state": "git log HEAD b26e53d, phantom M due to core.autocrlf true for preferences/mastery/.mmd (head bytes == working bytes 2521, diff 0) -> not real changes, .gitignore has oc-issues.txt/oc-wants.txt and not committed, job logs untracked T31a/b/T32/T33/T35 pending commit as batch"
+    },
+    "offline_live_synthesis": "T32 336 passed 4 failed pre-existing .env pollution (verified Settings(_env_file=None) loads real BROT_API_KEY, same as T31b notes), focused 37/37 pass, continuity via turn.py persist_* and messages HISTORY_LIMIT 8 verified; T33 live health ok model_configured true endpoint_reachable true gemma4:31b-cloud SearXNG 200, 790d206 grounded session, file upload 7d4c4b ready 1 chunk, citation turn [cit:...:0:0] PASS, continuity turn1 106d 461c + turn2 133d 575c new factorial question messages 2->4 thought_leak 0, 6 outputs chat/todo/quiz/latex/teach 200 validated 1 attempt + mermaid 422 then 200"
+  },
+  "minor_observations": [
+    "T31a session_id 'unknown' not a real opencode session id — provenance minor, does not affect correctness",
+    "T35 declared_at 2026-08-21T00:00:00Z is zero time, not actual declare time — minor",
+    "Writer-overlap not recorded: README.md and docs/environment.md both modified by T31a and T35 from same base_commit without explicit reconciliation note, but final working preserves both (README ollama+SearXNG+teach, docs/env BROT_BASE_URL normalized note + SEARXNG row + WEB blocks) — implicit rebasing via dirty working tree, acceptable",
+    "app/services/sessions/turn.py 264 lines includes both T31b web_search and undeclared continuity fix (persist_user_message, persist_partial_content, buffer move) — line count +33 matches working but T31b notes says no reconciliation; both preserved so not blocking",
+    "max_results floor inconsistency: turn.py min(5,budget) floor 3, structured_outputs.py min(5,budget) no floor — if budget=2, turn gives 3 vs svc gives 2 — minor, not exercised (budget 8 -> 5 both)",
+    "static/ untracked 7 files (API-only repo previously removed web UI) exist on disk but not tracked vs HEAD — not touched by batch per git diff, not blocking",
+    "core.autocrlf true produces phantom M for app/api/preferences.py etc (head bytes == working) — diff HEAD 0, not real modification"
+  ],
+  "blocking_issues": [],
+  "recommendations": [
+    "Commit batch in one commit: staged explicit .agents/jobs/T31a.json T31b.json T35.json T32.json T33.json plus modified app/config.py app/llm/client.py app/models.py app/llm/structured_outputs.py app/services/structured_outputs.py app/services/web_search.py app/llm/messages.py app/services/sessions/turn.py docs/* README.md .env.example tests/* and verify git check-ignore does not swallow web_ui/lib if re-added",
+    "Consider normalizing T31a session_id and T35 declared_at before final batch commit for log hygiene, and adding reconciliation note for README/docs/env overlap to satisfy writer-overlap safety verbatim"
+  ]
+}

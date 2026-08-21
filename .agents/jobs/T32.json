@@ -1,0 +1,57 @@
+{
+  "task_id": "T32",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "merlin-verify-t32",
+  "declared_at": "2026-08-21T13:06:00Z",
+  "finalized_by": "Merlin",
+  "summary": "Offline verification of T31a (Ollama provider + thought filter + searxng config) and T31b (teach/latex kinds + SearXNG wiring + hybrid prompts)",
+  "files": {
+    "modified": [],
+    "created": [
+      ".agents/jobs/T32.json"
+    ],
+    "deleted": []
+  },
+  "base_commit": "b26e53da5a5dc758860440faac02a26d99f9f3d2",
+  "committed_at": null,
+  "line_counts": {
+    "before": {},
+    "after": {}
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "merlin",
+  "notes": "No source modified except T32 log. Working tree dirty vs HEAD b26e53d (T31a/b not yet committed). Evidence gathered via compileall + pytest + direct Python checks. 4 pre-existing failures confirmed as .env pollution, not regression.",
+  "evidence": {
+    "compile": "python -m compileall app -> True (exit 0) via compileall.compile_dir and subprocess returncode 0",
+    "focused_suite": "python -m pytest tests/test_config.py tests/test_thought_filter.py tests/test_structured_outputs.py tests/test_api_outputs.py -q -> 37 passed (test_config 8, test_thought_filter 5, test_structured_outputs 16, test_api_outputs 8) in 6.99s",
+    "full_suite": "python -m pytest tests/ -q --tb=no -> 336 passed, 4 failed (1: test_turn_rejects_missing_config 404!=400, 2: test_probe_config_missing_400 200!=400, 3: test_plan_config_missing_400 200!=400, 4: test_notes_quiz_endpoint_config_missing_400 422!=400) in 79s; same 336/4 as T31b notes pre-change -> no NEW failures",
+    "preexisting_explanation": "Settings without _env_file=None loads real .env BROT_API_KEY=fd45c428ca37402d8cb20fd0bb8a0d57.luDk_1Vt0Ib-LxryuAGVk0I5 (verified via Settings(data_dir=tmp, brot_api_key='') still has key), so validation_problems returns [] and config gate is bypassed -> probe/plan succeed, turn falls through to 404 missing session",
+    "thought_filter_cases": "verified _strip_thought: whole block 'before <|channel|>thought reasoning content channel|> after' -> 'before  after' (5 tests pass); split across parts 'hello <|channel|>thou'+'ght split content channel|> world' -> both parts filtered; empty 'a<|channel|>thoughtchannel|>b' -> 'ab'; multiple 'a <|channel|>thought x channel|> b <|think|> y channel|> c' -> x/y removed; streaming scrubber with in_thought/buf/longest=18 handles split marker across deltas (manual FakeLLM streaming test: whole, split, empty, multiple, reasoning_content ignored all PASS)",
+    "teach_latex": "validate_output teach: strips content/latex_blocks/label/prompt, requires non-empty content/actions/label, rejects duplicate ids with ValueError duplicate_action_ids; latex: strips title/latex, rejects case-insensitive </script> with ValueError script_content (verified via direct calls and test_api_outputs teach/latex trio)",
+    "config_defaults": "Settings(_env_file=None).brot_base_url == https://ollama.com/v1, brot_model == gemma4:31b-cloud, searxng_url == '' verified directly; host 0.0.0.0 port 8000 unchanged",
+    "brot_names_preserved": "Settings fields still use Field(validation_alias='BROT_BASE_URL'/'BROT_API_KEY'/'BROT_MODEL') and SEARXNG_URL for searxng_url; .env.example header 'Ollama cloud (OpenAI-compatible) — https://ollama.com/v1' and BROT_BASE_URL/BROT_API_KEY/BROT_MODEL preserved, added SEARXNG_URL=http://192.168.1.57:8080/",
+    "ollama_normalization": "Settings._normalize_urls: https://ollama.com -> https://ollama.com/v1, https://ollama.com/ -> https://ollama.com/v1, https://ollama.com/v1 stays, https://ollama.com/v1/ stripped to /v1, case-insensitive host==ollama.com (HTTPS://OLLAMA.COM -> HTTPS://OLLAMA.COM/v1), generic trailing slash stripped for other hosts (http://example.com/ -> http://example.com), searxng_url stripped via rstrip('/')",
+    "web_search_failure": "search_web returns [] on ConnectError (mocked httpx.ConnectError), 500 status, and json ValueError (verified via MagicMock+AsyncMock with correctly mocked __aenter__ returning client mock, client.get AsyncMock)",
+    "web_search_max_results": "respects max_results via raw[:max_results]: 10 mock results with max 3 -> len 3, max 5 -> len 5; also handles list/dict results/data shapes, ignores non-dict items, builds title/url/content/snippet",
+    "sse_with_searxng": "turn.py imports search_web with try/except fallback to None, checks search_web is not None and searxng_url truthy and mode==grounded and not strict_mode, then try/except around search_web call logging warning and setting web_results None on exception; structured_outputs.py same pattern; existing SSE tests still pass (13/14 SSE tests pass, only missing_config fails due to env pollution); direct code inspection shows buffer handling and persist_partial_content still correct",
+    "openapi_discriminator": "OpenAPI spec for POST /api/sessions/{id}/outputs has oneOf 6 envelopes and discriminator propertyName=kind mapping chat/mermaid/todo/quiz/teach/latex verified via app.openapi(); TypeAdapter(StructuredOutputResponse) rejects unknown kind with union_tag_invalid and validates teach/latex envelopes correctly; StructuredOutputRequest output_kind enum includes all 6",
+    "timeout": "GENERATION_TIMEOUT = httpx.Timeout(connect=30, read=300, write=60, pool=30) verified in client.py (was 900 read)",
+    "files_inspected": "app/config.py 113 lines, app/llm/client.py 310, app/models.py 395, app/llm/structured_outputs.py 255, app/services/web_search.py 53, app/services/sessions/turn.py 264, app/services/structured_outputs.py 181, app/llm/messages.py 199, tests/test_thought_filter.py 42, tests/test_structured_outputs.py 229, tests/test_api_outputs.py 185, tests/test_config.py 82",
+    "line_counts_note": "Used git show HEAD line counts via T31a log; current working tree dirty so wc -l vs HEAD not representative for committed state"
+  },
+  "checks": {
+    "1_compile": "PASS",
+    "2_thought_filter_whole_split_multiple_empty": "PASS - 5 test_thought_filter tests + streaming scrubber manual verification (reasoning_content ignored)",
+    "3_teach_latex_kinds_validate_reject": "PASS - duplicate_action_ids and script_content rejected, valid cases stripped correctly",
+    "4_config_defaults_https_ollama_gemma_searxng": "PASS",
+    "5_ollama_base_url_normalization": "PASS",
+    "6_searxng_search_returns_empty_respects_max": "PASS",
+    "7_sse_still_streams_with_searxng_url": "PASS - try/except and grounded not strict guard preserves SSE",
+    "8_openapi_discriminates_on_kind": "PASS",
+    "no_new_failures": "PASS - 336 passed same as before, 4 failures are pre-existing .env pollution"
+  },
+  "verdict": "verified",
+  "final_report": "T32 offline verification PASS (verified). Compile OK, focused suite 37/37 pass, full suite 336 pass + 4 pre-existing failures (real .env BROT_API_KEY pollution, not regression). Thought filter strips Gemma4 <|channel|>thought blocks correctly for whole/split/multiple/empty and streaming handles split markers via buf/longest=18 plus ignores reasoning_content. teach/latex validate and reject duplicate_action_ids / case-insensitive script_content. Config defaults https://ollama.com/v1 / gemma4:31b-cloud / searxng_url=\"\" with BROT_* names preserved via validation_alias. Ollama base_url normalization appends /v1 for bare ollama.com case-insensitive and strips trailing slashes. SearXNG search returns [] on ConnectError/500/json error and respects max_results. SSE /turns and structured outputs both guard search_web with try/except so streams still work when searxng_url set. OpenAPI discriminates on kind for all 6 envelopes."
+}

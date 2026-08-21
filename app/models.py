@@ -195,7 +195,7 @@ class Preferences(BaseModel):
 class StructuredOutputRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    output_kind: Literal["chat", "mermaid", "todo", "quiz"]
+    output_kind: Literal["chat", "mermaid", "todo", "quiz", "teach", "latex"]
     prompt: StrictStr = Field(min_length=1, max_length=8000)
     count: StrictInt = Field(default=3, ge=1, le=10)
 
@@ -242,6 +242,33 @@ class QuizOutputDraft(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     questions: list[QuizQuestionDraft] = Field(min_length=1, max_length=10)
+
+
+class TeachActionDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: Literal[
+        "continue", "ask_question", "practice", "example", "deeper", "next_topic"
+    ]
+    label: StrictStr = Field(min_length=1, max_length=60)
+    prompt: StrictStr = Field(min_length=0, max_length=2000)
+
+
+class TeachOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: StrictStr = Field(min_length=1, max_length=12000)
+    latex_blocks: list[Annotated[StrictStr, Field(max_length=6000)]] = Field(
+        default_factory=list, max_length=6
+    )
+    actions: list[TeachActionDraft] = Field(min_length=1, max_length=6)
+
+
+class LatexOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    latex: StrictStr = Field(min_length=1, max_length=12000)
 
 
 class ChatOutputContent(BaseModel):
@@ -293,6 +320,23 @@ class QuizOutputContent(BaseModel):
     questions: list[StructuredQuizQuestion] = Field(min_length=1, max_length=10)
 
 
+class TeachOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: StrictStr = Field(min_length=1, max_length=12000)
+    latex_blocks: list[Annotated[StrictStr, Field(max_length=6000)]] = Field(
+        default_factory=list, max_length=6
+    )
+    actions: list[TeachActionDraft] = Field(min_length=1, max_length=6)
+
+
+class LatexOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    latex: StrictStr = Field(min_length=1, max_length=12000)
+
+
 class ValidationMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -330,10 +374,22 @@ class QuizOutputEnvelope(StructuredOutputEnvelope):
     content: QuizOutputContent
 
 
+class TeachOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["teach"]
+    content: TeachOutputContent
+
+
+class LatexOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["latex"]
+    content: LatexOutputContent
+
+
 StructuredOutputResponse = Annotated[
     ChatOutputEnvelope
     | MermaidOutputEnvelope
     | TodoOutputEnvelope
-    | QuizOutputEnvelope,
+    | QuizOutputEnvelope
+    | TeachOutputEnvelope
+    | LatexOutputEnvelope,
     Field(discriminator="kind"),
 ]

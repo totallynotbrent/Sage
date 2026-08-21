@@ -105,3 +105,81 @@ def test_structured_mermaid_uses_validated_diagram_type(
     assert body["kind"] == "mermaid"
     assert body["content"]["diagram_type"] == "flowchart"
     assert len(calls) == 1
+
+
+def test_structured_teach_output(client, override_llm):
+    session = _create_session(client)
+    override_llm.complete_json_responses = [
+        json.dumps(
+            {
+                "content": "Intro to graphs",
+                "latex_blocks": ["$$G=(V,E)$$"],
+                "actions": [
+                    {"id": "continue", "label": "Continue", "prompt": "next step"},
+                    {
+                        "id": "ask_question",
+                        "label": "Ask question",
+                        "prompt": "quiz me",
+                    },
+                ],
+            }
+        )
+    ]
+    response = client.post(
+        f"/api/sessions/{session['id']}/outputs",
+        json={"output_kind": "teach", "prompt": "Teach graphs"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["kind"] == "teach"
+    assert body["content"]["content"] == "Intro to graphs"
+    assert body["content"]["latex_blocks"] == ["$$G=(V,E)$$"]
+    assert len(body["content"]["actions"]) == 2
+    assert body["content"]["actions"][0]["id"] == "continue"
+    assert body["validation"]["status"] == "validated"
+    assert body["session_id"] == session["id"]
+
+
+def test_structured_latex_output(client, override_llm):
+    session = _create_session(client)
+    override_llm.complete_json_responses = [
+        json.dumps(
+            {"title": "My Notes", "latex": "\\begin{document} hello \\end{document}"}
+        )
+    ]
+    response = client.post(
+        f"/api/sessions/{session['id']}/outputs",
+        json={"output_kind": "latex", "prompt": "Write latex"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["kind"] == "latex"
+    assert body["content"]["title"] == "My Notes"
+    assert "hello" in body["content"]["latex"]
+    assert body["validation"]["status"] == "validated"
+
+
+def test_structured_output_with_web_search_optional(client, override_llm, monkeypatch):
+    from app.services import structured_outputs as so_module
+
+    async def fake_search(base_url, query, max_results=5):
+        return []
+
+    monkeypatch.setattr(so_module, "search_web", fake_search)
+    monkeypatch.setattr(client.app.state.settings, "searxng_url", "http://example.com")
+    session = _create_session(client)
+    override_llm.complete_json_responses = [
+        json.dumps(
+            {
+                "content": "web aware teach",
+                "latex_blocks": [],
+                "actions": [{"id": "continue", "label": "Continue", "prompt": "next"}],
+            }
+        )
+    ]
+    response = client.post(
+        f"/api/sessions/{session['id']}/outputs",
+        json={"output_kind": "teach", "prompt": "Teach with web"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["kind"] == "teach"

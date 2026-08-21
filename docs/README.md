@@ -26,5 +26,5 @@ rules for the frontend) are kept out of the diagrams; see `ui.txt` for those.
 | --- | ------ |
 | [setup.md](setup.md) | Python 3.11 setup (Bookworm vs Trixie), `.env`, run.sh / run.bat, uvicorn, LAN access |
 | [security.md](security.md) | Trusted-network-only warning |
-| [environment.md](environment.md) | Environment variable reference (BROT_* / HOST / PORT / limits) |
+| [environment.md](environment.md) | Environment variable reference (BROT_* / SEARXNG_URL / HOST / PORT / limits) |
 | [testing.md](testing.md) | pytest suite, wheel preflight, live endpoint smoke test |
