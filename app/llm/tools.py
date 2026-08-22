@@ -32,6 +32,16 @@ _KNOWN_ERROR_CODES = frozenset(
 _WEB_BLOCKED_TOKENS = ("wikidiff", "redkiwiapp")
 
 _STR = {"type": "string"}
+_STATUS_PROP = {
+    "status": {
+        "type": "string",
+        "description": (
+            "Short, warm, user-facing description of what you are doing right "
+            "now, shown live while the tool runs. Example: 'Searching for a "
+            "reliable definition...'. Not hidden reasoning."
+        ),
+    }
+}
 _TOPIC = {"topic": _STR}
 _QUIZ_PROPS = {"topic": _STR, "count": {"type": "integer", "minimum": 1, "maximum": 10}}
 _ACTION_ITEM = {
@@ -52,7 +62,11 @@ _ACTIONS_PROP = {
 
 
 def _fn(name: str, description: str, properties: dict, required: list[str]) -> dict:
-    parameters = {"type": "object", "properties": properties, "required": required}
+    parameters = {
+        "type": "object",
+        "properties": {**properties, **_STATUS_PROP},
+        "required": required,
+    }
     function = {"name": name, "description": description, "parameters": parameters}
     return {"type": "function", "function": function}
 

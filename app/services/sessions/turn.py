@@ -17,8 +17,6 @@ from app.llm.messages import (
     build_chat_messages,
     extract_citation_markers,
     format_location,
-    mentions_dolls_analogy,
-    scrub_analogy_sentencewise,
 )
 from app.llm.tools import available_tools, execute_tool
 
@@ -145,12 +143,35 @@ class TurnMixin:
                     )
 
                 session_dict = session.model_dump()
+                assistant_row = self.conn.execute(
+                    "SELECT COUNT(*) AS n FROM messages WHERE session_id = ? "
+                    "AND role = 'assistant' AND partial = 0",
+                    (session_id,),
+                ).fetchone()
+                assistant_count = int(assistant_row["n"])
+                dolls_row = self.conn.execute(
+                    "SELECT EXISTS("
+                    "SELECT 1 FROM messages WHERE session_id = ? "
+                    "AND role = 'assistant' AND partial = 0 "
+                    "AND (content LIKE '%nesting dolls%' "
+                    "OR content LIKE '%matryoshka%')"
+                    ") AS found",
+                    (session_id,),
+                ).fetchone()
+                lesson_state = {
+                    "teaching_turns": assistant_count,
+                    "greeting_done": assistant_count > 0,
+                    "definition_taught": assistant_count > 0,
+                    "dolls_used": bool(dolls_row["found"]),
+                    "last_user_text": user_text,
+                }
                 messages = build_chat_messages(
                     session_dict,
                     user_text,
                     chunks,
                     self._mastery_summary(),
                     mode,
+                    lesson_state=lesson_state,
                 )
                 tool_ctx = ToolContext(
                     settings=self.settings,
@@ -165,6 +186,7 @@ class TurnMixin:
                 )
                 stashed_actions: list[dict] = []
                 web_sources: list[dict] = []
+                step_actions_recorded = False
 
                 for _ in range(_MAX_TOOL_ITERATIONS):
                     had_tool_call = False
@@ -190,12 +212,26 @@ class TurnMixin:
                             arguments = (
                                 raw_arguments if isinstance(raw_arguments, dict) else {}
                             )
-                            yield {
+                            tool_call_event = {
                                 "type": "tool_call",
                                 "name": name,
                                 "arguments": arguments,
                             }
-                            result = await execute_tool(name, arguments, tool_ctx)
+                            model_status = arguments.get("status")
+                            if isinstance(model_status, str) and model_status.strip():
+                                tool_call_event["status"] = model_status
+                            yield tool_call_event
+                            if name == "record_step_actions" and step_actions_recorded:
+                                result = {
+                                    "note": "actions already recorded this turn",
+                                    "actions": [],
+                                }
+                            else:
+                                result = await execute_tool(name, arguments, tool_ctx)
+                                if name == "record_step_actions" and not result.get(
+                                    "error"
+                                ):
+                                    step_actions_recorded = True
                             if not echoed:
                                 messages.append(
                                     {
@@ -213,8 +249,10 @@ class TurnMixin:
                                     "content": json.dumps(result),
                                 }
                             )
-                            if name == "record_step_actions" and isinstance(
-                                result.get("actions"), list
+                            if (
+                                name == "record_step_actions"
+                                and not result.get("note")
+                                and isinstance(result.get("actions"), list)
                             ):
                                 stashed_actions = result["actions"]
                             elif name == "web_search" and not result.get("error"):

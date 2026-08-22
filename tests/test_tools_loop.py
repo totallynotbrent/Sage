@@ -80,7 +80,10 @@ def test_turn_tool_loop_event_order_and_followup(conn, settings, monkeypatch):
             {
                 "type": "tool_call",
                 "name": "web_search",
-                "arguments": {"query": "what is recursion"},
+                "arguments": {
+                    "query": "what is recursion",
+                    "status": "Looking up sources...",
+                },
                 "id": "call_ws",
             }
         ]
@@ -111,7 +114,11 @@ def test_turn_tool_loop_event_order_and_followup(conn, settings, monkeypatch):
 
     tool_call_event = next(e for e in events if e["type"] == "tool_call")
     assert tool_call_event["name"] == "web_search"
-    assert tool_call_event["arguments"] == {"query": "what is recursion"}
+    assert tool_call_event["arguments"] == {
+        "query": "what is recursion",
+        "status": "Looking up sources...",
+    }
+    assert tool_call_event["status"] == "Looking up sources..."
 
     tool_result_event = next(e for e in events if e["type"] == "tool_result")
     assert tool_result_event["summary"] == [
