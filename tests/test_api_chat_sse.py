@@ -127,8 +127,11 @@ def test_mid_stream_failure_persists_partial(client, override_llm, settings):
 
     row = _message_row(settings, session["id"], "c3")
     assert row["partial"] == 1
+    assert row["content"] == "alpha beta "
     full = client.get(f"/api/sessions/{session['id']}").json()
-    assert all(m["client_msg_id"] != "c3" for m in full["messages"])
+    partial = [m for m in full["messages"] if m["client_msg_id"] == "c3"]
+    assert len(partial) == 1
+    assert partial[0]["content"] == "alpha beta "
 
 
 def test_retry_regenerates_partial(client, override_llm, settings):

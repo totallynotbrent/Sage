@@ -1,0 +1,26 @@
+{
+  "task_id": "T51",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": null,
+  "declared_at": "2026-08-21T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Minimal hardening of _run_generate in app/llm/tools.py: topic grounding via arguments.topic -> ctx.recent_user_text (getattr fallback) -> session goal plus an on-task prompt line pinning the topic to the current lesson thread; one bounded repair attempt mirroring structured_outputs.request_output with stable issue codes (empty_output for empty model output, provider code prefix split reused for transport errors); mermaid validate and quiz count logic unchanged and applied to whichever attempt succeeded.",
+  "files": {
+    "modified": ["app/llm/tools.py", "tests/test_tools_loop.py", ".agents/jobs/T51.json"],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": null,
+  "line_counts": {
+    "before": { "app/llm/tools.py": 155, "tests/test_tools_loop.py": 412 },
+    "after": { "app/llm/tools.py": 193, "tests/test_tools_loop.py": 456 }
+  },
+  "line_count_method": "python fallback (both source files untracked at base_commit; git show HEAD:<path> unavailable)",
+  "modules_created": [],
+  "documentation": [],
+  "verification": "analyzer_pending",
+  "notes": "turn.py ctx.recent_user_text wiring intentionally deferred to avoid touching turn.py (outside declared set) - getattr fallback covers it until wired. turn.py read-only confirmed ToolContext fields: settings, session_dict, chunks, mastery_summary, mode, llm, validate_fn, mermaid_validate. Failure evidence from T50.json: generate_mermaid tool_result carried error:missing after upstream complete_json returned text=None with no retry. In-session checks: python -m compileall app/llm/tools.py tests/test_tools_loop.py clean; python -m pytest tests/test_tools_loop.py -q -> 10 passed (9 pre-existing + 1 new repair test). No commit made (per task brief). LSP diagnostics seen in turn.py/client.py/fake_llm.py/existing tests are pre-existing and untouched.",
+  "final_report": "Implemented minimal hardening of _run_generate in app/llm/tools.py per the approved plan. (1) Topic grounding: fallback chain arguments.topic -> getattr(ctx, \"recent_user_text\", \"\") stripped -> session goal; user prompt now also carries \"The topic MUST stay within the current lesson thread ({topic}). Do not choose an unrelated subject.\" (2) One bounded repair attempt mirroring structured_outputs.request_output: first attempt failure (text None, or parse_exact_json/validate_output raising ModelOutputError/ValidationError/ValueError) appends the assistant echo (original text, or \"(no usable answer: {code})\" error note) plus a user repair message \"Your previous answer could not be used ({stable_code}). Return ONLY corrected JSON for output_kind={kind} about {topic}, matching the schema exactly.\" and calls complete_json once more; second failure returns {\"error\": stable_code}. stable_code comes from _issue_code, extended so \"Empty model output\" maps to \"empty_output\" (code added to _KNOWN_ERROR_CODES) and the transport split (error_text or \"upstream\").split(\":\", 1)[0] is reused verbatim, so provider-code-prefixed transport strings (timeout:, rate_limit:, ...) surface their prefix while unknown prefixes fall through to invalid_output per the existing mapping. (3) Mermaid validate + quiz count logic byte-for-byte identical, applied to whichever attempt succeeded; a defensive if output is None guard returns invalid_output (statically unreachable since attempt-2 failure always returns early). (4) Appended test_execute_tool_generate_todo_repairs_after_empty_output to tests/test_tools_loop.py following existing FakeLLM patterns: scripted complete_json [\"\", VALID_JSON] for generate_todo asserts validated payload {kind: todo, title, items:[{text, done: False}]}, llm.calls length == 2, second call has 4 messages with assistant echo and exact \"could not be used\" repair note. turn.py ctx.recent_user_text wiring is intentionally deferred to avoid touching turn.py - getattr fallback covers it. Verification: python -m compileall clean on both files; python -m pytest tests/test_tools_loop.py -q -> 10 passed in 3.12s. No commit. Job log .agents/jobs/T51.json finalized (done); line counts before/after recorded via Python fallback since both files are untracked at base_commit 28e2e37aee181027e0bc9c6f3d6acf74963cbe24. TASK STATUS: T51 -> done"
+}

@@ -1,0 +1,86 @@
+{
+  "task_id": "T46",
+  "agent": "Merlin",
+  "status": "done",
+  "session_id": "ses_fd99dd86cffeBYl28I58BxBUNb",
+  "declared_at": "2026-08-21T18:30:00Z",
+  "finalized_by": "Merlin",
+  "summary": "Offline machine verification of T45 model-initiated tool calling: targeted suites (9 + 19 passed), full suite 345 passed / 4 failures proven environmental (oc-issues #34 alias-vs-.env mechanism reproduced and cleared via env var), plus 14-point independent behavior probe covering SSE ordering, executor-once with parsed args, assistant echo-once, role:tool follow-up contract, mermaid card fields, 400-tools fallback warning-once, strict-mode tools=None, searxng gating, wikidiff/redkiwiapp filtering, and _next_chunk leak smoke (ALL_OK). No production source modified.",
+  "files": {
+    "modified": [],
+    "created": [".agents/jobs/T46.json"],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": null,
+  "line_counts": {
+    "before": {},
+    "after": {
+      ".agents/jobs/T46.json": 86
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "merlin",
+  "evidence": {
+    "targeted_suites": {
+      "tests/test_tools_loop.py -q": "9 passed in 2.67s",
+      "tests/test_api_chat_sse.py tests/test_thought_filter.py tests/test_llm_client.py -q": "19 passed, 1 failed (test_turn_rejects_missing_config, oc-issues #34 env)",
+      "tests/test_thought_filter.py": "included above, all green"
+    },
+    "full_suite": {
+      "command": "python -m pytest tests -q",
+      "result": "345 passed, 4 failed in 114.86s — matches expected 345/4",
+      "failures_by_name": [
+        "tests/test_api_chat_sse.py::test_turn_rejects_missing_config (assert 404 == 400)",
+        "tests/test_api_learning.py::test_probe_config_missing_400 (assert 200 == 400)",
+        "tests/test_api_plans.py::test_plan_config_missing_400 (assert 200 == 400)",
+        "tests/test_notes_quiz.py::test_notes_quiz_endpoint_config_missing_400 (assert 422 == 400)"
+      ],
+      "environmental_proof": "All four construct Settings(brot_api_key='') by field name; pydantic-settings validation_alias lets repo .env's BROT_API_KEY win, so config looks configured. Probe: field-name kwarg -> validation_problems() empty; Settings(**{'BROT_API_KEY': ''}) -> 'BROT_API_KEY / OLLAMA_API_KEY is not set.' Re-running all four with $env:BROT_API_KEY='' -> 4 passed. Same family/root cause as oc-issues #34 which reproduces at base commit 28e2e37."
+    },
+    "sse_order_executor_once_parsed_args": {
+      "probe_events": "['meta','tool_call','tool_result','tool_call','tool_result','delta','delta','delta','delta','done']",
+      "executor": "execute_tool invoked exactly once per scripted call (web_search then record_step_actions); arguments arrived as dict {'query': 'what is recursion'}",
+      "search_web": "called once: base_url='http://searx.test', query='what is recursion', max_results=5 (=min(5, context_chunk_budget))",
+      "pytest_backing": "test_turn_tool_loop_event_order_and_followup, test_turn_stashes_record_step_actions PASS"
+    },
+    "role_tool_followup_and_echo_once": {
+      "followup_messages": "exactly two role:'tool' messages with tool_call_id ['call_ws','call_act'], content valid JSON (filtered results list / actions list)",
+      "assistant_echo": "appended exactly ONCE per stream response, positioned before the tool messages",
+      "multi_call_wire_list": "real-client probe (chunked stub stream, two accumulated calls): every emitted tool_call event carries raw_tool_calls of length 2 with ids call_a/call_b and parsed dict arguments — so the single echo lists both calls. Note: FakeLLM emits per-event single-call raw_tool_calls (fake fidelity gap, not a production defect; echo-once semantics still held in that scenario)"
+    },
+    "mermaid_card": {
+      "turn_level": "tool_result carries kind/title/source/diagram_type ('mermaid','Call Stack','A-->B...' present,'flowchart'); summary 'mermaid ok'",
+      "diagram_type_source": "validate_mermaid return value — verified through lazy-import path (ctx.mermaid_validate=None -> app.services.mermaid.validate_mermaid) via direct execute_tool probe returning diagram_type='flowchart'; turn-level test monkeypatches app.services.mermaid.validate_mermaid and asserts 'flowchart'"
+    },
+    "fallback_400_tools": {
+      "create_calls": "first has tools+tool_choice='auto'; retry has neither key (2 total calls)",
+      "events": "[{'type':'delta','delta':'hello'}] only — plain deltas, no tool events",
+      "warning_once": "'tools unsupported by endpoint; retrying without tools' logged exactly once (record-count probe + caplog test)",
+      "pytest_backing": "test_stream_chat_falls_back_without_tools_on_400, test_stream_chat_plain_path_stays_strings PASS"
+    },
+    "strict_mode_and_searxng_gate": {
+      "strict_with_chunks": "stream_chat received tools=None (FakeLLM.calls recorded None); zero tool_call/tool_result events; meta.insufficient=False; normal done",
+      "searxng_empty": "available_tools(settings with searxng_url='') returns exactly 5 schemas, web_search absent: ['generate_latex','generate_mermaid','generate_quiz','generate_todo','record_step_actions']"
+    },
+    "web_filtering": {
+      "in_turn": "wikidiff and redkiwiapp URLs absent from every SSE event and from follow-up role:tool JSON; summary keeps only https://example.com/recursion",
+      "direct_execute_tool": "execute_tool('web_search') with redkiwiapp+good results returns only the good entry — filter lives inside execute_tool/_run_web_search (_WEB_BLOCKED_TOKENS)"
+    },
+    "next_chunk_leak_smoke": {
+      "script": "C:/Users/Brent/AppData/Local/Temp/opencode/smoke_next_chunk.py (pre-existing, reused unmodified)",
+      "result": "cancel_wins: OK cancelled=True leaked=0; chunk_wins: OK cancelled=False leaked=0; outer_cancel_mid_wait: OK cancelled=False leaked=0; ALL_OK"
+    },
+    "hygiene": {
+      "ui_static_untouched": "Only the six T45-declared files have mtimes inside the T45 window (17:05-18:04) under app/ and tests/; static/* last written 12:19, outside any T45 activity; no UI/static paths in declared set",
+      "line_counts_match_t45_json": "raw newline counts (wc -l semantics): tools.py=155, client.py=443, messages.py=216, turn.py=362, fake_llm.py=155, test_tools_loop.py=412 — identical to T45.json after counts",
+      "no_comments_added": "zero non-pragma '#' occurrences across all five T45 source files (only functional '# noqa: BLE001' pragmas)",
+      "naming": "functions/variables snake_case throughout; new test helper classes _scripted_stream/_flaky_completions are snake_case; _ThoughtScrubber follows the repo-wide PascalCase class convention (LLMClient, SessionService) — noted, consistent with codebase"
+    },
+    "static_analysis_note": "IDE LSP reports pre-existing type-checker artifacts (TurnMixin duck-typed attribute access, httpx vs httpx2 duplicate-stub conflicts, FakeLLM.stream_chat override signature). Runtime suite is green; the project gate is pytest, not pyright. Not caused by T45; not gating."
+  },
+  "verdict": "PASS",
+  "notes": "Verification-only task: no production source touched; probes live outside the repo at %TEMP%/opencode/ (verify_t46_behaviors.py 14 checks, verify_t46_fallback.py, smoke_next_chunk.py reuse, scan_t46b.py, count_lines.py, probe_settings_alias.py). Working tree carries other batches' uncommitted work (T40 etc.), so attribution of T45 scope used the declared file set + mtime window + content inspection rather than git diff. committed_at intentionally null (nothing to commit beyond this log).",
+  "final_report": "T46 verification of T45 tool-calling implementation: PASS.\n\nSuites: test_tools_loop 9 passed; api_chat_sse+thought_filter+llm_client 19 passed/1 env failure; full suite 345 passed / 4 failed with the exact oc-issues#34 names (chat_sse::test_turn_rejects_missing_config, learning::test_probe_config_missing_400, plans::test_plan_config_missing_400, notes_quiz::test_notes_quiz_endpoint_config_missing_400). Environmental proof: all four pass with BROT_API_KEY cleared in the process env; field-name kwarg provably loses to .env under validation_alias while alias kwarg produces the intended config-missing problem.\n\nBehaviors: SSE order meta->deltas->tool_call->tool_result->final deltas->done verified with executor invoked exactly once per call receiving parsed dict args; role:tool follow-ups carry correct tool_call_ids with JSON bodies and the assistant echo is appended exactly once before them (real-client probe proves each event's raw_tool_calls lists ALL accumulated calls, so the echo contains both calls on multi-call streams); mermaid tool_result carries kind/title/source/diagram_type with diagram_type sourced from validate_mermaid incl. the lazy-import path; 400-'tools' fallback retries without tools/tool_choice yielding plain deltas with the warning logged exactly once; strict mode passes tools=None producing zero tool events and searxng_url='' drops web_search leaving exactly 5 schemas; wikidiff/redkiwiapp filtering confirmed inside execute_tool both end-to-end and directly; _next_chunk leak smoke ALL_OK (no pending tasks in cancel-wins/chunk-wins/outer-cancel).\n\nHygiene: only the six declared files moved in the T45 window; static/ untouched since 12:19; raw line counts equal T45.json's after counts; zero non-pragma comments added; naming conventions hold. Verdict PASS; T45's analyzer_pending marker can be cleared to merlin-verified."
+}

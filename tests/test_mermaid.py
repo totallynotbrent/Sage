@@ -30,3 +30,15 @@ def test_mermaid_timeout_is_unavailable_error(monkeypatch):
         asyncio.run(validate_mermaid("graph TD\nA-->B"))
 
     assert raised.value.detail == {"issue_codes": ["mermaid_validator_unavailable"]}
+
+
+def test_mermaid_unwraps_dict_diagram_type(monkeypatch):
+    def fake_adapter(source):
+        return {
+            "ok": True,
+            "diagram_type": {"diagramType": "flowchart-v2", "config": {}},
+        }
+
+    monkeypatch.setattr(mermaid, "_run_adapter", fake_adapter)
+
+    assert asyncio.run(validate_mermaid("graph TD\nA-->B")) == "flowchart-v2"

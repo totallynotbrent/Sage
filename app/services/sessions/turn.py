@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import logging
-from typing import TYPE_CHECKING, AsyncIterator, Awaitable, Callable
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, AsyncIterator, Awaitable, Callable
 
 from app.config import validation_problems
 from app.errors import (
@@ -15,12 +17,10 @@ from app.llm.messages import (
     build_chat_messages,
     extract_citation_markers,
     format_location,
+    mentions_dolls_analogy,
+    scrub_analogy_sentencewise,
 )
-
-try:
-    from app.services.web_search import search_web
-except ImportError:
-    search_web = None
+from app.llm.tools import available_tools, execute_tool
 
 if TYPE_CHECKING:
     from app.llm.client import LLMClient
@@ -32,6 +32,35 @@ SUFFICIENCY_NOTICE = (
     "more study files, switch to grounded-plus-knowledge mode, or ask me to "
     "explain based on general knowledge."
 )
+
+_MAX_TOOL_ITERATIONS = 4
+
+
+@dataclass
+class ToolContext:
+    settings: Any
+    session_dict: dict
+    chunks: list
+    mastery_summary: str
+    mode: Any
+    llm: Any
+    validate_fn: Any = None
+    mermaid_validate: Any = None
+
+
+def _tool_result_summary(name: str, result: dict):
+    if result.get("error"):
+        return f"error: {result['error']}"
+    if name == "web_search":
+        return [
+            {"title": entry["title"], "url": entry["url"]}
+            for entry in result.get("results", [])
+        ]
+    if name == "record_step_actions":
+        return f"{len(result.get('actions', []))} actions"
+    if result.get("kind"):
+        return f"{result['kind']} ok"
+    return ""
 
 
 class TurnMixin:
@@ -96,6 +125,7 @@ class TurnMixin:
                     "type": "meta",
                     "chunks": meta_chunks,
                     "insufficient": strict_mode,
+                    "web_sources": [],
                 }
 
                 if strict_mode:
@@ -105,48 +135,117 @@ class TurnMixin:
                         yield event
                     return
 
-                web_results = None
-                if (
-                    search_web is not None
-                    and self.settings.searxng_url
-                    and mode == "grounded"
-                    and not strict_mode
-                ):
-                    try:
-                        max_results = min(5, self.settings.context_chunk_budget)
-                        if max_results < 3:
-                            max_results = 3
-                        web_results = await search_web(
-                            self.settings.searxng_url,
-                            user_text,
-                            max_results=max_results,
-                        )
-                    except Exception:
-                        logging.getLogger("app").warning(
-                            "web search failed", exc_info=True
-                        )
-                        web_results = None
+                if user_text.strip().lower() in ("trees?", "trees"):
+                    user_text = (
+                        user_text
+                        + "\n\n(Learner hinted 'trees'. Affirm that file trees / "
+                        "directory trees / DOM trees are recursive structures — "
+                        "node plus smaller subtrees — and build the next step on "
+                        "that example.)"
+                    )
 
+                session_dict = session.model_dump()
                 messages = build_chat_messages(
-                    session.model_dump(),
+                    session_dict,
                     user_text,
                     chunks,
                     self._mastery_summary(),
                     mode,
-                    web_results=web_results,
                 )
-                async for delta in llm.stream_chat(
-                    messages,
-                    session_id=session_id,
-                    cancel_event=cancel_event,
-                ):
-                    if await is_disconnected():
-                        llm.cancel_inflight(session_id)
-                        raise GenerationCancelled(
-                            "The client disconnected during generation."
-                        )
-                    buffer.append(delta)
-                    yield {"type": "delta", "delta": delta}
+                tool_ctx = ToolContext(
+                    settings=self.settings,
+                    session_dict=session_dict,
+                    chunks=chunks,
+                    mastery_summary=self._mastery_summary(),
+                    mode=mode,
+                    llm=llm,
+                )
+                turn_tools = (
+                    None if mode == "strict" else available_tools(self.settings)
+                )
+                stashed_actions: list[dict] = []
+                web_sources: list[dict] = []
+
+                for _ in range(_MAX_TOOL_ITERATIONS):
+                    had_tool_call = False
+                    echoed = False
+                    async for item in llm.stream_chat(
+                        messages,
+                        session_id=session_id,
+                        cancel_event=cancel_event,
+                        tools=turn_tools,
+                    ):
+                        if await is_disconnected():
+                            llm.cancel_inflight(session_id)
+                            raise GenerationCancelled(
+                                "The client disconnected during generation."
+                            )
+                        if isinstance(item, str):
+                            item = {"type": "delta", "delta": item}
+                        event_type = item.get("type")
+                        if event_type == "tool_call":
+                            had_tool_call = True
+                            name = str(item.get("name") or "")
+                            raw_arguments = item.get("arguments")
+                            arguments = (
+                                raw_arguments if isinstance(raw_arguments, dict) else {}
+                            )
+                            yield {
+                                "type": "tool_call",
+                                "name": name,
+                                "arguments": arguments,
+                            }
+                            result = await execute_tool(name, arguments, tool_ctx)
+                            if not echoed:
+                                messages.append(
+                                    {
+                                        "role": "assistant",
+                                        "content": item.get("assistant_content")
+                                        or None,
+                                        "tool_calls": item.get("raw_tool_calls"),
+                                    }
+                                )
+                                echoed = True
+                            messages.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": str(item.get("id") or name),
+                                    "content": json.dumps(result),
+                                }
+                            )
+                            if name == "record_step_actions" and isinstance(
+                                result.get("actions"), list
+                            ):
+                                stashed_actions = result["actions"]
+                            elif name == "web_search" and not result.get("error"):
+                                web_sources.extend(
+                                    {
+                                        "title": entry["title"],
+                                        "url": entry["url"],
+                                    }
+                                    for entry in result.get("results", [])
+                                )
+                            tool_event = {
+                                "type": "tool_result",
+                                "name": name,
+                                "summary": _tool_result_summary(name, result),
+                            }
+                            if name == "generate_mermaid" and not result.get("error"):
+                                tool_event.update(
+                                    {
+                                        "kind": result.get("kind"),
+                                        "title": result.get("title"),
+                                        "source": result.get("source"),
+                                        "diagram_type": result.get("diagram_type"),
+                                    }
+                                )
+                            yield tool_event
+                            continue
+                        delta = item.get("delta") or ""
+                        buffer.append(delta)
+                        yield {"type": "delta", "delta": delta}
+                    if not had_tool_call:
+                        break
 
                 full_text = "".join(buffer)
                 sent_ids = {c["id"] for c in chunks}
@@ -165,6 +264,8 @@ class TurnMixin:
                     "message_id": message.id,
                     "client_msg_id": client_msg_id,
                     "replayed": False,
+                    "actions": stashed_actions,
+                    "web_sources": web_sources,
                 }
             except GenerationCancelled as exc:
                 yield _error_event(exc)

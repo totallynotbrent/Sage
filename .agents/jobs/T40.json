@@ -1,0 +1,37 @@
+{
+  "task_id": "T40",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "turing-t40-fix-a-b",
+  "declared_at": "2026-08-21T16:05:00Z",
+  "finalized_by": "Turing",
+  "summary": "FIX A asyncio pending-task leak in LLMClient._next_chunk + FIX B grounding/Socratic prompt hygiene (web-search gate, noisy-domain filter, trees hint, hybrid tutor rules). Covers T40+T42 as a single writer under task id T40.",
+  "files": {
+    "modified": [
+      "app/llm/client.py",
+      "app/llm/messages.py",
+      "app/services/sessions/turn.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": null,
+  "line_counts": {
+    "before": {
+      "app/llm/client.py": 310,
+      "app/llm/messages.py": 199,
+      "app/services/sessions/turn.py": 264
+    },
+    "after": {
+      "app/llm/client.py": 330,
+      "app/llm/messages.py": 206,
+      "app/services/sessions/turn.py": 300
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T40+T42 implemented as single writer under task id T40. FIX A (app/llm/client.py::_next_chunk): both FIRST_COMPLETED branches now consume the losing task — cancel-wins cancels+awaits next_task (swallowing CancelledError/StopAsyncIteration/Exception) before raising GenerationCancelled; chunk-wins cancels+awaits cancel_task (swallowing CancelledError) before returning next_task.result(). Added an except-BaseException sweep around the asyncio.wait call that cancels and drains both child tasks when the wait itself is interrupted (outer-task cancellation or GeneratorExit injected mid-await), which is the path that previously leaked 'Task was destroyed but it is pending!'. Per the brief's explicit alternative, stream_chat relies on this _next_chunk fix plus the existing explicit cleanup (turn.py finally calls llm.end_inflight); no empty finally block was added and _next_chunk stays a staticmethod. Runtime smoke check (temp script) verified all three exit paths — cancel wins, chunk wins, outer task cancelled mid-wait — with zero leaked pending tasks. FIX B (app/services/services/sessions/turn.py): module-level frozenset _BASIC_PATTERNS with the 8 mandated lowercase substrings; web-search gate now also requires no chunks and no basic-definition match before calling search_web; after search returns, results whose url contains wikidiff or redkiwiapp are dropped; if user_text.strip().lower() is trees? or trees, user_text is extended locally (after the gate, so the hint cannot affect search) with the exact mandated learner-hint line before build_chat_messages. FIX B (app/llm/messages.py): hybrid tutor style paragraph inside APPLICATION INSTRUCTIONS gains the three mandated sentences verbatim (nesting-dolls once per session first teaching turn only; exactly ONE scaffolded yes/no-or-fill-in-the-blank check question not two open-ended ones; idk handling = next turn direct answer + tiny concrete example + strictly easier yes/no check, never repeat previous check verbatim). One documented deviation: the prior phrase 'End every teaching turn with 1-2 brief Socratic checking questions' directly contradicted the new exactly-ONE rule, so it was reworded to 'End every teaching turn with a brief Socratic check question' for internal consistency (Socratic prompt hygiene intent); strict-mode file-only grounding_rules untouched. Verification: python -m py_compile on all three files plus python -m compileall -q app passed (COMPILE_OK). Focused tests: tests/test_api_chat_sse.py + tests/test_thought_filter.py => 18 passed, 1 failed; tests/test_llm_client.py + tests/test_thought_filter.py => 6 passed. The single failure (test_turn_rejects_missing_config, expected 400 got 404) is pre-existing and environmental, unrelated to these changes: the repo's gitignored .env supplies a real BROT_API_KEY and because Settings fields use validation_alias, pydantic-settings lets the .env value override a by-name brot_api_key='' init kwarg (verified directly: by-name init picks up .env value, alias-keyword init honors ''), so validation passes and the route correctly 404s the unknown session; reproduces at base commit without T40 changes. Recorded as oc-issues.txt entry 34 with suggested fix (monkeypatch via alias/env in the test); test file is outside my declared set so I did not touch it. No commit per spec — batch committer to fill committed_at.",
+  "verification": "analyzer_pending",
+  "notes": "Reconciliation: HEAD unchanged at base_commit 28e2e37 throughout; git diff --stat shows only my changes in the three declared files (+26/-3 client.py, +13/-3 messages.py, +36/-0 turn.py), no concurrent writer overlap. Pre-existing dirty files elsewhere in the tree (app/api/sessions.py title route, partial-content assertions in tests/test_api_chat_sse.py, job-log edits) belong to earlier uncommitted batches and were not touched. LSP mixin diagnostics on TurnMixin (unknown self.settings/self.get/etc.) are pre-existing type-inference noise on untouched lines, not introduced here; compileall passes. Line counts use raw newline semantics via Python byte count (wc unavailable on this host, matching oc-issues entries 18/19/31/61)."
+}

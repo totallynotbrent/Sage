@@ -1,0 +1,35 @@
+{
+  "task_id": "T55",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "t55-turing-diagnostics",
+  "declared_at": "2026-08-21T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Diagnostics only: surface what gemma4 actually generates when mermaid validation fails - log raw source and return source_preview alongside the error code instead of letting execute_tool swallow it.",
+  "files": {
+    "modified": ["app/llm/tools.py"],
+    "created": [".agents/jobs/T55.json"],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": null,
+  "line_counts": {
+    "before": {
+      "app/llm/tools.py": 203,
+      ".agents/jobs/T55.json": 0
+    },
+    "after": {
+      "app/llm/tools.py": 215,
+      ".agents/jobs/T55.json": 44
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "manifest": [
+    "app/llm/tools.py - single change in _run_generate mermaid branch: wrap validator call with except that logs warning('mermaid validation failed; raw source: %r', source[:500]) on logger 'app' and returns {error: _issue_code(exc), source_preview: repr(source[:400])}; add module-top 'import logging'",
+    ".agents/jobs/T55.json - this job log"
+  ],
+  "notes": "Diagnostics-only task per user direction (show what gemma4 actually generates before fixing anything). No normalization, no prompt edits, no test changes. No commit - evidence-gathering for follow-up fix task. Line counts via Python newline count (wc -l semantics) because plain wc is unavailable in this session AND app/llm/tools.py is untracked at base_commit (never committed; git show HEAD:path impossible), so before-count 203 is from the pre-edit read of the working file. Verification: python -m pytest tests/test_tools_loop.py -q -> 10 passed in 5.74s (targeted run explicitly mandated by the task brief). Pre-existing LSP typing noise observed in turn.py/client.py/fake_llm.py/test_tools_loop.py matches T53/T54 notes; left alone. Working tree carries extensive pre-existing uncommitted/untracked state from earlier sessions outside my declared set; untouched.",
+  "verification": "analyzer_pending",
+  "final_report": "T55 done - DIAGNOSTICS ONLY, no fixes. Change: in app/llm/tools.py _run_generate's mermaid branch, the call payload[\"diagram_type\"] = await validator(payload[\"source\"]) is now wrapped in try/except Exception; on failure it logs logger 'app' warning('mermaid validation failed; raw source: %r', source[:500]) and returns {'error': _issue_code(exc), 'source_preview': repr(source[:400])}. Added module-top 'import logging'. Nothing else changed - no normalization, no prompt edits, no test edits. This is evidence-gathering only: the next live probe should surface gemma4's actual rejected mermaid source (up to 400 chars repr'd in the tool_result error dict, up to 500 chars in the server log) instead of the bare mermaid_invalid code execute_tool previously swallowed. Tests: pytest tests/test_tools_loop.py -q -> 10 passed. No commit made. Job log .agents/jobs/T55.json finalized with base_commit 28e2e37a, verification analyzer_pending."
+}
