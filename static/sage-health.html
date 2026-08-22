@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Health</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:1120ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--fg);background:var(--bg)}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:var(--fg)}
+input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
+.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
+.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--fg)}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
+.logo span{color:var(--muted)}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform 500ms var(--ease),opacity 500ms var(--ease)}
+.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
+.sidebar:not(.collapsed){transform:translateX(0)}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__header:hover{color:var(--muted)}
+.sidebar__chevron{transition:transform var(--dur) var(--ease)}
+.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
+.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
+.sidebar__section.open .sidebar__list{display:block}
+.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
+.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.sidebar__item.active{background:var(--overlay);color:var(--fg)}
+.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg)}
+.content_centered{max-width:600px;width:100%;margin:0 auto;padding:var(--space-8) var(--space-5);overflow-y:auto}
+.page_header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)}
+.page_title{font-family:var(--font-display);font-size:24px;font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:4px 10px;border-radius:var(--r);font-size:12px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease),border-color 150ms var(--ease)}
+.btn_primary{background:var(--accent);color:var(--bg)}
+.btn_primary:hover{background:var(--accent-hover)}
+.btn svg{width:13px;height:13px}
+.health_card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5);margin-bottom:var(--space-4)}
+.health_overall{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-5);margin-bottom:var(--space-4);border-bottom:1px solid var(--border)}
+.health_icon{width:40px;height:40px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600}
+.health_icon.ok{background:rgba(156,207,216,0.12);color:var(--foam)}
+.health_icon.warn{background:rgba(246,193,119,0.12);color:var(--gold)}
+.health_icon.error{background:rgba(235,111,146,0.12);color:var(--love)}
+.health_overall_text{flex:1}
+.health_overall_title{font-weight:600;font-size:15px;margin-bottom:2px}
+.status_badge{font-family:var(--font-mono);font-size:11px;font-weight:500;text-transform:uppercase;padding:3px 8px;border-radius:4px;background:var(--overlay)}
+.status_badge.ok{color:var(--foam)}
+.status_badge.warn{color:var(--gold)}
+.status_badge.error{color:var(--love)}
+.health_row{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) 0;border-bottom:1px solid var(--border)}
+.health_row:last-child{border-bottom:none}
+.health_label{display:flex;align-items:center;gap:var(--space-2);color:var(--muted);font-size:13px}
+.health_dot{width:6px;height:6px;border-radius:50%;background:var(--meta);flex-shrink:0}
+.health_dot.ok{background:var(--foam)}
+.health_dot.warn{background:var(--gold)}
+.health_dot.error{background:var(--love)}
+.health_value{font-family:var(--font-mono);font-size:13px;font-weight:500}
+.health_value.ok{color:var(--foam)}
+.health_value.love{color:var(--love)}
+.health_value.gold{color:var(--gold)}
+.health_caption{font-family:var(--font-mono);font-size:11px;color:var(--meta)}
+.dependency_error{font-family:var(--font-mono);font-size:13px;color:var(--love);line-height:1.6;padding:var(--space-2) 0;border-bottom:1px solid var(--border);word-break:break-word}
+.dependency_error:last-child{border-bottom:none}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
+.sidebar-backdrop.open{display:block}
+@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.content_centered{padding:var(--space-4)}}
+@media(prefers-reduced-motion:reduce){
+*{transition-duration:0ms!important;animation-duration:0ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <a href="index.html" class="logo">S<span>a</span>ge</a>
+  </div>
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <a href="index.html" class="sidebar__item">Home</a>
+      <a href="sage-workspace.html" class="sidebar__item">Workspace</a>
+      <a href="sage-library.html" class="sidebar__item">Library</a>
+      <a href="sage-sessions.html" class="sidebar__item">Sessions</a>
+      <a href="sage-settings.html" class="sidebar__item">Settings</a>
+      <a href="sage-health.html" class="sidebar__item active">Health</a>
+    </div>
+  </div>
+</aside>
+<main class="main">
+<div class="content_centered">
+<div class="page_header">
+<h1 class="page_title">System Health</h1>
+<button class="btn btn_primary" id="refresh-btn"><svg viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 019.33-2.5M12 7a5 5 0 01-9.33 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M11 2v3h-3M3 12v-3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Refresh</button>
+</div>
+<div id="health-content"></div>
+</div>
+</main>
+</div>
+</div>
+<script>
+const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
+function toggleSidebar(){sidebar.classList.toggle('collapsed');backdrop.classList.toggle('open',!sidebar.classList.contains('collapsed'))}
+function close_sidebar(){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}
+const menu_btn=document.getElementById('menu-btn');
+menu_btn.addEventListener('click',toggleSidebar);
+backdrop.addEventListener('click',close_sidebar);
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){b.closest('.sidebar__section').classList.toggle('open')})});
+if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+
+document.getElementById('refresh-btn').onclick=loadHealth;
+
+async function loadHealth(){
+  const el=document.getElementById('health-content');
+  el.innerHTML='<div class="health_card"><div class="health_overall"><div class="health_icon warn">…</div><div class="health_overall_text"><div class="health_overall_title">Checking system health</div></div></div></div>';
+  try{
+    const r=await fetch('/api/health');
+    const d=await r.json();
+    const s=d.status==='ok'?'ok':d.status==='degraded'?'warn':'error';
+    const icon=s==='ok'?'\u2713':s==='warn'?'\u26a0':'\u2717';
+    const model_dot=d.model_configured?'ok':'error';
+    const endpoint_state=d.endpoint_reachable===true?'ok':d.endpoint_reachable===false?'error':'warn';
+    const endpoint_text=d.endpoint_reachable===true?'Yes':d.endpoint_reachable===false?'No':'Unknown';
+    el.innerHTML=`
+      <div class="health_card">
+        <div class="health_overall">
+          <div class="health_icon ${s}">${icon}</div>
+          <div class="health_overall_text"><div class="health_overall_title">Overall Status</div></div>
+          <span class="status_badge ${s}">${esc(d.status)}</span>
+        </div>
+        <div class="health_row">
+          <span class="health_label"><span class="health_dot ${model_dot}"></span>Model Configured</span>
+          <span class="health_value ${model_dot}">${d.model_configured?'Yes':'No'}</span>
+        </div>
+        <div class="health_row">
+          <span class="health_label"><span class="health_dot ${endpoint_state}"></span>Endpoint Reachable</span>
+          <span class="health_value ${endpoint_state}">${endpoint_text}</span>
+        </div>
+        <div class="health_row">
+          <span class="health_label">Checked At</span>
+          <span class="health_caption">${new Date(d.checked_at).toLocaleString()}</span>
+        </div>
+      </div>
+      ${d.dependency_errors&&d.dependency_errors.length?`
+      <div class="health_card">
+        <div class="health_overall" style="border-bottom:none;padding-bottom:var(--space-2);margin-bottom:var(--space-2)">
+          <div class="health_icon error">\u26a0</div>
+          <div class="health_overall_text"><div class="health_overall_title">Dependency Errors</div></div>
+        </div>
+        ${d.dependency_errors.map(e=>`<div class="dependency_error">${esc(e)}</div>`).join('')}
+      </div>`:''}
+    `;
+  }catch(e){
+    el.innerHTML=`<div class="health_card"><div class="health_overall"><div class="health_icon error">\u2717</div><div class="health_overall_text"><div class="health_overall_title">Connection Failed</div></div><span class="status_badge error">offline</span></div><div class="health_row"><span class="health_value love">Could not reach the Sage server. Is it running?</span></div></div>`;
+  }
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')close_sidebar()});
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+loadHealth();
+</script>
+</body>
+</html>
