@@ -1,0 +1,33 @@
+{
+  "task_id": "T69",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "opencode-turing-t69-launcher-reload",
+  "declared_at": "2026-08-22T00:00:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Enable scoped dev auto-reload in both Sage launchers: uvicorn invocations gain --reload --reload-dir app --reload-include \"*.py\"; HOST/PORT overrides and all other launcher logic unchanged.",
+  "files": {
+    "modified": [
+      "run.sh",
+      "run.bat"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "aaf06ddeafa8c92584fa3bfe23c7ce122e8659a5",
+  "committed_at": "1b8587855188ee2946ba7bcae10832607fb3c479",
+  "line_counts": {
+    "before": {
+      "run.sh": 31,
+      "run.bat": 26
+    },
+    "after": {
+      "run.sh": 27,
+      "run.bat": 26
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "review_only",
+  "notes": "Declared set fixed to the three paths above; jobs folder scanned first - only in-flight log is T48 (app/llm/messages.py, app/services/sessions/turn.py, tests/test_api_chat_sse.py), zero overlap. run.sh carried a pre-existing RELOAD=1 opt-in gate from T6_fix; because this task enables dev auto-reload by default, that superseded array+gate block was removed and the three flags placed directly on the final exec line - flagged here for Zenyatta review as the one judgment call. Verified by read-back plus git diff against base_commit: run.bat delta is the appended flags only; run.sh delta is the replaced final invocation block only; exactly one uvicorn invocation per file containing --reload --reload-dir app --reload-include \"*.py\" in order; no main.py or other-file changes. Quoted \"*.py\" passes the literal pattern through both shells. bash -n skipped per task instruction (oc-issues #24); no line continuations present. Witnessed rg-not-found matches existing oc-issues #36, no duplicate entry added. Line counts via Python raw-newline fallback per oc-issues #31. No concurrent changes landed on these files since base_commit, no reconciliation needed. No commit."
+}
