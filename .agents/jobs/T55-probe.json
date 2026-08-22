@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "t55-merlin-source-capture",
   "declared_at": "2026-08-22T00:45:00Z",
-  "finalized_by": "Merlin",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Live capture of gemma4's rejected mermaid source against restarted Pi http://192.168.1.57:8000 with T55 diagnostics deployed. One grounded session, two turns consumed fully over SSE. Captured the verbatim source_preview via the model echoing the deployed diagnostics dict back through its reply; local replay of the decoded source through the repo's own validator shows the rejection is a Node-side DOMPurify crash on any labeled diagram, not a mermaid syntax error.",
   "files": {
     "modified": [],
@@ -12,7 +12,7 @@
     "deleted": []
   },
   "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
-  "committed_at": null,
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
   "line_counts": {
     "before": {},
     "after": {

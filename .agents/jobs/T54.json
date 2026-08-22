@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "t54-merlin-live-probe",
   "declared_at": "2026-08-22T00:20:00Z",
-  "finalized_by": "Merlin",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Final live probe of generate_mermaid against restarted Pi http://192.168.1.57:8000 (post-T53 schema hints): grounded session, two turns consumed fully over SSE. Verdict FAIL - turn B tool_call(generate_mermaid, topic=recursion) returned tool_result error mermaid_invalid (both internal attempts), so no PASS-A card and no PASS-B decline.",
   "files": {
     "modified": [],
@@ -14,7 +14,7 @@
     "deleted": []
   },
   "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
-  "committed_at": null,
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
   "line_counts": {
     "before": {},
     "after": {

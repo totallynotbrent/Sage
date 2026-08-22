@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "turing-t45-tools-loop",
   "declared_at": "2026-08-21T17:20:00Z",
-  "finalized_by": "Turing",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Converted web search and artifact generation to OpenAI-style model-initiated tool calls: new app/llm/tools.py (TOOL_SCHEMAS, available_tools, ToolContext-free executor execute_tool), stream_chat gained tools mode with structured SSE events {type:delta|tool_call} and a retry-without-tools fallback on 400 'tool' errors, turn.py replaced the unconditional pre-search with a max-4-iteration agentic loop emitting tool_call/tool_result events and attaching actions+web_sources to done, system prompt gained TOOL_HINT, FakeLLM gained tool scripting, plus offline tests.",
   "files": {
     "modified": [
@@ -20,7 +20,7 @@
     "deleted": []
   },
   "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
-  "committed_at": null,
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
   "line_counts": {
     "before": {
       "app/llm/tools.py": 0,

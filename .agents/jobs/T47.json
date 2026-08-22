@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "opencode-merlin-t47-live-replay",
   "declared_at": "2026-08-21T22:55:00Z",
-  "finalized_by": "Merlin",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Live turn-by-turn replay of the real failure transcript against the restarted Pi server (http://192.168.1.57:8000/, gemma4:31b-cloud via https://ollama.com/v1, SearXNG 192.168.1.57:8080): one fresh grounded session, 6 SSE turns consumed in full, plus /outputs teach smoke. Result 9 PASS / 2 FAIL - both failures are one confirmed product defect: the Russian-nesting-dolls analogy is re-introduced in EVERY turn instead of at most once.",
   "files": {
     "modified": [],
@@ -12,7 +12,7 @@
     "deleted": []
   },
   "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
-  "committed_at": null,
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
   "line_counts": {
     "before": {},
     "after": {

@@ -1,0 +1,50 @@
+{
+  "task_id": "T58",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "opencode-turing-t58-batch-committer",
+  "declared_at": "2026-08-21T00:00:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Batch committer for the tool-calling + mermaid-validator batch on feature/structured-outputs: staged the declared sources plus T45's declared fake_llm.py, committed feat(api) as 69ec2f87083713472092b9bea5387a7b96b523ad, then filled committed_at/finalized_by across all 14 batch job logs and committed them as the chore(jobs) commit.",
+  "files": {
+    "modified": [
+      ".agents/jobs/T40.json",
+      ".agents/jobs/T45.json",
+      ".agents/jobs/T46.json",
+      ".agents/jobs/T47.json",
+      ".agents/jobs/T50.json",
+      ".agents/jobs/T51.json",
+      ".agents/jobs/T52.json",
+      ".agents/jobs/T53.json",
+      ".agents/jobs/T54.json",
+      ".agents/jobs/T55.json",
+      ".agents/jobs/T55-probe.json",
+      ".agents/jobs/T56.json",
+      ".agents/jobs/T57.json",
+      ".agents/jobs/T59.json"
+    ],
+    "created": [".agents/jobs/T58.json"],
+    "deleted": []
+  },
+  "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
+  "line_counts": {
+    "after": {
+      "app/llm/tools.py": 215,
+      "app/llm/client.py": 443,
+      "app/llm/messages.py": 276,
+      "app/services/sessions/turn.py": 365,
+      "app/services/mermaid.py": 85,
+      "tools/validate_mermaid.mjs": 27,
+      "tests/test_tools_loop.py": 456,
+      "tests/test_api_chat_sse.py": 398,
+      "tests/test_mermaid.py": 44,
+      "tests/fakes/fake_llm.py": 155
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "T58 batch commit complete. Branch feature/structured-outputs, base HEAD 28e2e37aee181027e0bc9c6f3d6acf74963cbe24. FEAT COMMIT: 69ec2f87083713472092b9bea5387a7b96b523ad 'feat(api): model-initiated tool calls (web_search/generate_*/record_step_actions) + DOMPurify parse shim' - 24 files, +2109/-133. CHORE COMMIT follows this log with the job-log updates (14 batch logs patched with committed_at=feat hash and finalized_by='Turing (batch committer)', plus T58.json itself). Staged exactly: app/llm/tools.py, app/llm/client.py, app/llm/messages.py, app/services/sessions/turn.py, app/services/mermaid.py, tools/validate_mermaid.mjs, tests/test_tools_loop.py, tests/test_api_chat_sse.py, tests/test_mermaid.py, tests/fakes/fake_llm.py (DEVIATION, see notes), .agents/jobs/T40,T45,T46,T47,T50-T57(+T55-probe),T59.json. Not staged per brief: sage-socratic-preview.html artifact, static/, docs/*.mmd, old UI files - all left dirty in tree untouched. DEVIATIONS: (1) tests/fakes/fake_llm.py added to the stage set - it is in T45's own declared modified set and tests/test_tools_loop.py hard-depends on its script_tool_events()/typed-event API (call sites at lines 78/156/205); omitting it would leave the new tests failing at the committed SHA. (2) tests/test_thought_filter.py needed no action: tracked and clean at base HEAD (already committed), staging it is a no-op. (3) T48 residue rides along inside staged files: cancelled T48's dolls-analogy scrubber is fully present in messages.py (DOLLS_MARKERS, mentions_dolls_analogy, scrub_analogy_sentencewise, scrub_history_analogies wired into _history_messages) plus two UNUSED imports of those helpers in turn.py (its call sites never landed); HEAD had zero dolls content so this is uncommitted cancelled work interleaved with T45's edits in the same files. It is coherent and compiles, no test exercises it, and it was present in exactly the working-tree state Merlin verified (T46/T47/T50/T52/T53/T54/T57 ran against it) - stripping it mid-commit would have invalidated what was verified, so it landed and is flagged for a follow-up cleanup task. test_api_chat_sse.py's diff contains NO dolls test (only the earlier batch's partial-message persistence assertions), matching the brief's conditional. Reconciliation: no concurrent writer in flight; index reviewed with git diff --cached --stat before committing (exactly the 24 intended paths). Known issues appended to oc-issues.txt: rg (ripgrep) not installed on this Windows host (#36), .agents/jobs/T53.json is malformed JSON (unescaped quote in final_report, line 28 col 658; pre-existing, my targeted edit did not worsen it, file still carries correct committed_at/finalized_by text) (#37). No push, no merge to staging/main.",
+  "verification": "review_only",
+  "notes": "Committer role: no source authored here, only index operations + job-log metadata. fake_llm.py inclusion justified above; T48 residue documented for Orpheus/Zenyatta follow-up (candidate cleanup task: drop unused turn.py imports or finish/revert the dolls guard deliberately). Line counts are raw newline-byte counts (wc unavailable on host, consistent with oc-issues entries 18/19/31/61). T53.json patched textually without JSON round-trip because it does not parse."
+}

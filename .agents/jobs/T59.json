@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": "opencode-turing-t59-diagram-type-normalize",
   "declared_at": "2026-08-22T01:31:22Z",
-  "finalized_by": "Turing",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Normalize wire diagram_type when the shimmed adapter emits a parse-result dict: unwrap diagramType/type before str() in validate_mermaid success path (T57 cosmetic finding); one focused monkeypatched test.",
   "files": {
     "modified": [
@@ -15,7 +15,7 @@
     "deleted": []
   },
   "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
-  "committed_at": null,
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
   "line_counts": {
     "before": {
       "app/services/mermaid.py": 82,

@@ -4,7 +4,7 @@
   "status": "done",
   "session_id": null,
   "declared_at": "2026-08-21T00:00:00Z",
-  "finalized_by": "Turing",
+  "finalized_by": "Turing (batch committer)",
   "summary": "Minimal hardening of _run_generate in app/llm/tools.py: topic grounding via arguments.topic -> ctx.recent_user_text (getattr fallback) -> session goal plus an on-task prompt line pinning the topic to the current lesson thread; one bounded repair attempt mirroring structured_outputs.request_output with stable issue codes (empty_output for empty model output, provider code prefix split reused for transport errors); mermaid validate and quiz count logic unchanged and applied to whichever attempt succeeded.",
   "files": {
     "modified": ["app/llm/tools.py", "tests/test_tools_loop.py", ".agents/jobs/T51.json"],
@@ -12,7 +12,7 @@
     "deleted": []
   },
   "base_commit": "28e2e37aee181027e0bc9c6f3d6acf74963cbe24",
-  "committed_at": null,
+  "committed_at": "69ec2f87083713472092b9bea5387a7b96b523ad",
   "line_counts": {
     "before": { "app/llm/tools.py": 155, "tests/test_tools_loop.py": 412 },
     "after": { "app/llm/tools.py": 193, "tests/test_tools_loop.py": 456 }
