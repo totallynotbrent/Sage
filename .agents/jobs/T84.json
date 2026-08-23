@@ -1,0 +1,34 @@
+{
+  "task_id": "T84",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "opencode-turing-t84-probe-home",
+  "declared_at": "2026-08-23T00:00:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Two fixes: (1) system prompt sentence forbidding self-introduction by name, added next to the greeting rule in TUTOR_TOOL_GUIDANCE; (2) port the interactive probe/check card system from static/sage-workspace.html to static/index.html so run_probe/advance_lesson check cards render and answer inline on Home.",
+  "files": {
+    "modified": [
+      "app/llm/messages.py",
+      "static/index.html"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "765991ea2885a5531409e44541e0c3c3be0c737b",
+  "committed_at": "bed2a97686ebb413159798f009639e0b0c4f2646",
+  "line_counts": {
+    "before": {
+      "app/llm/messages.py": 312,
+      "static/index.html": 955
+    },
+    "after": {
+      "app/llm/messages.py": 314,
+      "static/index.html": 1104
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "analyzer_pending",
+  "final_report": "T84 done - both fixes landed against base 765991ea2885a5531409e44541e0c3c3be0c737b; no commit per task spec.\n\nFIX 1 - app/llm/messages.py (312->314): one sentence added immediately after the greeting rule ('Greet only when Greeting says not yet given.') inside TUTOR_TOOL_GUIDANCE: \"Never introduce yourself or announce your name ('I'm Sage') - the interface already labels speakers; start directly with content.\" Case-insensitive grep for 'never introduce yourself' confirmed at messages.py L28-29.\n\nFIX 2 - static/index.html (955->1104): full interactive probe/check card system ported from sage-workspace.html so probing works from Home with NO redirect (maybeRedirectToWorkspace and the first-artifact composer flow left untouched):\n- State var pending_probe_reply added next to last_math_typeset.\n- build_probe_card, start_probe_batch, queue_probe_reply copied verbatim from workspace (L431-548); show_card one-liner included so start_probe_batch's call resolves (it is visually inert on Home since index has no .visible quiz animation - cards appear via index's own cardIn animation).\n- Anchoring reused unchanged: index.html's own addStreamingMessage already sets id 'streaming-msg' on the wrapper (same id as workspace), so the verbatim anchor expression document.getElementById('streaming-msg') || box.lastElementChild works as-is inside #messages.\n- tool_result handler branches added (L621-627): ev.name==='run_probe' && Array.isArray(ev.questions) && ev.questions.length -> start_probe_batch(ev.questions,'probe'); ev.name==='advance_lesson' && ev.check_question && ev.check_question.question -> start_probe_batch([ev.check_question],'check'). Payload shape verified against backend app/services/sessions/turn.py L287-309 which embeds questions/check_question on the same /sessions/{id}/turns SSE endpoint both pages consume.\n- Post-stream flush added after the assistant_msg block, before the title fetch (L675-679), mirroring workspace order: replays pending_probe_reply once streaming ends so card answers sent during a stream queue correctly.\n- CSS ported after .artifact-card__quiz-explanation: .probe-wrap/.probe-actions/.probe-send (+hover/disabled), .artifact-card.sent, .artifact-card__marker, .artifact-card__content copied verbatim (classes unused elsewhere on Home). Rules that collide with index.html's existing static-quiz styles (quiz-option base/hover/.selected, quiz-radio, selected radio, qtext, qtext.typed, quiz-question margin) are scoped under .probe-wrap with workspace-exact declarations, so existing Home artifact rendering is pixel-identical to before.\n\nVERIFY: node --check passed on ALL extracted inline scripts from BOTH pages (index.html x2 incl. MathJax config + main script; sage-workspace.html x2) - MAIN_SCRIPTS_OK. Grep confirms index.html now contains start_probe_batch (definition + run_probe call site), the run_probe handler branch, build_probe_card, queue_probe_reply, pending_probe_reply state+flush; messages.py contains 'Never introduce yourself' (case-insensitive hit L28). pytest tests/test_api_chat_sse.py tests/test_tools_loop.py -q: 34 passed, 1 failed - the single failure is test_turn_rejects_missing_config (assert 404 == 400), the documented oc-issues #34 env failure named verbatim in T32/T46/T71/T75/T77c/T77e (repo .env real BROT_API_KEY defeats the Settings config gate; unrelated to this prompt-string change).\n\nNOTE FOR ZENYATTA - USER ACTION REQUIRED: the server auto-reloads Python (prompt fix is live), but static files are served per-request and the user's browser has cached the old workspace HTML. The user must hard-refresh once (Ctrl+Shift+R, or Cmd+Shift+R on Mac) on Home and Workspace pages before testing, otherwise the old cached JS without the probe handlers will keep showing no cards.\n\nConcurrency: jobs folder scanned pre-start (only stale T48 in_progress log, its files long landed); git diff vs base_commit shows only my two declared files changed (+152/-1 total); no reconciliation needed.",
+  "notes": "Probe CSS ported with conflict scoping (see final_report): verbatim for non-colliding classes, .probe-wrap-scoped workspace-exact rules where index.html already styles the same class names for its static quiz artifacts. Anchoring needed zero adaptation (identical 'streaming-msg' id convention). Stale T48 in_progress job log predates current HEAD and does not overlap live work. Line counts via python byte-count of newlines (wc -l semantics; wc binary absent on this host). No commit per task spec."
+}
