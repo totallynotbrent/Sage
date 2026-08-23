@@ -11,6 +11,7 @@ from openai import APIStatusError
 from app.config import Settings
 from app.llm.client import LLMClient
 from app.llm.tools import available_tools, execute_tool
+from app.services.plans import PlansService
 from app.services.sessions import SessionService
 from app.services.sessions.turn import ToolContext
 from tests.fakes.fake_llm import FakeLLM
@@ -28,6 +29,108 @@ def _tool_settings(settings, searxng_url: str = ""):
     return settings.model_copy(update={"searxng_url": searxng_url})
 
 
+_LEARNING_TOOL_NAMES = {
+    "run_probe",
+    "grade_answer",
+    "build_plan",
+    "advance_lesson",
+}
+
+_PROBE_JSON = json.dumps(
+    {
+        "questions": [
+            {
+                "question": "What does a recursive function do?",
+                "options": ["Calls itself", "Loops forever", "Returns None"],
+                "correct_index": 0,
+                "explanation": "A recursive function invokes itself.",
+                "topic": "recursion",
+                "difficulty": 2,
+            },
+            {
+                "question": "What does every recursion need?",
+                "options": ["A base case", "A global variable"],
+                "correct_index": 0,
+                "explanation": "Without a base case it never stops.",
+                "topic": "recursion",
+                "difficulty": 3,
+            },
+            {
+                "question": "Which structure is naturally recursive?",
+                "options": ["A file tree", "A single integer"],
+                "correct_index": 0,
+                "explanation": "Trees contain smaller trees.",
+                "topic": "recursion",
+                "difficulty": 4,
+            },
+        ]
+    }
+)
+
+_PLAN_JSON = json.dumps(
+    {
+        "nodes": [
+            {
+                "node_key": "n1",
+                "title": "What recursion is",
+                "description": "Define self-reference.",
+                "depends_on": [],
+            },
+            {
+                "node_key": "n2",
+                "title": "The base case",
+                "description": "Stop the descent.",
+                "depends_on": ["n1"],
+            },
+            {
+                "node_key": "n3",
+                "title": "The call stack",
+                "description": "How frames pile up.",
+                "depends_on": ["n2"],
+            },
+        ]
+    }
+)
+
+_CHECK_JSON = json.dumps(
+    {
+        "questions": [
+            {
+                "question": "Which part stops a recursion?",
+                "options": ["The base case", "The loop counter"],
+                "correct_index": 0,
+                "explanation": "The base case terminates the chain.",
+                "topic": "The call stack",
+                "difficulty": 3,
+            }
+        ]
+    }
+)
+
+
+async def _stub_validate_mermaid(source: str) -> str:
+    return "flowchart-v2"
+
+
+def _learning_ctx(conn, settings, fake_llm):
+    service = SessionService(conn, settings)
+    session = service.create(
+        goal="learn recursion", file_ids=[], grounding_mode="grounded"
+    )
+    ctx = ToolContext(
+        settings=settings,
+        session_dict=session.model_dump(),
+        chunks=[],
+        mastery_summary="",
+        mode="grounded",
+        llm=fake_llm,
+        conn=conn,
+        session_id=session.id,
+        mermaid_validate=_stub_validate_mermaid,
+    )
+    return session, ctx
+
+
 def test_available_tools_gates_web_search_on_searxng():
     with_search = available_tools(SimpleNamespace(searxng_url="http://searx.test"))
     without_search = available_tools(SimpleNamespace(searxng_url=""))
@@ -42,9 +145,11 @@ def test_available_tools_gates_web_search_on_searxng():
         "generate_todo",
         "generate_latex",
         "record_step_actions",
+        *_LEARNING_TOOL_NAMES,
     }
+    assert _LEARNING_TOOL_NAMES <= names_without
     assert "web_search" not in names_without
-    assert len(names_without) == 5
+    assert len(names_without) == 9
 
 
 def test_turn_tool_loop_event_order_and_followup(conn, settings, monkeypatch):
@@ -375,6 +480,204 @@ def test_execute_tool_record_step_actions_validation():
     assert good == {
         "actions": [{"id": "deeper", "label": "Go deeper", "prompt": "why?"}]
     }
+
+
+def test_execute_tool_learning_tools_require_conn():
+    ctx = ToolContext(
+        settings=SimpleNamespace(context_chunk_budget=8),
+        session_dict={},
+        chunks=[],
+        mastery_summary="",
+        mode="grounded",
+        llm=FakeLLM(),
+    )
+
+    for name in ("run_probe", "grade_answer", "build_plan", "advance_lesson"):
+        result = asyncio.run(execute_tool(name, {}, ctx))
+        assert result == {"error": "unavailable_in_context"}
+
+
+def test_execute_tool_run_probe_strips_correct_index(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.append(_PROBE_JSON)
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+
+    result = asyncio.run(execute_tool("run_probe", {}, ctx))
+
+    assert result["phase"] == "probe"
+    assert result["count"] == 3
+    assert len(result["questions"]) == 3
+    for question in result["questions"]:
+        assert set(question) == {"id", "question", "options", "difficulty"}
+        assert question["options"][-1] == "I don't know"
+    assert SessionService(conn, settings).get(session.id).phase == "probe"
+
+
+def test_execute_tool_grade_answer_passthrough(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.append(_PROBE_JSON)
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+    probe = asyncio.run(execute_tool("run_probe", {}, ctx))
+    first_id = probe["questions"][0]["id"]
+    second_id = probe["questions"][1]["id"]
+    third_id = probe["questions"][2]["id"]
+
+    graded = asyncio.run(
+        execute_tool("grade_answer", {"question_id": first_id, "choice_index": 0}, ctx)
+    )
+    assert set(graded) == {
+        "question_id",
+        "outcome",
+        "correct_index",
+        "explanation",
+        "probe_complete",
+        "retry_allowed",
+        "next_node",
+        "check_due",
+        "summary",
+    }
+    assert graded["outcome"] == "correct"
+    assert graded["summary"] == "graded correct"
+    assert graded["correct_index"] == 0
+    assert graded["probe_complete"] is False
+    assert graded["retry_allowed"] is False
+
+    idk = asyncio.run(
+        execute_tool("grade_answer", {"question_id": second_id, "idk": True}, ctx)
+    )
+    assert idk["outcome"] == "idk"
+    assert idk["retry_allowed"] is True
+
+    wrong = asyncio.run(
+        execute_tool("grade_answer", {"question_id": third_id, "choice_index": 1}, ctx)
+    )
+    assert wrong["outcome"] == "incorrect"
+    assert wrong["probe_complete"] is True
+
+
+def test_execute_tool_grade_answer_unknown_question_surfaces_not_found(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.append(_PROBE_JSON)
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+    probe = asyncio.run(execute_tool("run_probe", {}, ctx))
+    assert (
+        probe["grading_hint"]
+        == "Grade replies with grade_answer using these exact question_id values."
+    )
+
+    missing = asyncio.run(
+        execute_tool(
+            "grade_answer",
+            {"question_id": "deadbeef000042deadbeef00000042", "choice_index": 0},
+            ctx,
+        )
+    )
+
+    assert missing == {"error": "not_found"}
+
+
+def test_execute_tool_build_plan_returns_stripped_nodes(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.append(_PLAN_JSON)
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+
+    result = asyncio.run(execute_tool("build_plan", {}, ctx))
+
+    assert result["phase"] == "plan"
+    assert [node["node_key"] for node in result["nodes"]] == ["n1", "n2", "n3"]
+    for node in result["nodes"]:
+        assert set(node) == {
+            "node_key",
+            "title",
+            "depends_on",
+            "status",
+            "position",
+        }
+    assert result["nodes"][1]["depends_on"] == ["n1"]
+    assert all(node["status"] == "pending" for node in result["nodes"])
+    plan_diagram = result["plan_diagram"]
+    assert plan_diagram["diagram_type"] == "flowchart-v2"
+    assert plan_diagram["source"].startswith("flowchart TD")
+    assert "n1[What recursion is]" in plan_diagram["source"]
+    assert "n2[The base case]" in plan_diagram["source"]
+    assert "n1 --> n2" in plan_diagram["source"]
+    assert SessionService(conn, settings).get(session.id).phase == "plan"
+
+
+def test_execute_tool_advance_lesson_enters_first_node_from_plan(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.append(_PLAN_JSON)
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+    asyncio.run(execute_tool("build_plan", {}, ctx))
+
+    entered = asyncio.run(execute_tool("advance_lesson", {"passed_check": True}, ctx))
+
+    assert entered["advanced"] is True
+    assert entered["node"]["node_key"] == "n1"
+    assert entered["check_due"] is False
+    assert entered["session_phase"] == "teach"
+    refreshed = SessionService(conn, settings).get(session.id)
+    assert refreshed.phase == "teach"
+    assert refreshed.nodes_since_check == 0
+
+
+def test_execute_tool_advance_lesson_failed_check_routes_to_remediation(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.append(_PLAN_JSON)
+    fake_llm.complete_json_responses.append(_CHECK_JSON)
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+    asyncio.run(execute_tool("build_plan", {}, ctx))
+    PlansService(conn, settings).approve(session.id)
+
+    result = asyncio.run(execute_tool("advance_lesson", {"passed_check": False}, ctx))
+
+    assert result["advanced"] is False
+    assert result["node"]["node_key"] == "n1"
+    assert result["check_due"] is False
+    assert result["session_phase"] == "remediate"
+    check_question = result["check_question"]
+    assert set(check_question) == {"id", "question", "options"}
+    assert check_question["options"][-1] == "I don't know"
+    refreshed = SessionService(conn, settings).get(session.id)
+    assert refreshed.phase == "check"
+    row = conn.execute(
+        "SELECT status FROM quiz_questions "
+        "WHERE session_id = ? AND kind = 'check' AND status = 'pending'",
+        (session.id,),
+    ).fetchone()
+    assert row is not None
+    plan_row = conn.execute(
+        "SELECT status FROM plan_nodes WHERE session_id = ? AND node_key = 'n1'",
+        (session.id,),
+    ).fetchone()
+    assert plan_row["status"] == "current"
+
+
+def test_execute_tool_advance_lesson_appends_check_question_when_due(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.append(_PLAN_JSON)
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+    asyncio.run(execute_tool("build_plan", {}, ctx))
+    plans = PlansService(conn, settings)
+    plans.approve(session.id)
+
+    first = asyncio.run(execute_tool("advance_lesson", {"passed_check": True}, ctx))
+    assert first["advanced"] is True
+    assert first["node"]["node_key"] == "n2"
+    assert first["check_due"] is False
+    assert "check_question" not in first
+
+    fake_llm.complete_json_responses.append(_CHECK_JSON)
+    due = asyncio.run(execute_tool("advance_lesson", {"passed_check": True}, ctx))
+
+    assert due["advanced"] is True
+    assert due["node"]["node_key"] == "n3"
+    assert due["check_due"] is True
+    check_question = due["check_question"]
+    assert set(check_question) == {"id", "question", "options"}
+    assert check_question["options"][-1] == "I don't know"
+    assert due["session_phase"] == "teach"
+    assert SessionService(conn, settings).get(session.id).phase == "check"
 
 
 class _scripted_stream:

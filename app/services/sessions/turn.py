@@ -44,11 +44,16 @@ class ToolContext:
     llm: Any
     validate_fn: Any = None
     mermaid_validate: Any = None
+    conn: Any = None
+    session_id: str = ""
 
 
 def _tool_result_summary(name: str, result: dict):
     if result.get("error"):
         return f"error: {result['error']}"
+    embedded = result.get("summary")
+    if isinstance(embedded, str) and embedded.strip():
+        return embedded
     if name == "web_search":
         return [
             {"title": entry["title"], "url": entry["url"]}
@@ -165,6 +170,20 @@ class TurnMixin:
                     "dolls_used": bool(dolls_row["found"]),
                     "last_user_text": user_text,
                 }
+                pending_rows = self.conn.execute(
+                    "SELECT id, kind, question FROM quiz_questions "
+                    "WHERE session_id = ? AND status = 'pending' "
+                    "ORDER BY created_at LIMIT 10",
+                    (session_id,),
+                ).fetchall()
+                lesson_state["pending_questions"] = [
+                    {
+                        "id": row["id"],
+                        "kind": row["kind"],
+                        "question": (row["question"] or "")[:140],
+                    }
+                    for row in pending_rows
+                ]
                 messages = build_chat_messages(
                     session_dict,
                     user_text,
@@ -180,6 +199,8 @@ class TurnMixin:
                     mastery_summary=self._mastery_summary(),
                     mode=mode,
                     llm=llm,
+                    conn=self.conn,
+                    session_id=session_id,
                 )
                 turn_tools = (
                     None if mode == "strict" else available_tools(self.settings)
@@ -277,6 +298,14 @@ class TurnMixin:
                                         "diagram_type": result.get("diagram_type"),
                                     }
                                 )
+                            if name == "run_probe":
+                                tool_event["questions"] = result.get("questions", [])
+                            if name == "advance_lesson" and result.get(
+                                "check_question"
+                            ):
+                                tool_event["check_question"] = result["check_question"]
+                            if name == "build_plan" and result.get("plan_diagram"):
+                                tool_event["plan_diagram"] = result["plan_diagram"]
                             yield tool_event
                             continue
                         delta = item.get("delta") or ""
