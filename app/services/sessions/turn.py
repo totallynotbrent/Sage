@@ -138,15 +138,6 @@ class TurnMixin:
                         yield event
                     return
 
-                if user_text.strip().lower() in ("trees?", "trees"):
-                    user_text = (
-                        user_text
-                        + "\n\n(Learner hinted 'trees'. Affirm that file trees / "
-                        "directory trees / DOM trees are recursive structures — "
-                        "node plus smaller subtrees — and build the next step on "
-                        "that example.)"
-                    )
-
                 session_dict = session.model_dump()
                 assistant_row = self.conn.execute(
                     "SELECT COUNT(*) AS n FROM messages WHERE session_id = ? "
@@ -154,20 +145,10 @@ class TurnMixin:
                     (session_id,),
                 ).fetchone()
                 assistant_count = int(assistant_row["n"])
-                dolls_row = self.conn.execute(
-                    "SELECT EXISTS("
-                    "SELECT 1 FROM messages WHERE session_id = ? "
-                    "AND role = 'assistant' AND partial = 0 "
-                    "AND (content LIKE '%nesting dolls%' "
-                    "OR content LIKE '%matryoshka%')"
-                    ") AS found",
-                    (session_id,),
-                ).fetchone()
                 lesson_state = {
                     "teaching_turns": assistant_count,
                     "greeting_done": assistant_count > 0,
                     "definition_taught": assistant_count > 0,
-                    "dolls_used": bool(dolls_row["found"]),
                     "last_user_text": user_text,
                 }
                 pending_rows = self.conn.execute(
