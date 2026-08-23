@@ -1,0 +1,31 @@
+{
+  "task_id": "T-fix-hardcode",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "sage-fix-hardcode",
+  "declared_at": "2026-08-23T14:12:41.999472Z",
+  "summary": "Remove hardcoded nesting dolls analogy and monotone tone fix in messages.py",
+  "files": {
+    "modified": [
+      "app/llm/messages.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "b38f011f1538bbd7175dd525bc2da74ae35ff272",
+  "line_counts": {
+    "before": {
+      "app/llm/messages.py": 314
+    },
+    "after": {
+      "app/llm/messages.py": 310
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "review_only",
+  "notes": "Re-checked base_commit b38f011f1538bbd7175dd525bc2da74ae35ff272 before finalizing; no concurrent changes. Residual dolls code in turn.py and test not touched per declared file set. File went from 314 to 310 lines.",
+  "finalized_by": "Turing",
+  "committed_at": "d584e496f83b5fc651ba786a754d24980e90559a",
+  "final_report": "Fixed hardcoded prompts in app/llm/messages.py: removed dolls tracking (dolls variable and Nesting-dolls analogy line), replaced enthusiastic tone with monotone concise instruction (You are Sage, a tutor. Explain one concept per response. Be concise, neutral, and monotone...), replaced Russian nesting dolls paragraph with generic analogies instruction (Use analogies sparingly and only if they aid understanding. Do not repeat the same analogy.). Verified via py_compile PASS and ast parse PASS. No hardcoded analogies added. Residual dolls tracking remains in app/services/sessions/turn.py (dolls_row query and dolls_used state) and test assertion in tests/test_api_chat_sse.py line 444; left out of scope per declared files but noted for follow-up. Also noted hardcoded trees hint in turn.py lines 141-148 remains."
+}
