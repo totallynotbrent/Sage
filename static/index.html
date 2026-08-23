@@ -155,6 +155,23 @@ textarea{font:inherit;color:inherit}
 .artifact-card__quiz-option.is-incorrect .artifact-card__quiz-radio{border-color:var(--love);background:var(--love)}
 .artifact-card__quiz-explanation{margin:var(--space-2) 0 0;font-size:13px;color:var(--muted);line-height:1.5;font-style:italic}
 
+.probe-wrap{display:flex;flex-direction:column;gap:var(--space-3);max-width:760px;width:100%;margin:0 auto;padding:var(--space-2) 0}
+.probe-actions{display:flex;justify-content:flex-end}
+.probe-send{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:8px 16px;border-radius:var(--r);background:var(--accent);color:var(--bg);transition:opacity var(--dur) var(--ease)}
+.probe-send:hover{opacity:0.85}
+.probe-send:disabled{opacity:0.5;cursor:not-allowed}
+.artifact-card.sent{opacity:0.5;pointer-events:none}
+.artifact-card__marker{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--meta);flex-shrink:0}
+.artifact-card__content{display:flex;flex-direction:column;gap:var(--space-3);min-width:0}
+.probe-wrap .artifact-card__quiz-question{margin:0}
+.probe-wrap .artifact-card__quiz-qtext{font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--fg);margin-bottom:var(--space-3);line-height:1.4}
+.probe-wrap .artifact-card__quiz-qtext.typed{overflow:visible;white-space:normal;border-right-color:transparent;width:auto}
+.probe-wrap .artifact-card__quiz-option{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--r);font-size:13px;cursor:pointer;background:var(--overlay);border:1px solid transparent;transition:all var(--dur) var(--ease);text-align:left;width:100%;font-family:inherit;color:inherit}
+.probe-wrap .artifact-card__quiz-option:hover{background:var(--surface-warm)}
+.probe-wrap .artifact-card__quiz-option.selected{border-color:var(--accent);background:var(--accent-dim)}
+.probe-wrap .artifact-card__quiz-radio{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--meta);flex-shrink:0;transition:all var(--dur) var(--ease)}
+.probe-wrap .artifact-card__quiz-option.selected .artifact-card__quiz-radio{border-color:var(--accent);background:var(--accent)}
+
 .typing-indicator{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0}
 .typing-indicator__bar{width:80px;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;animation:gradientSweep 1.2s ease infinite}
 @keyframes gradientSweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -241,6 +258,7 @@ let sessionId = null;
 let streaming = false;
 let streamCtrl = null;
 let last_math_typeset = 0;
+let pending_probe_reply = null;
 
 const ARTIFACT_DEFAULTS = {
   mermaid: 'Summarize the key concepts visually as a diagram.',
@@ -408,6 +426,127 @@ function append_action_chips(message_el,actions){
   if(!row.children.length)row.remove();
 }
 
+function show_card(card){setTimeout(()=>card.classList.add('visible'),60)}
+
+function build_probe_card(question, ordinal, marker_text, on_select) {
+  const card = document.createElement('article');
+  card.className = 'artifact-card';
+  card.dataset.kind = 'quiz';
+  card.dataset.ordinal = String(ordinal);
+  card.dataset.selected = '';
+  card.setAttribute('aria-label', `Question ${ordinal}`);
+  const marker = document.createElement('span');
+  marker.className = 'artifact-card__marker';
+  marker.textContent = marker_text;
+  const title = document.createElement('h3');
+  title.className = 'artifact-card__title';
+  title.textContent = `Question ${ordinal}`;
+  const header = document.createElement('header');
+  header.className = 'artifact-card__header';
+  header.appendChild(marker);
+  header.appendChild(title);
+  const content = document.createElement('div');
+  content.className = 'artifact-card__content';
+  const wrap = document.createElement('div');
+  wrap.className = 'artifact-card__quiz-question';
+  const qtext = document.createElement('div');
+  qtext.className = 'artifact-card__quiz-qtext';
+  qtext.textContent = String(question.question || '');
+  qtext.addEventListener('animationend', () => qtext.classList.add('typed'), { once: true });
+  const options_el = document.createElement('div');
+  options_el.className = 'artifact-card__quiz-options';
+  options_el.setAttribute('role', 'radiogroup');
+  options_el.setAttribute('aria-label', `Question ${ordinal}`);
+  const option_buttons = [];
+  (Array.isArray(question.options) ? question.options : []).forEach((opt, oi) => {
+    const opt_btn = document.createElement('button');
+    opt_btn.type = 'button';
+    opt_btn.className = 'artifact-card__quiz-option';
+    opt_btn.setAttribute('role', 'radio');
+    opt_btn.setAttribute('aria-checked', 'false');
+    const radio = document.createElement('span');
+    radio.className = 'artifact-card__quiz-radio';
+    radio.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.textContent = `${String.fromCharCode(65 + oi)}) ${opt}`;
+    opt_btn.appendChild(radio);
+    opt_btn.appendChild(label);
+    opt_btn.onclick = () => {
+      card.dataset.selected = String(oi);
+      option_buttons.forEach((btn, idx) => {
+        btn.classList.toggle('selected', idx === oi);
+        btn.setAttribute('aria-checked', String(idx === oi));
+      });
+      on_select();
+    };
+    option_buttons.push(opt_btn);
+    options_el.appendChild(opt_btn);
+  });
+  wrap.appendChild(qtext);
+  wrap.appendChild(options_el);
+  content.appendChild(wrap);
+  card.appendChild(header);
+  card.appendChild(content);
+  return card;
+}
+
+function start_probe_batch(items, kind_label) {
+  if (!Array.isArray(items) || !items.length) return;
+  const entries = [];
+  let send_btn = null;
+  const submit = () => {
+    if (!send_btn || send_btn.disabled) return;
+    const parts = [];
+    entries.forEach(entry => {
+      const sel = entry.card.dataset.selected;
+      if (sel === '') return;
+      parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))}`);
+    });
+    if (!parts.length) return;
+    entries.forEach(entry => entry.card.classList.add('sent'));
+    send_btn.disabled = true;
+    queue_probe_reply(parts.join('; '));
+  };
+  const update_state = () => {
+    if (!send_btn) return;
+    const open = entries.filter(entry => !entry.card.classList.contains('sent'));
+    const answered = open.filter(entry => entry.card.dataset.selected !== '');
+    send_btn.disabled = answered.length === 0;
+    if (open.length > 0 && answered.length === open.length) submit();
+  };
+  const wrap = document.createElement('div');
+  wrap.className = 'probe-wrap';
+  items.forEach((question, qi) => {
+    const marker_text = kind_label === 'check'
+      ? 'CHECK'
+      : `PROBE \u00b7 ${String(qi + 1).padStart(2, '0')}`;
+    const card = build_probe_card(question, qi + 1, marker_text, update_state);
+    entries.push({ card });
+    wrap.appendChild(card);
+  });
+  const actions = document.createElement('div');
+  actions.className = 'probe-actions';
+  send_btn = document.createElement('button');
+  send_btn.type = 'button';
+  send_btn.className = 'probe-send';
+  send_btn.textContent = 'Send answers';
+  send_btn.disabled = true;
+  send_btn.onclick = submit;
+  actions.appendChild(send_btn);
+  wrap.appendChild(actions);
+  const anchor = document.getElementById('streaming-msg') || box.lastElementChild;
+  if (anchor && anchor.parentElement === box) anchor.after(wrap);
+  else box.appendChild(wrap);
+  entries.forEach(entry => show_card(entry.card));
+  box.scrollTop = box.scrollHeight;
+}
+
+function queue_probe_reply(text) {
+  if (streaming) { pending_probe_reply = text; return; }
+  input.value = text;
+  sendMessage();
+}
+
 async function sendMessage(){
   const text=input.value.trim();
   if(!text||streaming)return;
@@ -481,6 +620,11 @@ async function sendMessage(){
           set_composer_status(tool_status_text(ev));
         }else if(ev.type==='tool_result'){
           set_composer_status('');
+          if(ev.name==='run_probe'&&Array.isArray(ev.questions)&&ev.questions.length){
+            start_probe_batch(ev.questions,'probe');
+          }else if(ev.name==='advance_lesson'&&ev.check_question&&ev.check_question.question){
+            start_probe_batch([ev.check_question],'check');
+          }
         }else if(ev.type==='done'){
           streamDone=true;
           if(Array.isArray(ev.actions))done_actions=ev.actions;
@@ -527,6 +671,11 @@ async function sendMessage(){
     append_web_source_chips(assistant_msg,done_web_sources);
     append_action_chips(assistant_msg,done_actions);
     render_math(true);
+  }
+  if(pending_probe_reply){
+    const reply=pending_probe_reply;
+    pending_probe_reply=null;
+    queue_probe_reply(reply);
   }
   if(sessionId){try{await fetch(`${API}/sessions/${sessionId}/title`,{method:'POST'});await loadSessionsList()}catch(e){}}
 }
