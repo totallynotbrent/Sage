@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import AsyncIterator, Awaitable, Callable
 
 from app.errors import GenerationCancelled, ProviderError
@@ -14,10 +15,14 @@ class FakeLLM:
         self.fail_after: int | None = None
         self.failure: Exception = ProviderError("upstream", "fake mid-stream failure")
         self.calls: list[dict] = []
+        self.tool_scripts: list[list[dict]] = []
         self._inflight: dict[str, asyncio.Event] = {}
 
     def script(self, substring: str, text: str) -> None:
         self._scripted.append((substring, text))
+
+    def script_tool_events(self, events: list[dict]) -> None:
+        self.tool_scripts.append(list(events))
 
     def _match(self, messages: list[dict]) -> str:
         joined = "\n".join(
@@ -38,10 +43,47 @@ class FakeLLM:
         temperature: float = 0.3,
         session_id: str | None = None,
         cancel_event: asyncio.Event | None = None,
-    ) -> AsyncIterator[str]:
+        tools: list[dict] | None = None,
+    ) -> AsyncIterator:
         self.calls.append(
-            {"kind": "stream", "session_id": session_id, "messages": list(messages)}
+            {
+                "kind": "stream",
+                "session_id": session_id,
+                "messages": list(messages),
+                "tools": list(tools) if tools else None,
+            }
         )
+        if tools:
+            scripted = self.tool_scripts.pop(0) if self.tool_scripts else None
+            if scripted is not None:
+                for event in scripted:
+                    if cancel_event is not None and cancel_event.is_set():
+                        raise GenerationCancelled("fake: cancelled mid-stream")
+                    if event.get("type") == "tool_call":
+                        name = event["name"]
+                        arguments = event.get("arguments", {})
+                        call_id = event.get("id", f"call_{name}")
+                        raw_arguments = (
+                            arguments
+                            if isinstance(arguments, str)
+                            else json.dumps(arguments)
+                        )
+                        wire_call = {
+                            "id": call_id,
+                            "type": "function",
+                            "function": {"name": name, "arguments": raw_arguments},
+                        }
+                        yield {
+                            "type": "tool_call",
+                            "id": call_id,
+                            "name": name,
+                            "arguments": arguments,
+                            "raw_tool_calls": [wire_call],
+                            "assistant_content": "",
+                        }
+                    else:
+                        yield {"type": "delta", "delta": event.get("delta", "")}
+                return
         text = self._match(messages)
         if not text:
             return
@@ -51,7 +93,8 @@ class FakeLLM:
                 raise GenerationCancelled("fake: cancelled mid-stream")
             if self.fail_after is not None and index >= self.fail_after:
                 raise self.failure
-            yield word + (" " if index < len(words) - 1 else "")
+            piece = word + (" " if index < len(words) - 1 else "")
+            yield {"type": "delta", "delta": piece} if tools else piece
 
     async def complete_json(
         self,
@@ -104,7 +147,8 @@ class RaisingFakeLLM(FakeLLM):
         temperature: float = 0.3,
         session_id: str | None = None,
         cancel_event: asyncio.Event | None = None,
-    ) -> AsyncIterator[str]:
+        tools: list[dict] | None = None,
+    ) -> AsyncIterator:
         self.calls.append(
             {"kind": "stream", "session_id": session_id, "messages": list(messages)}
         )

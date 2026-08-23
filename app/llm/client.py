@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import re
 import time
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 import httpx
 from fastapi import Request
@@ -24,7 +26,125 @@ logger = logging.getLogger("app")
 _PROBE_TIMEOUT = httpx.Timeout(connect=5, read=30, write=10, pool=5)
 _PROBE_CACHE_SECONDS = 30.0
 
-GENERATION_TIMEOUT = httpx.Timeout(connect=30, read=900, write=60, pool=30)
+GENERATION_TIMEOUT = httpx.Timeout(connect=30, read=300, write=60, pool=30)
+
+_THOUGHT_STARTS = ("<|channel|>thought", "<|think|>")
+_THOUGHT_ENDS = ("channel|>", "<|channel|>")
+
+
+def _strip_thought(text: str) -> str:
+    if not text:
+        return text
+    text = re.sub(
+        r"<\|channel\|>thought.*?(?:channel\|>|<\|channel\|>)",
+        "",
+        text,
+        flags=re.DOTALL,
+    )
+    text = re.sub(
+        r"<\|think\|>.*?(?:channel\|>|<\|channel\|>)", "", text, flags=re.DOTALL
+    )
+    return text
+
+
+class _ThoughtScrubber:
+    def __init__(self) -> None:
+        self.in_thought = False
+        self.buf = ""
+        self._longest = max(len(s) for s in _THOUGHT_STARTS)
+
+    def feed(self, raw: str) -> list[str]:
+        pieces: list[str] = []
+        self.buf += raw
+        while self.buf:
+            if not self.in_thought:
+                earliest = None
+                earliest_start = ""
+                for start in _THOUGHT_STARTS:
+                    idx = self.buf.find(start)
+                    if idx != -1 and (earliest is None or idx < earliest):
+                        earliest = idx
+                        earliest_start = start
+                if earliest is not None:
+                    if earliest > 0:
+                        pieces.append(self.buf[:earliest])
+                    self.buf = self.buf[earliest + len(earliest_start) :]
+                    self.in_thought = True
+                    continue
+                keep = 0
+                for start in _THOUGHT_STARTS:
+                    for k in range(self._longest - 1, 0, -1):
+                        if len(self.buf) >= k and start.startswith(self.buf[-k:]):
+                            keep = max(keep, k)
+                            break
+                        if len(self.buf) < k and start.startswith(self.buf):
+                            keep = max(keep, len(self.buf))
+                            break
+                if keep and len(self.buf) > keep:
+                    pieces.append(self.buf[:-keep])
+                    self.buf = self.buf[-keep:]
+                    break
+                if keep:
+                    break
+                pieces.append(self.buf)
+                self.buf = ""
+                break
+            else:
+                earliest = None
+                earliest_end = ""
+                for end in _THOUGHT_ENDS:
+                    idx = self.buf.find(end)
+                    if idx != -1 and (earliest is None or idx < earliest):
+                        earliest = idx
+                        earliest_end = end
+                if earliest is not None:
+                    self.buf = self.buf[earliest + len(earliest_end) :]
+                    self.in_thought = False
+                    continue
+                keep = 0
+                for end in _THOUGHT_ENDS:
+                    for k in range(len(end) - 1, 0, -1):
+                        if len(self.buf) >= k and end.startswith(self.buf[-k:]):
+                            keep = max(keep, k)
+                            break
+                if keep:
+                    self.buf = self.buf[-keep:] if len(self.buf) > keep else self.buf
+                    break
+                self.buf = ""
+                break
+        return pieces
+
+    def flush(self) -> list[str]:
+        remainder = self.buf
+        self.buf = ""
+        if remainder and not self.in_thought:
+            stripped = _strip_thought(remainder)
+            return [stripped] if stripped else []
+        return []
+
+
+def _parse_arguments(raw: str) -> Any:
+    try:
+        return json.loads(raw) if raw.strip() else {}
+    except json.JSONDecodeError:
+        return raw
+
+
+def _wire_tool_calls(pending: dict[int, dict]) -> list[dict]:
+    calls: list[dict] = []
+    for index in sorted(pending):
+        entry = pending[index]
+        calls.append(
+            {
+                "id": entry["id"] or f"call_{index}",
+                "type": "function",
+                "function": {
+                    "name": entry["name"],
+                    "arguments": entry["arguments"] or "{}",
+                },
+            }
+        )
+    return calls
 
 
 class LLMClient:
@@ -72,10 +192,97 @@ class LLMClient:
         temperature: float = 0.3,
         session_id: str | None = None,
         cancel_event: asyncio.Event | None = None,
-    ) -> AsyncIterator[str]:
+        tools: list[dict] | None = None,
+    ) -> AsyncIterator:
         event = cancel_event or (
             self.get_inflight_event(session_id) if session_id else None
         )
+        try:
+            iterator = await self._open_stream(
+                messages, max_tokens=max_tokens, temperature=temperature, tools=tools
+            )
+            as_events = tools is not None
+            scrubber = _ThoughtScrubber()
+            pending: dict[int, dict] = {}
+            content_parts: list[str] = []
+            while True:
+                try:
+                    chunk = await self._next_chunk(iterator, event)
+                except StopAsyncIteration:
+                    break
+                choices = getattr(chunk, "choices", None) or []
+                if not choices:
+                    continue
+                choice = choices[0]
+                finish_reason = getattr(choice, "finish_reason", None)
+                delta_obj = choice.delta if choice.delta else None
+                if delta_obj is not None:
+                    for tool_delta in getattr(delta_obj, "tool_calls", None) or []:
+                        index = getattr(tool_delta, "index", 0) or 0
+                        entry = pending.setdefault(
+                            index, {"id": "", "name": "", "arguments": ""}
+                        )
+                        call_id = getattr(tool_delta, "id", None)
+                        if call_id:
+                            entry["id"] = call_id
+                        function = getattr(tool_delta, "function", None)
+                        if function is not None:
+                            fn_name = getattr(function, "name", None)
+                            if fn_name:
+                                entry["name"] = fn_name
+                            args_piece = getattr(function, "arguments", None)
+                            if args_piece:
+                                entry["arguments"] += args_piece
+                raw = (
+                    getattr(delta_obj, "content", None)
+                    if delta_obj is not None
+                    else None
+                )
+                if delta_obj is not None and (
+                    getattr(delta_obj, "reasoning_content", None)
+                    or getattr(delta_obj, "reasoning", None)
+                    or getattr(delta_obj, "thinking", None)
+                ):
+                    if not raw:
+                        continue
+                if not raw:
+                    continue
+                content_parts.append(raw)
+                for piece in scrubber.feed(raw):
+                    yield {"type": "delta", "delta": piece} if as_events else piece
+                if finish_reason == "tool_calls":
+                    break
+            for piece in scrubber.flush():
+                yield {"type": "delta", "delta": piece} if as_events else piece
+            if pending and as_events:
+                raw_calls = _wire_tool_calls(pending)
+                joined_content = "".join(content_parts)
+                for call in raw_calls:
+                    yield {
+                        "type": "tool_call",
+                        "id": call["id"],
+                        "name": call["function"]["name"],
+                        "arguments": _parse_arguments(call["function"]["arguments"]),
+                        "raw_tool_calls": raw_calls,
+                        "assistant_content": joined_content,
+                    }
+        except GenerationCancelled:
+            raise
+        except Exception as exc:  # noqa: BLE001 - normalize every failure
+            raise self._normalize(exc) from exc
+
+    async def _open_stream(
+        self,
+        messages: list[dict],
+        *,
+        max_tokens: int,
+        temperature: float,
+        tools: list[dict] | None,
+    ):
+        kwargs: dict = {}
+        if tools:
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = "auto"
         try:
             stream = await self._client.chat.completions.create(
                 model=self._settings.brot_model,
@@ -83,20 +290,22 @@ class LLMClient:
                 stream=True,
                 max_tokens=max_tokens,
                 temperature=temperature,
+                **kwargs,
             )
-            iterator = stream.__aiter__()
-            while True:
-                chunk = await self._next_chunk(iterator, event)
-                choices = getattr(chunk, "choices", None) or []
-                if not choices:
-                    continue
-                delta = choices[0].delta.content if choices[0].delta else None
-                if delta:
-                    yield delta
-        except GenerationCancelled:
+            return stream.__aiter__()
+        except APIStatusError as exc:
+            status = getattr(exc, "status_code", None)
+            if tools and status == 400 and "tool" in str(exc).lower():
+                logger.warning("tools unsupported by endpoint; retrying without tools")
+                stream = await self._client.chat.completions.create(
+                    model=self._settings.brot_model,
+                    messages=messages,
+                    stream=True,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                )
+                return stream.__aiter__()
             raise
-        except Exception as exc:  # noqa: BLE001 - normalize every failure
-            raise self._normalize(exc) from exc
 
     @staticmethod
     async def _next_chunk(iterator: AsyncIterator, cancel_event: asyncio.Event | None):
@@ -104,14 +313,34 @@ class LLMClient:
             return await anext(iterator)
         cancel_task = asyncio.ensure_future(cancel_event.wait())
         next_task = asyncio.ensure_future(anext(iterator))
-        done, _ = await asyncio.wait(
-            {cancel_task, next_task}, return_when=asyncio.FIRST_COMPLETED
-        )
+        try:
+            done, _ = await asyncio.wait(
+                {cancel_task, next_task}, return_when=asyncio.FIRST_COMPLETED
+            )
+        except BaseException:
+            for task in (cancel_task, next_task):
+                task.cancel()
+                try:
+                    await task
+                except BaseException:
+                    pass
+            raise
         if cancel_task in done:
             next_task.cancel()
+            try:
+                await next_task
+            except (asyncio.CancelledError, StopAsyncIteration):
+                pass
+            except Exception:
+                pass
             raise GenerationCancelled(
                 "Generation cancelled by the user or a client disconnect."
             )
+        cancel_task.cancel()
+        try:
+            await cancel_task
+        except asyncio.CancelledError:
+            pass
         return next_task.result()
 
     async def complete_json(
@@ -130,7 +359,8 @@ class LLMClient:
                 temperature=temperature,
             )
             content = response.choices[0].message.content if response.choices else None
-            return (content or "", None)
+            cleaned = _strip_thought(content or "")
+            return (cleaned, None)
         except Exception as exc:  # noqa: BLE001 - normalize every failure
             provider_error = self._normalize(exc)
             return (

@@ -127,8 +127,11 @@ def test_mid_stream_failure_persists_partial(client, override_llm, settings):
 
     row = _message_row(settings, session["id"], "c3")
     assert row["partial"] == 1
+    assert row["content"] == "alpha beta "
     full = client.get(f"/api/sessions/{session['id']}").json()
-    assert all(m["client_msg_id"] != "c3" for m in full["messages"])
+    partial = [m for m in full["messages"] if m["client_msg_id"] == "c3"]
+    assert len(partial) == 1
+    assert partial[0]["content"] == "alpha beta "
 
 
 def test_retry_regenerates_partial(client, override_llm, settings):
@@ -393,3 +396,291 @@ def test_environment_location_and_pair_in_citation_meta(client, override_llm):
     joined = "\n".join(user_messages)
     assert f'pair="{pdf_record["display_name"]}"' in joined
     assert f'file="{tex_record["display_name"]}"' in joined
+
+
+def test_second_turn_system_prompt_carries_lesson_state(client, override_llm, settings):
+    session, chunk_id = _ready_session(client, settings)
+    override_llm.script(
+        "What is a group", "A group is a set with one binary operation."
+    )
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "What is a group?", "client_msg_id": "ls1"},
+    ) as response:
+        list(sse_events(response))
+
+    override_llm.script(
+        "How does the identity",
+        "Right: the identity element leaves everything unchanged.",
+    )
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={
+            "message": "How does the identity element work?",
+            "client_msg_id": "ls2",
+        },
+    ) as response:
+        events = list(sse_events(response))
+
+    assert events[-1]["type"] == "done"
+
+    stream_calls = [c for c in override_llm.calls if c["kind"] == "stream"]
+    assert len(stream_calls) == 2
+    first_system = next(
+        m["content"] for m in stream_calls[0]["messages"] if m["role"] == "system"
+    )
+    assert "[LESSON STATE]" in first_system
+    assert "Greeting: not yet given." in first_system
+
+    second_system = next(
+        m["content"] for m in stream_calls[1]["messages"] if m["role"] == "system"
+    )
+    assert "[LESSON STATE]" in second_system
+    assert "Teaching turns completed so far: 1." in second_system
+    assert "Greeting: already delivered." in second_system
+    assert "Core definition of the topic:" in second_system
+    assert (
+        'Learner\'s most recent message: "How does the identity element work?"'
+        in second_system
+    )
+
+    assert "[PENDING QUESTIONS]" not in first_system
+
+    override_llm.complete_json_responses.append(
+        json.dumps(
+            [
+                {
+                    "question": "Which axiom gives every element an inverse?",
+                    "options": ["Inverses", "Closure"],
+                    "correct_index": 0,
+                    "explanation": "The inverses axiom.",
+                    "topic": "group theory",
+                    "difficulty": 2,
+                },
+                {
+                    "question": "What is the additive identity on integers?",
+                    "options": ["0", "1"],
+                    "correct_index": 0,
+                    "explanation": "Adding zero changes nothing.",
+                    "topic": "group theory",
+                    "difficulty": 2,
+                },
+                {
+                    "question": "Is every abelian group commutative?",
+                    "options": ["Yes", "No"],
+                    "correct_index": 0,
+                    "explanation": "Abelian means commutative.",
+                    "topic": "group theory",
+                    "difficulty": 3,
+                },
+            ]
+        )
+    )
+    override_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "run_probe",
+                "arguments": {},
+                "id": "call_probe",
+            }
+        ]
+    )
+    override_llm.script("diagnostic probe now", "Let's see where you stand.")
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "Run the diagnostic probe now.", "client_msg_id": "ls5"},
+    ) as response:
+        probe_events = list(sse_events(response))
+
+    probe_results = [e for e in probe_events if e["type"] == "tool_result"]
+    assert probe_results[0]["summary"] == "probe ready: 3 questions"
+
+    questions = probe_results[0]["questions"]
+    assert len(questions) == 3
+    for question in questions:
+        assert set(question) == {"id", "question", "options", "difficulty"}
+        assert question["options"][-1] == "I don't know"
+
+    assert not any(
+        e["type"] == "delta" and "Quick check" in str(e.get("delta") or "")
+        for e in probe_events
+    )
+
+    full_after_probe = client.get(f"/api/sessions/{session['id']}").json()
+    probe_message = next(
+        m
+        for m in full_after_probe["messages"]
+        if m["client_msg_id"] == "ls5" and m["role"] == "assistant"
+    )
+    assert "Quick check" not in probe_message["content"]
+    assert "Reply like" not in probe_message["content"]
+
+    override_llm.script("My answers", "Nicely done.")
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={
+            "message": "My answers: 1) Inverses; 2) 0; 3) Yes.",
+            "client_msg_id": "ls6",
+        },
+    ) as response:
+        list(sse_events(response))
+
+    tool_payloads = [
+        json.loads(m["content"])
+        for call in override_llm.calls
+        for m in call.get("messages") or []
+        if m.get("role") == "tool"
+    ]
+    probe_payload = next(p for p in tool_payloads if p.get("questions"))
+    probe_id = probe_payload["questions"][0]["id"]
+
+    answer_call = [c for c in override_llm.calls if c["kind"] == "stream"][-1]
+    fourth_system = next(
+        m["content"] for m in answer_call["messages"] if m["role"] == "system"
+    )
+    assert "[PENDING QUESTIONS]" in fourth_system
+    assert (
+        "Grade each reply against these EXACT ids (copy id "
+        "character-for-character):" in fourth_system
+    )
+    assert f"- id={probe_id} (probe)" in fourth_system
+    assert "- id=" in fourth_system
+    assert (
+        "the web UI renders the questions as interactive answer cards "
+        "automatically" in fourth_system
+    )
+
+
+def test_build_plan_tool_result_carries_plan_diagram(
+    client, override_llm, settings, monkeypatch
+):
+    import app.services.mermaid as mermaid_module
+
+    async def fake_validate(source: str) -> str:
+        return "flowchart-v2"
+
+    monkeypatch.setattr(mermaid_module, "validate_mermaid", fake_validate)
+
+    session, _ = _ready_session(client, settings)
+    override_llm.complete_json_responses.append(
+        json.dumps(
+            {
+                "nodes": [
+                    {
+                        "node_key": "g1",
+                        "title": "Group definition",
+                        "description": "What makes a group.",
+                        "depends_on": [],
+                    },
+                    {
+                        "node_key": "g2",
+                        "title": "Identity element",
+                        "description": "The neutral element.",
+                        "depends_on": ["g1"],
+                    },
+                ]
+            }
+        )
+    )
+    override_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "build_plan",
+                "arguments": {},
+                "id": "call_plan",
+            }
+        ]
+    )
+    override_llm.script("plan", "Your path through group theory.")
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "Lay out the plan.", "client_msg_id": "bp1"},
+    ) as response:
+        events = list(sse_events(response))
+
+    plan_results = [
+        e for e in events if e["type"] == "tool_result" and e["name"] == "build_plan"
+    ]
+    assert len(plan_results) == 1
+    plan_diagram = plan_results[0]["plan_diagram"]
+    assert plan_diagram["source"].startswith("flowchart TD")
+    assert "g1[Group definition]" in plan_diagram["source"]
+    assert "g1 --> g2" in plan_diagram["source"]
+    assert plan_results[0]["summary"] == "plan ready: 2 nodes"
+
+
+def test_duplicate_record_step_actions_absorbed_by_executor(
+    client, override_llm, settings, monkeypatch
+):
+    import app.services.sessions.turn as turn_module
+
+    executed: list[str] = []
+    original_execute = turn_module.execute_tool
+
+    async def counting_execute_tool(name, arguments, ctx):
+        executed.append(name)
+        return await original_execute(name, arguments, ctx)
+
+    monkeypatch.setattr(turn_module, "execute_tool", counting_execute_tool)
+
+    session, chunk_id = _ready_session(client, settings)
+    override_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "record_step_actions",
+                "arguments": {
+                    "actions": [
+                        {"id": "continue", "label": "Continue", "prompt": "Go on"}
+                    ]
+                },
+                "id": "call_a1",
+            },
+            {
+                "type": "tool_call",
+                "name": "record_step_actions",
+                "arguments": {
+                    "actions": [{"id": "repeat", "label": "Repeat", "prompt": "Again"}]
+                },
+                "id": "call_a2",
+            },
+        ]
+    )
+    override_llm.script("group", "Step taught.")
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "Teach me a step", "client_msg_id": "ls3"},
+    ) as response:
+        events = list(sse_events(response))
+
+    assert executed == ["record_step_actions"]
+
+    tool_results = [e for e in events if e["type"] == "tool_result"]
+    assert len(tool_results) == 2
+    assert tool_results[0]["summary"] == "1 actions"
+    assert tool_results[1]["summary"] == "0 actions"
+
+    done = events[-1]
+    assert done["type"] == "done"
+    assert [a["id"] for a in done["actions"]] == ["continue"]
+
+    followups = [c for c in override_llm.calls if c["kind"] == "stream"]
+    tool_messages = [m for m in followups[-1]["messages"] if m.get("role") == "tool"]
+    assert len(tool_messages) == 2
+    assert tool_messages[-1]["tool_call_id"] == "call_a2"
+    assert json.loads(tool_messages[-1]["content"]) == {
+        "note": "actions already recorded this turn",
+        "actions": [],
+    }

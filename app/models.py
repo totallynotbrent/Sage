@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 
 GroundingMode = Literal["strict", "grounded"]
 
@@ -190,3 +190,206 @@ class Preferences(BaseModel):
     style: Literal["analogy-first", "examples-first", "formal-first"]
     notes: str | None = None
     updated_at: str
+
+
+class StructuredOutputRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    output_kind: Literal["chat", "mermaid", "todo", "quiz", "teach", "latex"]
+    prompt: StrictStr = Field(min_length=1, max_length=8000)
+    count: StrictInt = Field(default=3, ge=1, le=10)
+
+
+class ChatOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: StrictStr = Field(min_length=1, max_length=12000)
+
+
+class MermaidOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    source: StrictStr = Field(min_length=1, max_length=12000)
+
+
+class TodoItemDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: StrictStr = Field(min_length=1, max_length=500)
+    done: StrictBool = False
+
+
+class TodoOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    items: list[TodoItemDraft] = Field(min_length=1, max_length=100)
+
+
+class QuizQuestionDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question: StrictStr = Field(min_length=1, max_length=1000)
+    options: list[StrictStr] = Field(min_length=2, max_length=6)
+    correct_index: StrictInt = Field(ge=0, le=5)
+    explanation: StrictStr | None = Field(default=None, max_length=2000)
+    topic: StrictStr | None = Field(default=None, max_length=200)
+    difficulty: StrictInt = Field(default=3, ge=1, le=5)
+
+
+class QuizOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    questions: list[QuizQuestionDraft] = Field(min_length=1, max_length=10)
+
+
+class TeachActionDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: Literal[
+        "continue", "ask_question", "practice", "example", "deeper", "next_topic"
+    ]
+    label: StrictStr = Field(min_length=1, max_length=60)
+    prompt: StrictStr = Field(min_length=0, max_length=2000)
+
+
+class TeachOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: StrictStr = Field(min_length=1, max_length=12000)
+    latex_blocks: list[Annotated[StrictStr, Field(max_length=6000)]] = Field(
+        default_factory=list, max_length=6
+    )
+    actions: list[TeachActionDraft] = Field(min_length=1, max_length=6)
+
+
+class LatexOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    latex: StrictStr = Field(min_length=1, max_length=12000)
+
+
+class ChatOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: StrictStr = Field(min_length=1, max_length=12000)
+
+
+class MermaidOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    source: StrictStr = Field(min_length=1, max_length=12000)
+    diagram_type: StrictStr = Field(min_length=1, max_length=100)
+
+
+class TodoItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: StrictStr = Field(min_length=1, max_length=100)
+    position: StrictInt = Field(ge=0, le=99)
+    text: StrictStr = Field(min_length=1, max_length=500)
+    done: StrictBool = False
+
+
+class TodoOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    items: list[TodoItem] = Field(min_length=1, max_length=100)
+
+
+class StructuredQuizQuestion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: StrictStr = Field(min_length=1, max_length=100)
+    position: StrictInt = Field(ge=0, le=9)
+    question: StrictStr = Field(min_length=1, max_length=1000)
+    options: list[StrictStr] = Field(min_length=2, max_length=6)
+    correct_index: StrictInt = Field(ge=0, le=5)
+    explanation: StrictStr | None = Field(default=None, max_length=2000)
+    topic: StrictStr | None = Field(default=None, max_length=200)
+    difficulty: StrictInt = Field(default=3, ge=1, le=5)
+
+
+class QuizOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    questions: list[StructuredQuizQuestion] = Field(min_length=1, max_length=10)
+
+
+class TeachOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: StrictStr = Field(min_length=1, max_length=12000)
+    latex_blocks: list[Annotated[StrictStr, Field(max_length=6000)]] = Field(
+        default_factory=list, max_length=6
+    )
+    actions: list[TeachActionDraft] = Field(min_length=1, max_length=6)
+
+
+class LatexOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    latex: StrictStr = Field(min_length=1, max_length=12000)
+
+
+class ValidationMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["validated"] = "validated"
+    attempts: StrictInt = Field(ge=1, le=2)
+
+
+class StructuredOutputEnvelope(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1"] = "1"
+    output_id: StrictStr = Field(min_length=1, max_length=100)
+    session_id: StrictStr = Field(min_length=1, max_length=100)
+    citations: list[StrictStr] = Field(default_factory=list, max_length=100)
+    validation: ValidationMetadata
+
+
+class ChatOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["chat"]
+    content: ChatOutputContent
+
+
+class MermaidOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["mermaid"]
+    content: MermaidOutputContent
+
+
+class TodoOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["todo"]
+    content: TodoOutputContent
+
+
+class QuizOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["quiz"]
+    content: QuizOutputContent
+
+
+class TeachOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["teach"]
+    content: TeachOutputContent
+
+
+class LatexOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["latex"]
+    content: LatexOutputContent
+
+
+StructuredOutputResponse = Annotated[
+    ChatOutputEnvelope
+    | MermaidOutputEnvelope
+    | TodoOutputEnvelope
+    | QuizOutputEnvelope
+    | TeachOutputEnvelope
+    | LatexOutputEnvelope,
+    Field(discriminator="kind"),
+]

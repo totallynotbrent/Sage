@@ -1,0 +1,26 @@
+[Unit]
+Description=sage (AI tutor web app)
+After=network-online.target
+Wants=network-online.target
+StartLimitBurst=10
+StartLimitIntervalSec=120
+
+[Service]
+Type=simple
+User=ebarleb
+Group=ebarleb
+WorkingDirectory=/home/ebarleb/Bots/sage
+EnvironmentFile=/home/ebarleb/Bots/sage/.env
+ExecStart=/home/ebarleb/Bots/sage/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8015
+
+Restart=on-failure
+RestartSec=5
+
+TimeoutStopSec=30
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sage
+
+[Install]
+WantedBy=multi-user.target

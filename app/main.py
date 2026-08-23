@@ -3,8 +3,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import Settings, get_settings, validation_problems
 from app.db import init_db
@@ -18,7 +21,7 @@ logger = logging.getLogger("app")
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
-    setup_logging(settings.brot_api_key)
+    setup_logging(settings.brot_api_key, data_dir=settings.data_dir)
     reset_llm_client()
 
     @asynccontextmanager
@@ -50,6 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         chat,
         files,
         learning,
+        outputs,
         plans,
         preferences,
         sessions,
@@ -62,11 +66,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(files.router)
     app.include_router(sessions.router)
     app.include_router(chat.router)
+    app.include_router(outputs.router)
     app.include_router(learning.router)
     app.include_router(plans.router)
     app.include_router(teach.router)
     app.include_router(preferences.router)
     app.include_router(watch.router)
+
+    static_dir = Path(__file__).parent.parent / "static"
+    if static_dir.exists():
+
+        @app.get("/", include_in_schema=False)
+        async def serve_ui():
+            return FileResponse(str(static_dir / "index.html"))
+
+        app.mount("/", StaticFiles(directory=str(static_dir)), name="static")
 
     return app
 

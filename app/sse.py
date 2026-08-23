@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from typing import AsyncIterator, Any
 
 from fastapi.responses import StreamingResponse
 
 HEARTBEAT_SECONDS = 15.0
+
+logger = logging.getLogger("app")
 
 
 def sse_event(kind: str, data: dict[str, Any]) -> str:
@@ -20,20 +23,27 @@ async def heartbeat(
 ) -> AsyncIterator[str]:
     iterator = gen.__aiter__()
     next_task = asyncio.ensure_future(anext(iterator))
-    while True:
+    try:
+        while True:
+            try:
+                done, _ = await asyncio.wait({next_task}, timeout=HEARTBEAT_SECONDS)
+                if done:
+                    item = next_task.result()
+                    yield sse_event(item.get("type", "event"), item)
+                    next_task = asyncio.ensure_future(anext(iterator))
+                else:
+                    yield ": ping\n\n"
+            except StopAsyncIteration:
+                break
+    except Exception:
+        logger.exception("SSE stream failed")
+        raise
+    finally:
+        next_task.cancel()
         try:
-            done, _ = await asyncio.wait({next_task}, timeout=HEARTBEAT_SECONDS)
-            if done:
-                item = next_task.result()
-                yield sse_event(item.get("type", "event"), item)
-                next_task = asyncio.ensure_future(anext(iterator))
-            else:
-                yield ": ping\n\n"
-        except StopAsyncIteration:
-            break
-        except Exception:
-            next_task.cancel()
-            raise
+            await next_task
+        except BaseException:
+            pass
 
 
 def sse_response(gen: AsyncIterator[dict[str, Any]]) -> StreamingResponse:
@@ -43,6 +53,5 @@ def sse_response(gen: AsyncIterator[dict[str, Any]]) -> StreamingResponse:
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
         },
     )

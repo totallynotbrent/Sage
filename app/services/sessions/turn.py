@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncIterator, Awaitable, Callable
+import json
+import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, AsyncIterator, Awaitable, Callable
 
 from app.config import validation_problems
 from app.errors import (
@@ -15,6 +18,7 @@ from app.llm.messages import (
     extract_citation_markers,
     format_location,
 )
+from app.llm.tools import available_tools, execute_tool
 
 if TYPE_CHECKING:
     from app.llm.client import LLMClient
@@ -26,6 +30,40 @@ SUFFICIENCY_NOTICE = (
     "more study files, switch to grounded-plus-knowledge mode, or ask me to "
     "explain based on general knowledge."
 )
+
+_MAX_TOOL_ITERATIONS = 4
+
+
+@dataclass
+class ToolContext:
+    settings: Any
+    session_dict: dict
+    chunks: list
+    mastery_summary: str
+    mode: Any
+    llm: Any
+    validate_fn: Any = None
+    mermaid_validate: Any = None
+    conn: Any = None
+    session_id: str = ""
+
+
+def _tool_result_summary(name: str, result: dict):
+    if result.get("error"):
+        return f"error: {result['error']}"
+    embedded = result.get("summary")
+    if isinstance(embedded, str) and embedded.strip():
+        return embedded
+    if name == "web_search":
+        return [
+            {"title": entry["title"], "url": entry["url"]}
+            for entry in result.get("results", [])
+        ]
+    if name == "record_step_actions":
+        return f"{len(result.get('actions', []))} actions"
+    if result.get("kind"):
+        return f"{result['kind']} ok"
+    return ""
 
 
 class TurnMixin:
@@ -66,7 +104,11 @@ class TurnMixin:
                     return
 
             cancel_event = llm.begin_inflight(session_id)
+            buffer: list[str] = []
             try:
+                existing_marker = self.find_message(session_id, client_msg_id)
+                if existing_marker is None:
+                    self.persist_user_message(session_id, user_text)
                 self.save_partial_marker(session_id, client_msg_id)
 
                 chunks = self._select_chunks(session, user_text)
@@ -86,6 +128,7 @@ class TurnMixin:
                     "type": "meta",
                     "chunks": meta_chunks,
                     "insufficient": strict_mode,
+                    "web_sources": [],
                 }
 
                 if strict_mode:
@@ -95,26 +138,162 @@ class TurnMixin:
                         yield event
                     return
 
+                session_dict = session.model_dump()
+                assistant_row = self.conn.execute(
+                    "SELECT COUNT(*) AS n FROM messages WHERE session_id = ? "
+                    "AND role = 'assistant' AND partial = 0",
+                    (session_id,),
+                ).fetchone()
+                assistant_count = int(assistant_row["n"])
+                lesson_state = {
+                    "teaching_turns": assistant_count,
+                    "greeting_done": assistant_count > 0,
+                    "definition_taught": assistant_count > 0,
+                    "last_user_text": user_text,
+                }
+                pending_rows = self.conn.execute(
+                    "SELECT id, kind, question FROM quiz_questions "
+                    "WHERE session_id = ? AND status = 'pending' "
+                    "ORDER BY created_at LIMIT 10",
+                    (session_id,),
+                ).fetchall()
+                lesson_state["pending_questions"] = [
+                    {
+                        "id": row["id"],
+                        "kind": row["kind"],
+                        "question": (row["question"] or "")[:140],
+                    }
+                    for row in pending_rows
+                ]
                 messages = build_chat_messages(
-                    session.model_dump(),
+                    session_dict,
                     user_text,
                     chunks,
                     self._mastery_summary(),
                     mode,
+                    lesson_state=lesson_state,
                 )
-                buffer: list[str] = []
-                async for delta in llm.stream_chat(
-                    messages,
+                tool_ctx = ToolContext(
+                    settings=self.settings,
+                    session_dict=session_dict,
+                    chunks=chunks,
+                    mastery_summary=self._mastery_summary(),
+                    mode=mode,
+                    llm=llm,
+                    conn=self.conn,
                     session_id=session_id,
-                    cancel_event=cancel_event,
-                ):
-                    if await is_disconnected():
-                        llm.cancel_inflight(session_id)
-                        raise GenerationCancelled(
-                            "The client disconnected during generation."
-                        )
-                    buffer.append(delta)
-                    yield {"type": "delta", "delta": delta}
+                )
+                turn_tools = (
+                    None if mode == "strict" else available_tools(self.settings)
+                )
+                stashed_actions: list[dict] = []
+                web_sources: list[dict] = []
+                step_actions_recorded = False
+
+                for _ in range(_MAX_TOOL_ITERATIONS):
+                    had_tool_call = False
+                    echoed = False
+                    async for item in llm.stream_chat(
+                        messages,
+                        session_id=session_id,
+                        cancel_event=cancel_event,
+                        tools=turn_tools,
+                    ):
+                        if await is_disconnected():
+                            llm.cancel_inflight(session_id)
+                            raise GenerationCancelled(
+                                "The client disconnected during generation."
+                            )
+                        if isinstance(item, str):
+                            item = {"type": "delta", "delta": item}
+                        event_type = item.get("type")
+                        if event_type == "tool_call":
+                            had_tool_call = True
+                            name = str(item.get("name") or "")
+                            raw_arguments = item.get("arguments")
+                            arguments = (
+                                raw_arguments if isinstance(raw_arguments, dict) else {}
+                            )
+                            tool_call_event = {
+                                "type": "tool_call",
+                                "name": name,
+                                "arguments": arguments,
+                            }
+                            model_status = arguments.get("status")
+                            if isinstance(model_status, str) and model_status.strip():
+                                tool_call_event["status"] = model_status
+                            yield tool_call_event
+                            if name == "record_step_actions" and step_actions_recorded:
+                                result = {
+                                    "note": "actions already recorded this turn",
+                                    "actions": [],
+                                }
+                            else:
+                                result = await execute_tool(name, arguments, tool_ctx)
+                                if name == "record_step_actions" and not result.get(
+                                    "error"
+                                ):
+                                    step_actions_recorded = True
+                            if not echoed:
+                                messages.append(
+                                    {
+                                        "role": "assistant",
+                                        "content": item.get("assistant_content")
+                                        or None,
+                                        "tool_calls": item.get("raw_tool_calls"),
+                                    }
+                                )
+                                echoed = True
+                            messages.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": str(item.get("id") or name),
+                                    "content": json.dumps(result),
+                                }
+                            )
+                            if (
+                                name == "record_step_actions"
+                                and not result.get("note")
+                                and isinstance(result.get("actions"), list)
+                            ):
+                                stashed_actions = result["actions"]
+                            elif name == "web_search" and not result.get("error"):
+                                web_sources.extend(
+                                    {
+                                        "title": entry["title"],
+                                        "url": entry["url"],
+                                    }
+                                    for entry in result.get("results", [])
+                                )
+                            tool_event = {
+                                "type": "tool_result",
+                                "name": name,
+                                "summary": _tool_result_summary(name, result),
+                            }
+                            if name == "generate_mermaid" and not result.get("error"):
+                                tool_event.update(
+                                    {
+                                        "kind": result.get("kind"),
+                                        "title": result.get("title"),
+                                        "source": result.get("source"),
+                                        "diagram_type": result.get("diagram_type"),
+                                    }
+                                )
+                            if name == "run_probe":
+                                tool_event["questions"] = result.get("questions", [])
+                            if name == "advance_lesson" and result.get(
+                                "check_question"
+                            ):
+                                tool_event["check_question"] = result["check_question"]
+                            if name == "build_plan" and result.get("plan_diagram"):
+                                tool_event["plan_diagram"] = result["plan_diagram"]
+                            yield tool_event
+                            continue
+                        delta = item.get("delta") or ""
+                        buffer.append(delta)
+                        yield {"type": "delta", "delta": delta}
+                    if not had_tool_call:
+                        break
 
                 full_text = "".join(buffer)
                 sent_ids = {c["id"] for c in chunks}
@@ -133,6 +312,8 @@ class TurnMixin:
                     "message_id": message.id,
                     "client_msg_id": client_msg_id,
                     "replayed": False,
+                    "actions": stashed_actions,
+                    "web_sources": web_sources,
                 }
             except GenerationCancelled as exc:
                 yield _error_event(exc)
@@ -146,6 +327,7 @@ class TurnMixin:
                     )
                 )
             finally:
+                self.persist_partial_content(session_id, client_msg_id, "".join(buffer))
                 llm.end_inflight(session_id)
         finally:
             self.conn.close()

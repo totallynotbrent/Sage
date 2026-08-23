@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sage - Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},startup:{pageReady:()=>MathJax.startup.defaultPageReady()}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:180ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:var(--r)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+textarea{font:inherit;color:inherit}
+:where(a,button,[role="radio"],[role="option"],[tabindex],summary):focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:4px}
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
+.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
+.logo span{color:var(--muted)}
+.topbar__title{font-family:var(--font-mono);font-size:12px;color:var(--muted);letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38vw;margin-left:var(--space-2)}
+.phase-badge{font-size:11px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:3px 10px;border-radius:var(--r);background:var(--accent-dim);color:var(--accent);flex-shrink:0}
+.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--fg)}
+
+.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform var(--dur-slow) var(--ease),opacity var(--dur-slow) var(--ease)}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
+.sidebar-backdrop.open{display:block}
+.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
+.sidebar:not(.collapsed){transform:translateX(0)}
+.sidebar__close{display:none;margin:var(--space-2) var(--space-2) 0 auto;width:28px;height:28px}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__header:hover{color:var(--muted)}
+.sidebar__chevron{transition:transform var(--dur) var(--ease)}
+.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
+.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
+.sidebar__section.open .sidebar__list{display:block}
+.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
+.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.sidebar__item.active{background:var(--overlay);color:var(--fg)}
+.sidebar__item-dot{width:6px;height:6px;border-radius:50%;background:var(--meta);flex-shrink:0}
+.sidebar__item-dot.ready{background:var(--foam)}
+.sidebar__item-dot.error{background:var(--love)}
+.sidebar__item-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar__item-meta{font-size:11px;color:var(--meta);flex-shrink:0}
+.sidebar__item-badge{font-size:10px;font-weight:500;letter-spacing:0.03em;padding:2px 7px;border-radius:var(--r);background:var(--overlay);color:var(--meta);flex-shrink:0}
+.sidebar__item-badge[data-phase="teach"]{color:var(--accent)}
+.sidebar__item-badge[data-phase="plan"]{color:var(--gold)}
+.sidebar__item-badge[data-phase="complete"]{color:var(--foam)}
+.sidebar__action{display:flex;align-items:center;gap:var(--space-2);width:100%;padding:var(--space-2) var(--space-4) var(--space-3);font-size:13px;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__action:hover{color:var(--accent)}
+.plan-artifacts{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-2) var(--space-2) var(--space-3)}
+.plan-artifacts:empty{display:none}
+.plan-artifacts .artifact-card{padding:var(--space-3)}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:var(--bg)}
+.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
+.chat__messages{flex:1;overflow-y:auto;padding:var(--space-6) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2)}
+.msg{display:flex;flex-direction:column;max-width:760px;width:100%;margin:0 auto;padding:var(--space-4) 0}
+.msg--user{align-items:flex-end}
+.msg--assistant{align-items:flex-start}
+.msg__role{font-size:12px;font-weight:500;color:var(--meta);margin-bottom:6px;padding:0 var(--space-4);letter-spacing:0.01em}
+.msg__bubble{padding:var(--space-4) var(--space-5);border-radius:var(--r);line-height:1.7;word-wrap:break-word;overflow-wrap:break-word;max-width:100%}
+.msg--user .msg__bubble{background:var(--surface-raised);color:var(--fg)}
+.msg--assistant .msg__bubble{background:transparent;color:var(--fg)}
+.msg__bubble p{margin:0 0 var(--space-3)}.msg__bubble p:last-child{margin-bottom:0}
+.msg__bubble ul,.msg__bubble ol{margin:var(--space-3) 0;padding-left:var(--space-6)}
+.msg__bubble li{margin:var(--space-1) 0}.msg__bubble li>p{margin:0}
+.msg__bubble strong{font-weight:600;color:var(--fg)}.msg__bubble em{color:var(--muted);font-style:italic}
+.msg__bubble code{font-family:var(--font-mono);font-size:13px;background:var(--overlay);padding:2px 6px;border-radius:var(--r)}
+.msg__bubble pre{background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);overflow-x:auto;margin:var(--space-3) 0}
+.msg__bubble pre code{background:none;padding:0;font-size:13px;line-height:1.6}
+.msg__bubble blockquote{border-left:2px solid var(--accent);padding-left:var(--space-4);color:var(--muted);margin:var(--space-3) 0;font-style:italic}
+.msg__bubble h1,.msg__bubble h2,.msg__bubble h3{font-family:var(--font-display);color:var(--fg);margin:var(--space-4) 0 var(--space-2);line-height:1.3}
+.msg__bubble h1{font-size:22px}.msg__bubble h2{font-size:18px}.msg__bubble h3{font-size:16px}
+.msg__bubble table{width:100%;border-collapse:collapse;margin:var(--space-3) 0;font-size:14px}
+.msg__bubble th,.msg__bubble td{padding:var(--space-2) var(--space-3);border:1px solid var(--border);text-align:left}
+.msg__bubble th{background:var(--overlay);font-weight:500}
+
+.cite{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--r);background:var(--overlay);color:var(--accent);cursor:pointer;vertical-align:middle;transition:all var(--dur) var(--ease);text-decoration:none}
+.cite:hover{background:var(--surface-warm);text-decoration:none}
+.cite-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:var(--space-2);max-width:100%}
+
+.input-bar{padding:var(--space-3) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom));flex-shrink:0;min-height:0}
+.composer-toolbar{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2)}
+.composer-toolbar__btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--meta);background:none;border:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.composer-toolbar__btn:hover{color:var(--fg);background:var(--overlay)}
+.composer-toolbar__btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.composer-toolbar__btn:disabled{opacity:0.5;cursor:not-allowed}
+.composer-toolbar__btn svg{width:14px;height:14px;flex-shrink:0}
+.composer-toolbar__spacer{flex:1}
+.composer-toolbar__status{font-family:var(--font-mono);font-size:10px;color:var(--meta);letter-spacing:0.04em}
+.input-bar__wrapper{display:flex;align-items:flex-end;gap:var(--space-2);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-3) var(--space-2) var(--space-2) var(--space-4);transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)}
+.input-bar__wrapper:focus-within{border-color:var(--accent);background:var(--surface-raised)}
+.input-bar__textarea{flex:1;min-width:0;resize:none;border:none;background:transparent;font-size:15px;font-family:var(--font-body);line-height:1.5;max-height:120px;min-height:22px;padding:6px 0;color:var(--fg)}
+.input-bar__textarea::placeholder{color:var(--meta)}
+.input-bar__actions{display:flex;align-items:center;gap:var(--space-1);flex-shrink:0}
+.input-bar__send{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--r);background:var(--accent);color:var(--bg);border:none;cursor:pointer;transition:opacity var(--dur) var(--ease),transform 120ms var(--ease)}
+.input-bar__send:hover{opacity:0.85}
+.input-bar__send:active{transform:scale(0.9)}
+.input-bar__stop{display:none;place-items:center;width:32px;height:32px;border-radius:var(--r);background:var(--love);color:#fff;border:none;cursor:pointer;transition:opacity var(--dur) var(--ease),transform 120ms var(--ease)}
+.input-bar__stop:hover{opacity:0.85}
+.composer-error{font-size:12px;color:var(--love);padding:var(--space-2) var(--space-4);font-family:var(--font-body);line-height:1.5}
+.composer-toast{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2) var(--space-3);background:var(--surface);border-left:3px solid var(--foam);padding:var(--space-3) var(--space-4);font-size:13px;color:var(--fg-2);font-family:var(--font-body);line-height:1.5;border-radius:0 var(--r) var(--r) 0;margin-top:var(--space-2)}
+.composer-toast[hidden]{display:none}
+.composer-toast__btn{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--foam);color:var(--foam);background:transparent;transition:all var(--dur) var(--ease)}
+.composer-toast__btn:hover{background:rgba(156,207,216,0.12)}
+.toast-in{animation:toastIn var(--dur-slow) var(--ease)}
+@keyframes toastIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.toast-in{animation:none}}
+.phase-badge[data-grounding="strict"]::after{content:" \00b7 strict";color:var(--foam)}
+
+.diagram-panel{width:min(var(--diagram-w),42vw);min-width:320px;border-left:1px solid var(--border);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:transform var(--dur-slow) var(--ease),margin-right var(--dur-slow) var(--ease)}
+.diagram-panel.closed{transform:translateX(100%);margin-right:calc(-1 * min(var(--diagram-w),42vw));pointer-events:none}
+.diagram-panel__header{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border);flex-shrink:0;gap:var(--space-3)}
+.diagram-panel__title{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--fg);display:flex;align-items:baseline;gap:var(--space-2);flex:1;min-width:0}
+.diagram-panel__count{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em}
+.diagram-panel__body{flex:1;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)}
+.diagram-panel__empty{color:var(--meta);font-size:13px;text-align:center;padding:var(--space-8) var(--space-4)}
+
+.artifact-card{position:relative;background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.artifact-card[data-kind="mermaid"]{border-left-color:var(--foam)}
+.artifact-card[data-kind="quiz"]{border-left-color:var(--gold)}
+.artifact-card[data-kind="todo"]{border-left-color:var(--rose)}
+.artifact-card[data-kind="chat"]{border-left-color:var(--accent)}
+.artifact-card__header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.artifact-card__marker{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--meta);flex-shrink:0}
+.artifact-card__title{font-family:var(--font-display);font-style:italic;font-size:16px;font-weight:500;color:var(--fg);line-height:1.3;flex:1;min-width:140px}
+.artifact-card__badge{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--accent-dim);color:var(--accent);flex-shrink:0;display:inline-flex;align-items:center;gap:4px}
+.artifact-card__badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--foam)}
+.artifact-card__content{display:flex;flex-direction:column;gap:var(--space-3);min-width:0}
+.artifact-card__type{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em;text-transform:lowercase}
+.artifact-card__diagram{display:flex;align-items:center;justify-content:center;background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);min-height:120px}
+.artifact-card__diagram svg{max-width:100%;height:auto}
+.artifact-card__diagram-error{color:var(--love);font-size:13px;text-align:center;padding:var(--space-4)}
+.artifact-card__source-toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--meta);cursor:pointer;background:none;border:none;padding:6px 0;letter-spacing:0.04em}
+.artifact-card__source-toggle:hover{color:var(--fg)}
+.artifact-card__source-toggle-chevron{transition:transform var(--dur) var(--ease)}
+.artifact-card__source-toggle[aria-expanded="true"] .artifact-card__source-toggle-chevron{transform:rotate(90deg)}
+.artifact-card__source{display:none;background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-3);font-family:var(--font-mono);font-size:12px;color:var(--muted);overflow-x:auto;white-space:pre;max-height:200px;line-height:1.5}
+.artifact-card__source.open{display:block}
+.artifact-card__todo-list{display:flex;flex-direction:column;gap:var(--space-2);list-style:none;margin:0;padding:0}
+.artifact-card__todo-item{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-2) 0;cursor:pointer;background:none;border:none;color:inherit;text-align:left;width:100%;font-family:inherit;font-size:14px;line-height:1.5}
+.artifact-card__todo-item:hover{color:var(--fg)}
+.artifact-card__todo-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--meta);flex-shrink:0;display:grid;place-items:center;margin-top:2px;transition:all var(--dur) var(--ease)}
+.artifact-card__todo-item[data-done="true"] .artifact-card__todo-check{background:var(--foam);border-color:var(--foam)}
+.artifact-card__todo-item[data-done="true"] .artifact-card__todo-check::after{content:'';width:5px;height:9px;border:solid var(--bg);border-width:0 2px 2px 0;transform:rotate(45deg) translateY(-1px)}
+.artifact-card__todo-item[data-done="true"] .artifact-card__todo-text{text-decoration:line-through;color:var(--meta)}
+.artifact-card__todo-text{flex:1;min-width:0;word-wrap:break-word}
+.artifact-card__quiz-question{padding:var(--space-3) 0;border-top:1px solid var(--border-soft)}
+.artifact-card__quiz-question:first-child{border-top:0}
+.artifact-card__quiz-qtext{font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--fg);margin-bottom:var(--space-3);line-height:1.4}
+.artifact-card__quiz-qtext.typed{overflow:visible;white-space:normal;border-right-color:transparent;width:auto}
+.artifact-card__quiz-options{display:flex;flex-direction:column;gap:var(--space-2)}
+.artifact-card__quiz-option{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--r);font-size:13px;cursor:pointer;background:var(--overlay);border:1px solid transparent;transition:all var(--dur) var(--ease);text-align:left;width:100%;font-family:inherit;color:inherit}
+.artifact-card__quiz-option:hover{background:var(--surface-warm)}
+.artifact-card__quiz-option.selected{border-color:var(--accent);background:var(--accent-dim)}
+.artifact-card__quiz-option.correct{background:rgba(156,207,216,0.1);border-color:var(--foam)}
+.artifact-card__quiz-option.incorrect{background:rgba(235,111,146,0.1);border-color:var(--love)}
+.artifact-card__quiz-option.reveal-correct{background:rgba(156,207,216,0.08);border-color:var(--foam)}
+.artifact-card__quiz-radio{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--meta);flex-shrink:0;transition:all var(--dur) var(--ease)}
+.artifact-card__quiz-option.selected .artifact-card__quiz-radio{border-color:var(--accent);background:var(--accent)}
+.artifact-card__quiz-option.correct .artifact-card__quiz-radio,.artifact-card__quiz-option.reveal-correct .artifact-card__quiz-radio{border-color:var(--foam);background:var(--foam)}
+.artifact-card__quiz-option.incorrect .artifact-card__quiz-radio{border-color:var(--love);background:var(--love)}
+.artifact-card__quiz-explain{margin-top:var(--space-2);font-size:13px;color:var(--muted);font-style:italic;line-height:1.5;padding:var(--space-2) var(--space-3);background:var(--surface-sunken);border-radius:5px}
+.artifact-card__quiz-actions{display:flex;gap:var(--space-2);margin-top:var(--space-2)}
+.artifact-card__quiz-btn{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:6px 12px;border-radius:5px;background:var(--overlay);color:var(--muted);border:1px solid var(--border);cursor:pointer;transition:all var(--dur) var(--ease)}
+.artifact-card__quiz-btn:hover{background:var(--surface-warm);color:var(--fg)}
+.artifact-card__fallback{font-size:13px;color:var(--muted);line-height:1.5;padding:var(--space-2) 0}
+.probe-wrap{display:flex;flex-direction:column;gap:var(--space-3);max-width:760px;width:100%;margin:0 auto;padding:var(--space-2) 0}
+.probe-actions{display:flex;justify-content:flex-end}
+.probe-send{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:8px 16px;border-radius:var(--r);background:var(--accent);color:var(--bg);transition:opacity var(--dur) var(--ease)}
+.probe-send:hover{opacity:0.85}
+.probe-send:disabled{opacity:0.5;cursor:not-allowed}
+.artifact-card.sent{opacity:0.5;pointer-events:none}
+
+.illustrated-card{margin:var(--space-3) auto 0;max-width:680px;padding:var(--space-3) var(--space-4);background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--r);display:flex;flex-direction:column;gap:var(--space-2)}
+.illustrated-card__label{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--meta);display:flex;align-items:center;gap:6px}
+.illustrated-card__label::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--foam)}
+.illustrated-card__diagram{background:var(--surface-sunken);border-radius:5px;padding:var(--space-3);display:flex;align-items:center;justify-content:center}
+.illustrated-card__diagram svg{max-width:100%;height:auto;max-height:240px}
+.illustrated-card__fallback{font-size:12px;color:var(--muted);font-style:italic}
+
+@keyframes msgCascade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg{animation:msgCascade 700ms var(--ease) both}
+.msg:nth-child(1){animation-delay:0ms}.msg:nth-child(2){animation-delay:250ms}.msg:nth-child(3){animation-delay:500ms}.msg:nth-child(4){animation-delay:750ms}.msg:nth-child(5){animation-delay:1000ms}
+@keyframes hamburgerMorph1{to{transform:translateY(7px) rotate(45deg)}}
+@keyframes hamburgerMorph2{to{opacity:0}}
+@keyframes hamburgerMorph3{to{transform:translateY(-7px) rotate(-45deg)}}
+.typing-indicator{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0}
+.typing-indicator__bar{width:80px;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;animation:gradientSweep 1.2s ease infinite}
+@keyframes gradientSweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.artifact-card[data-kind="mermaid"]{opacity:0;transform:translateX(30px)}
+.artifact-card[data-kind="mermaid"].visible{animation:artSlideRight 500ms var(--ease) forwards}
+@keyframes artSlideRight{to{opacity:1;transform:translateX(0)}}
+.artifact-card[data-kind="mermaid"] .artifact-card__diagram svg line{stroke-dasharray:40;stroke-dashoffset:40}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line{animation:artDrawLine 600ms var(--ease) forwards}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(1){animation-delay:200ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(2){animation-delay:350ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(3){animation-delay:500ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(4){animation-delay:650ms}
+.artifact-card[data-kind="mermaid"] .artifact-card__diagram svg circle,.artifact-card[data-kind="mermaid"] .artifact-card__diagram svg text{opacity:0}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg circle,.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg text{animation:artFadeIn 400ms var(--ease) forwards}
+@keyframes artDrawLine{to{stroke-dashoffset:0}}
+@keyframes artFadeIn{to{opacity:1}}
+
+.artifact-card[data-kind="quiz"]{opacity:0;transform:translateY(8px)}
+.artifact-card[data-kind="quiz"].visible{animation:artifactReveal 500ms var(--ease) forwards}
+@keyframes artifactReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.artifact-card[data-kind="quiz"] .artifact-card__quiz-qtext{overflow:visible;white-space:normal;border-right:none;width:auto}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option{opacity:0;animation:artifactReveal 300ms var(--ease) forwards}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(1){animation-delay:1100ms}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(2){animation-delay:1300ms}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(3){animation-delay:1500ms}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(4){animation-delay:1700ms}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(5){animation-delay:1900ms}
+.artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.correct{box-shadow:0 0 24px rgba(156,207,216,0.35);position:relative;overflow:hidden}
+.artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.correct::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(156,207,216,0.2),transparent);animation:artColorSweep 600ms var(--ease) forwards}
+@keyframes artColorSweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.incorrect{opacity:0.4}
+
+.artifact-card[data-kind="todo"]{opacity:0}
+.artifact-card[data-kind="todo"].visible{animation:artifactReveal 500ms var(--ease) forwards}
+.artifact-card[data-kind="todo"] .artifact-card__todo-item{opacity:0;transform:perspective(400px) rotateX(90deg)}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item{animation:artFlipTodo 500ms var(--ease) forwards}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(1){animation-delay:80ms}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(2){animation-delay:200ms}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(3){animation-delay:320ms}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(4){animation-delay:440ms}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(5){animation-delay:560ms}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(6){animation-delay:680ms}
+@keyframes artFlipTodo{to{opacity:1;transform:perspective(400px) rotateX(0)}}
+.word{display:inline-block;opacity:0;transform:translateY(4px);animation:wordIn 350ms var(--ease) forwards}
+@keyframes wordIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:1023px){
+.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}
+.sidebar__close{display:grid}
+.diagram-panel{position:absolute;right:0;top:0;bottom:0;z-index:25;width:100%;max-width:var(--diagram-w)}
+.diagram-panel.closed{margin-right:0}
+.diagram-panel.closed{display:none}
+.composer-toolbar{flex-wrap:wrap}
+.topbar__title{max-width:32vw}
+}
+.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal_backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.6)}
+.modal_dialog{position:relative;width:90%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5);z-index:1;display:flex;flex-direction:column;gap:var(--space-3)}
+.modal_head{display:flex;align-items:center;justify-content:space-between}
+.modal_title{font-family:var(--font-display);font-size:20px;font-weight:500}
+.modal_hint{font-size:12px;color:var(--meta);line-height:1.5}
+.modal_actions{display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-2)}
+.upload_zone{border:2px dashed var(--border);border-radius:var(--r);padding:var(--space-6) var(--space-4);text-align:center;cursor:pointer;transition:border-color 150ms var(--ease),background 150ms var(--ease)}
+.upload_zone:hover,.upload_zone.dragover{border-color:var(--accent);background:var(--accent-dim)}
+.upload_zone_title{font-size:14px;font-weight:500;margin-bottom:4px}
+.upload_zone_hint{font-size:11px;color:var(--meta);font-family:var(--font-mono)}
+.upload_list{display:flex;flex-direction:column;gap:var(--space-2);max-height:180px;overflow-y:auto}
+.upload_item{display:flex;align-items:center;gap:var(--space-2);padding:6px 10px;background:var(--overlay);border-radius:6px;font-size:13px}
+.upload_item_name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upload_item_size{font-family:var(--font-mono);font-size:11px;color:var(--meta);flex-shrink:0}
+.upload_item_remove{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;color:var(--meta)}
+.upload_item_remove:hover{background:var(--surface-warm);color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease)}
+.btn_primary{background:var(--accent);color:var(--bg)}
+.btn_primary:hover{background:var(--accent-hover)}
+.btn_primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn_ghost{background:var(--overlay);color:var(--muted)}
+.btn_ghost:hover{background:var(--surface-warm);color:var(--fg)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}.word{animation:none !important;opacity:1 !important;transform:none !important}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <h1 class="visually-hidden">Sage workspace</h1>
+  <div class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <a href="index.html" class="logo">S<span>a</span>ge</a>
+    <span class="topbar__title" id="session-title"> - Loading...</span>
+    <span class="phase-badge" id="phase-badge">setup</span>
+  </div>
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <aside class="sidebar" id="sidebar" aria-label="Study plan">
+      <button class="sidebar__close icon-btn" id="closeSidebar" type="button" aria-label="Close study plan"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+      <div class="sidebar__section open">
+        <button class="sidebar__header" aria-expanded="true" aria-controls="nav-list"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list" id="nav-list">
+          <a href="index.html" class="sidebar__item">Home</a>
+          <a href="sage-workspace.html" class="sidebar__item active" id="nav-workspace">Workspace</a>
+          <a href="sage-library.html" class="sidebar__item">Library</a>
+          <a href="sage-sessions.html" class="sidebar__item">Sessions</a>
+          <a href="sage-settings.html" class="sidebar__item">Settings</a>
+          <a href="sage-health.html" class="sidebar__item">Health</a>
+        </div>
+      </div>
+      <div class="sidebar__section open">
+        <button class="sidebar__header" aria-expanded="true" aria-controls="sessions-list"><span>Sessions</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list" id="sessions-list"></div>
+      </div>
+      <div class="sidebar__section open">
+        <button class="sidebar__header" aria-expanded="true" aria-controls="files-list"><span>Files</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list" id="files-list"></div>
+        <button class="sidebar__action" id="upload-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Upload file
+        </button>
+      </div>
+      <div class="sidebar__section open" id="plan-section">
+        <button class="sidebar__header" id="plan-toggle" aria-expanded="true" aria-controls="plan-nodes plan-artifacts"><span>Plan</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list" id="plan-nodes"></div>
+        <div class="plan-artifacts" id="plan-artifacts" aria-label="Generated quizzes and todo lists"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="chat" id="chat">
+        <div class="chat__messages" id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
+        <div class="input-bar">
+          <div class="composer-toolbar" role="toolbar" aria-label="Artifact composer">
+            <button class="composer-toolbar__btn" id="composer-diagram" type="button" aria-label="Generate diagram" title="Generate diagram from current input">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5.5v3M10.5 5.5v3M5.5 3.5h3M5.5 10.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Diagram
+            </button>
+            <button class="composer-toolbar__btn" id="composer-quiz" type="button" aria-label="Generate quiz" title="Generate quiz from current input">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 3a1.5 1.5 0 011.5-1.5h7A1.5 1.5 0 0112 3v6a1.5 1.5 0 01-1.5 1.5H6.5L4 13v-2.5h-.5A1.5 1.5 0 012 9V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 5.5h4M5 7.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Quiz
+            </button>
+            <button class="composer-toolbar__btn" id="composer-todo" type="button" aria-label="Generate todo list" title="Generate todo list from current input">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><rect x="1.5" y="2.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6.5l1.5 1.5 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 9.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              Todo
+            </button>
+            <span class="composer-toolbar__spacer"></span>
+            <span class="composer-toolbar__status" id="composer-status" aria-live="polite"></span>
+          </div>
+          <div class="input-bar__wrapper">
+            <textarea class="input-bar__textarea" id="message-input" placeholder="Reply to Sage..." rows="1" aria-label="Message"></textarea>
+            <div class="input-bar__actions">
+              <button class="icon-btn" id="attach-btn" aria-label="Attach" style="width:28px;height:28px;color:var(--meta)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M15 9l-5.3 5.3a3.5 3.5 0 01-5-5L10.7 3.3a2.3 2.3 0 013.3 3.3L9 11.6a1.2 1.2 0 01-1.6-1.6L12.7 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <button class="input-bar__stop" id="stop-btn" aria-label="Stop generating" style="display:none"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="4" y="4" width="10" height="10" rx="2" fill="currentColor"/></svg></button>
+              <button class="input-bar__send" id="send-btn" aria-label="Send"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 9l12-6-5 12v-6H3z" fill="currentColor"/></svg></button>
+            </div>
+          </div>
+          <div class="composer-error" id="composer-error" role="status" aria-live="polite" hidden></div>
+          <div class="composer-toast" id="composer-toast" role="status" aria-live="polite" hidden></div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="diagram-panel closed" id="diagramPanel" aria-label="Artifacts and support">
+      <div class="diagram-panel__header">
+        <div class="diagram-panel__title">
+          <span>Artifacts</span>
+          <span class="diagram-panel__count" id="artifacts-count">0</span>
+        </div>
+        <button class="icon-btn" id="closeDiagram" aria-label="Close artifacts" style="width:28px;height:28px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="diagram-panel__body" id="diagramBody">
+        <div class="diagram-panel__empty">No artifacts yet. Use the composer to generate one.</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<input type="file" id="file-input" hidden multiple accept=".pdf,.docx,.pptx,.md,.txt,.tex">
+<div class="modal" id="upload-modal" aria-hidden="true">
+  <div class="modal_backdrop" id="upload-backdrop"></div>
+  <div class="modal_dialog" role="dialog" aria-modal="true" aria-label="Upload files">
+    <div class="modal_head">
+      <div class="modal_title">Upload files</div>
+      <button class="icon-btn" id="upload-close" aria-label="Close upload" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+    </div>
+    <p class="modal_hint">PDF, DOCX, PPTX, MD, TEX, TXT. Drag and drop or click to select. Multiple files allowed.</p>
+    <div class="upload_zone" id="upload-zone" role="button" tabindex="0" aria-label="Upload drop zone">
+      <div class="upload_zone_title">Drag and drop files here</div>
+      <div class="upload_zone_hint">or click to browse — PDF, DOCX, PPTX, MD, TEX, TXT</div>
+    </div>
+    <div class="upload_list" id="upload-list" aria-live="polite"></div>
+    <div class="modal_actions">
+      <button class="btn btn_ghost" id="upload-cancel" type="button">Cancel</button>
+      <button class="btn btn_primary" id="upload-submit" type="button" disabled>Upload</button>
+    </div>
+    <div id="upload-status" class="modal_hint" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const ARTIFACT_KIND = { DIAGRAM: 'mermaid', QUIZ: 'quiz', TODO: 'todo' };
+const DIAGRAM_INTENT = /\b(diagram|flowchart|draw|visualize|visualise|graph|illustrate|schema|architecture|explain\s+with\s+a\s+diagram|show\s+as\s+a\s+diagram|show\s+me\s+a\s+diagram)\b/i;
+const ARTIFACT_LOCAL_PREFIX = 'sage_artifact_';
+const TOOL_STATUS = { web_search: 'searching the web…', generate_mermaid: 'generating mermaid…', generate_quiz: 'generating quiz…', generate_todo: 'generating todo list…', generate_study_plan: 'generating study plan…', record_step_actions: 'recording next steps…' };
+let sessionId = new URLSearchParams(window.location.search).get('session');
+let sessionGoal = '';
+let streaming = false;
+let streamCtrl = null;
+let artifacts = [];
+let artifactCounter = 0;
+let pendingDiagramAuto = false;
+let last_math_typeset = 0;
+let pending_probe_reply = null;
+
+function client_msg_id(){
+  const web_crypto=globalThis.crypto;
+  const uuid=globalThis.crypto?.randomUUID?.();
+  if(uuid)return uuid;
+  const bytes=new Uint8Array(16);
+  if(web_crypto?.getRandomValues){
+    try{web_crypto.getRandomValues(bytes)}catch(e){}
+  }
+  const now=Date.now();
+  for(let i=0;i<bytes.length;i++)bytes[i]=((Math.random()*256)|0)^((now>>>((i%4)*8))&255);
+  bytes[6]=(bytes[6]&15)|64;
+  bytes[8]=(bytes[8]&63)|128;
+  return [...bytes].map((byte,index)=>`${byte.toString(16).padStart(2,'0')}${[3,5,7,9].includes(index)?'-':''}`).join('').slice(0,36);
+}
+
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+const box = document.getElementById('messages');
+const chatEl = document.getElementById('chat');
+const diagramPanel = document.getElementById('diagramPanel');
+const diagramBody = document.getElementById('diagramBody');
+const artifactsCount = document.getElementById('artifacts-count');
+const input = document.getElementById('message-input');
+const sendBtn = document.getElementById('send-btn');
+const stopBtn = document.getElementById('stop-btn');
+const composerError = document.getElementById('composer-error');
+const composerStatus = document.getElementById('composer-status');
+
+const sidebar = document.getElementById('sidebar');
+const backdrop = document.getElementById('sidebar-backdrop');
+const menu_btn = document.getElementById('menu-btn');
+const mobile_query = window.matchMedia('(max-width: 1023px)');
+const reduced_motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+function reconcile_sidebar() {
+  try{
+    if (!sidebar || !backdrop || !menu_btn) return;
+    if (mobile_query.matches) {
+      sidebar.classList.add('collapsed');
+      backdrop.classList.remove('open');
+    } else {
+      sidebar.classList.remove('collapsed');
+      backdrop.classList.remove('open');
+    }
+    menu_btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')));
+  }catch(e){}
+}
+function close_sidebar() {
+  try{
+    sidebar?.classList.add('collapsed');
+    backdrop?.classList.remove('open');
+    menu_btn?.setAttribute('aria-expanded', 'false');
+  }catch(e){}
+}
+function toggleSidebar() {
+  try{
+    let open;
+    if (mobile_query.matches) {
+      open = sidebar.classList.toggle('collapsed') === false;
+      backdrop.classList.toggle('open', open);
+      if (open) closeArtifactsRail();
+    } else {
+      open = sidebar.classList.toggle('collapsed') === false;
+    }
+    menu_btn.setAttribute('aria-expanded', String(open));
+  }catch(e){}
+}
+try{ reconcile_sidebar(); }catch(e){}
+mobile_query.addEventListener('change', reconcile_sidebar);
+window.addEventListener('resize', reconcile_sidebar);
+menu_btn?.addEventListener('click', toggleSidebar);
+backdrop?.addEventListener('click', close_sidebar);
+document.addEventListener('keydown', event => { if (event.key === 'Escape') { close_sidebar(); closeArtifactsRail(); } });
+document.querySelectorAll('.sidebar__header').forEach(b => b.addEventListener('click', () => { const sec=b.closest('.sidebar__section'); if(!sec) return; const open = sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open)); }));
+document.getElementById('closeDiagram')?.addEventListener('click', () => { closeArtifactsRail(); });
+document.getElementById('closeSidebar')?.addEventListener('click', close_sidebar);
+
+function sync_nav_workspace() {
+  const link = document.getElementById('nav-workspace');
+  if (link) link.href = `sage-workspace.html${sessionId ? `?session=${encodeURIComponent(sessionId)}` : ''}`;
+}
+
+function renderMd(t) { return marked.parse(t, { breaks: true, gfm: true }); }
+function sanitize_html(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const allowed_tags = new Set(['A', 'ABBR', 'B', 'BLOCKQUOTE', 'BR', 'CODE', 'DEL', 'EM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'I', 'IMG', 'KBD', 'LI', 'OL', 'P', 'PRE', 'S', 'STRONG', 'SUB', 'SUP', 'TABLE', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'UL']);
+  [...template.content.querySelectorAll('*')].forEach(node => {
+    if (!allowed_tags.has(node.tagName)) { node.replaceWith(document.createTextNode(node.textContent || '')); return; }
+    [...node.attributes].forEach(attribute => {
+      const name = attribute.name.toLowerCase();
+      const value = attribute.value.trim().toLowerCase();
+      const allowed_attribute = name === 'alt' || name === 'class' || name === 'height' || name === 'href' || name === 'rel' || name === 'target' || name === 'title' || name === 'width' || name === 'src';
+      if (!allowed_attribute || name.startsWith('on') || name === 'style' || ((name === 'href' || name === 'src') && (value.startsWith('javascript:') || value.startsWith('data:')))) node.removeAttribute(attribute.name);
+    });
+  });
+  return template.innerHTML;
+}
+function render_math(force) {
+  if (!(window.MathJax && MathJax.typesetPromise)) return;
+  const now = Date.now();
+  if (!force && now - last_math_typeset < 400) return;
+  last_math_typeset = now;
+  MathJax.typesetPromise([box]).catch(() => {});
+}
+function renderChatMermaid(root) {
+  const targets = (root || box).querySelectorAll('pre > code.language-mermaid');
+  if (!targets.length) return;
+  if (!window.mermaid || !window.mermaid.run) {
+    targets.forEach(code => {
+      const fallback = document.createElement('div');
+      fallback.className = 'artifact-card__diagram-error';
+      fallback.textContent = 'Diagrams are unavailable while the renderer is offline. Ask Sage to describe it in text.';
+      code.parentElement.replaceWith(fallback);
+    });
+    return;
+  }
+  const nodes = [];
+  targets.forEach(code => {
+    const pre = code.parentElement;
+    const wrap = document.createElement('div');
+    wrap.className = 'mermaid';
+    wrap.textContent = code.textContent || '';
+    pre.replaceWith(wrap);
+    nodes.push(wrap);
+  });
+  window.mermaid.run({ nodes }).catch(() => {});
+}
+function wrapWords(container){
+  try{
+    if(!container||reduced_motion.matches)return;
+    if(container.dataset.wordWrapped==='1')return;
+    let word_idx=0;
+    function walk(node){
+      try{
+        if(node.nodeType===1){
+          const tag=node.tagName;
+          if(tag==='PRE'||tag==='CODE'||tag==='SCRIPT'||tag==='STYLE')return;
+          if(node.classList&&node.classList.contains('word'))return;
+          const children=Array.from(node.childNodes);
+          children.forEach(walk);
+        }else if(node.nodeType===3){
+          const text=node.textContent;
+          if(!text||!text.trim())return;
+          if(text.includes('$')||text.includes('\\(')||text.includes('\\['))return;
+          const parent=node.parentElement;
+          if(parent&&parent.closest&&parent.closest('pre,code'))return;
+          const tokens=text.split(/(\s+)/);
+          if(tokens.length===1&&tokens[0]==='')return;
+          const frag=document.createDocumentFragment();
+          tokens.forEach(tok=>{
+            if(tok==='')return;
+            if(/^\s+$/.test(tok)){
+              frag.appendChild(document.createTextNode(tok));
+            }else{
+              const span=document.createElement('span');
+              span.className='word';
+              span.textContent=tok;
+              span.style.animationDelay=Math.min(word_idx*32,2000)+'ms';
+              word_idx++;
+              frag.appendChild(span);
+            }
+          });
+          if(frag.childNodes.length)node.replaceWith(frag);
+        }
+      }catch(e){}
+    }
+    walk(container);
+    container.dataset.wordWrapped='1';
+    const words=container.querySelectorAll('.word');
+    if(words.length){
+      const max_delay=Math.min((words.length-1)*32,2000)+400;
+      setTimeout(()=>{
+        words.forEach(w=>{
+          if(getComputedStyle(w).opacity==='0'){
+            w.style.opacity='1';
+            w.style.transform='none';
+          }
+        });
+      },max_delay+50);
+    }
+  }catch(e){}
+}
+function animateWords(element){try{wrapWords(element)}catch(e){}}
+function wrapQuizWords(card){
+  try{
+    if(!card||reduced_motion.matches)return;
+    card.querySelectorAll('.artifact-card__quiz-qtext,.artifact-card__quiz-question').forEach(qtext=>{
+      if(qtext.dataset.wordWrapped==='1')return;
+      if(qtext.querySelector('.word'))return;
+      wrapWords(qtext);
+    });
+  }catch(e){}
+}
+
+function addMessage(role, content, options = {}) {
+  const d = document.createElement('div');
+  d.className = `msg msg--${role}`;
+  let html = `<div class="msg__role">${role === 'user' ? 'You' : 'Sage'}</div><div class="msg__bubble">`;
+  if (options.attachments) {
+    html += `<div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-3)">${options.attachments.map(a => {
+      const ext = a.split('.').pop();
+      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface-raised);border-radius:var(--r);font-size:12px"><span style="width:16px;height:16px;border-radius:var(--r);display:grid;place-items:center;font-size:8px;font-weight:700;color:#fff;background:${ext === 'pdf' ? 'var(--love)' : ext === 'tex' ? 'var(--pine)' : '#5a8a4a'}">${esc(ext.toUpperCase())}</span>${esc(a)}</div>`;
+    }).join('')}</div>`;
+  }
+  if (options.thinking) {
+     html += `<div style="margin:var(--space-2) 0;padding:var(--space-3) var(--space-4);background:var(--surface);border-radius:var(--r);font-size:13px;color:var(--meta);font-style:italic;line-height:1.6"><strong style="color:var(--muted);font-weight:500;font-style:normal">Thinking\u2026</strong> ${esc(options.thinking)}</div>`;
+  }
+   html += `${role === 'assistant' ? sanitize_html(renderMd(content)) : esc(content)}</div>`;
+   d.innerHTML = html;
+  box.appendChild(d);
+  if (role === 'assistant') { render_math(true); renderChatMermaid(d); const bubble=d.querySelector('.msg__bubble'); if(bubble) wrapWords(bubble); }
+  box.scrollTop = box.scrollHeight;
+  return d;
+}
+
+function addTypingIndicator() {
+  removeTypingIndicator();
+  const d = document.createElement('div');
+  d.className = 'msg msg--assistant';
+  d.id = 'typing-indicator';
+  d.innerHTML = `<div class="msg__role">Sage</div><div class="msg__bubble"><div class="typing-indicator"><div class="typing-indicator__bar"></div></div></div>`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  return d;
+}
+function removeTypingIndicator() { const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
+
+function addStreamingMessage() {
+  const d = document.createElement('div');
+  d.className = 'msg msg--assistant';
+  d.id = 'streaming-msg';
+  d.innerHTML = `<div class="msg__role">Sage</div><div class="msg__bubble" id="streaming-bubble"></div>`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  return document.getElementById('streaming-bubble');
+}
+
+function openArtifactsRail() { close_sidebar(); diagramPanel.classList.remove('closed'); }
+function closeArtifactsRail() { diagramPanel.classList.add('closed'); }
+function openPlanSection() {
+  const section = document.getElementById('plan-section');
+  const toggle = document.getElementById('plan-toggle');
+  section.classList.add('open');
+  toggle.setAttribute('aria-expanded', 'true');
+}
+function focusPlanArtifact(card) {
+  openPlanSection();
+  if (mobile_query.matches && sidebar.classList.contains('collapsed')) toggleSidebar();
+  window.requestAnimationFrame(() => {
+    card.scrollIntoView({ block: 'nearest', behavior: reduced_motion.matches ? 'auto' : 'smooth' });
+    card.setAttribute('tabindex', '-1');
+    card.focus({ preventScroll: true });
+  });
+}
+function show_card(card) { setTimeout(() => { card.classList.add('visible'); wrapQuizWords(card); }, 60); }
+
+function updateArtifactsCount() {
+  const supportArtifacts = artifacts.filter(artifact => artifact.kind !== ARTIFACT_KIND.QUIZ && artifact.kind !== ARTIFACT_KIND.TODO);
+  artifactsCount.textContent = String(supportArtifacts.length);
+  if (supportArtifacts.length === 0 && !diagramBody.querySelector('.artifact-card')) {
+    diagramBody.innerHTML = '<div class="diagram-panel__empty">No artifacts yet. Use the composer to generate one.</div>';
+  }
+}
+
+function formatMarker(n) {
+  return `ARTIFACT \u00b7 ${String(n).padStart(2, '0')}`;
+}
+
+function todoStorageKey(artifactId) {
+  return `${ARTIFACT_LOCAL_PREFIX}todo_${artifactId}`;
+}
+function loadTodoState(artifactId) {
+  try {
+    const raw = localStorage.getItem(todoStorageKey(artifactId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (e) { return {}; }
+}
+function saveTodoState(artifactId, state) {
+  try { localStorage.setItem(todoStorageKey(artifactId), JSON.stringify(state)); } catch (e) {}
+}
+
+function buildMermaidElement(source) {
+  const inner = document.createElement('div');
+  inner.className = 'mermaid';
+  inner.textContent = source;
+  return inner;
+}
+
+async function renderMermaidIn(container, source) {
+  const inner = buildMermaidElement(source);
+  container.innerHTML = '';
+  container.appendChild(inner);
+  try {
+    if (window.mermaid && window.mermaid.run) {
+      await window.mermaid.run({ nodes: [inner] });
+      return true;
+    }
+     container.innerHTML = '<div class="artifact-card__diagram-error">Diagrams are unavailable while the renderer is offline. Ask Sage to describe it in text.</div>';
+     return false;
+  } catch (e) {
+    container.innerHTML = '<div class="artifact-card__diagram-error">The diagram could not be rendered. Ask Sage to regenerate.</div>';
+    return false;
+  }
+}
+
+function buildDiagramCard(envelope, artifact) {
+  const card = document.createElement('article');
+  card.className = 'artifact-card';
+  card.dataset.kind = 'mermaid';
+  card.setAttribute('aria-label', envelope.content.title);
+  const marker = document.createElement('span');
+  marker.className = 'artifact-card__marker';
+  marker.textContent = formatMarker(artifact.number);
+  const title = document.createElement('h3');
+  title.className = 'artifact-card__title';
+  title.textContent = envelope.content.title;
+  const badge = document.createElement('span');
+  badge.className = 'artifact-card__badge';
+  badge.textContent = envelope.validation && envelope.validation.status === 'validated' ? 'validated' : 'rendered';
+  const header = document.createElement('header');
+  header.className = 'artifact-card__header';
+  header.appendChild(marker);
+  header.appendChild(title);
+  header.appendChild(badge);
+  const content = document.createElement('div');
+  content.className = 'artifact-card__content';
+  const type = document.createElement('span');
+  type.className = 'artifact-card__type';
+  type.textContent = envelope.content.diagram_type || 'diagram';
+  const diagramWrap = document.createElement('div');
+  diagramWrap.className = 'artifact-card__diagram';
+  content.appendChild(type);
+  content.appendChild(diagramWrap);
+  const toggle = document.createElement('button');
+  toggle.className = 'artifact-card__source-toggle';
+  toggle.type = 'button';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', `source-${artifact.id}`);
+  toggle.innerHTML = '<svg class="artifact-card__source-toggle-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M3.5 2L7 5L3.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> View source';
+  const sourceEl = document.createElement('pre');
+  sourceEl.className = 'artifact-card__source';
+  sourceEl.id = `source-${artifact.id}`;
+  sourceEl.textContent = envelope.content.source;
+  toggle.onclick = () => {
+    const open = sourceEl.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', String(open));
+  };
+  card.appendChild(header);
+  card.appendChild(content);
+  card.appendChild(toggle);
+  card.appendChild(sourceEl);
+  renderMermaidIn(diagramWrap, envelope.content.source);
+  return card;
+}
+
+function buildTodoCard(envelope, artifact) {
+  const card = document.createElement('article');
+  card.className = 'artifact-card';
+  card.dataset.kind = 'todo';
+  card.setAttribute('aria-label', envelope.content.title);
+  const marker = document.createElement('span');
+  marker.className = 'artifact-card__marker';
+  marker.textContent = formatMarker(artifact.number);
+  const title = document.createElement('h3');
+  title.className = 'artifact-card__title';
+  title.textContent = envelope.content.title;
+  const badge = document.createElement('span');
+  badge.className = 'artifact-card__badge';
+  badge.textContent = 'validated';
+  const header = document.createElement('header');
+  header.className = 'artifact-card__header';
+  header.appendChild(marker);
+  header.appendChild(title);
+  header.appendChild(badge);
+  const list = document.createElement('ul');
+  list.className = 'artifact-card__todo-list';
+  list.setAttribute('role', 'list');
+  const state = loadTodoState(artifact.id);
+  envelope.content.items.forEach(item => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.className = 'artifact-card__todo-item';
+    btn.type = 'button';
+    const initial = state[item.id] !== undefined ? state[item.id] : item.done;
+    btn.dataset.done = String(initial);
+    btn.setAttribute('aria-pressed', String(initial));
+    btn.setAttribute('aria-label', `${item.text} - toggle done`);
+    const check = document.createElement('span');
+    check.className = 'artifact-card__todo-check';
+    check.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('span');
+    text.className = 'artifact-card__todo-text';
+    text.textContent = item.text;
+    btn.appendChild(check);
+    btn.appendChild(text);
+    btn.onclick = () => {
+      const next = btn.dataset.done !== 'true';
+      btn.dataset.done = String(next);
+      btn.setAttribute('aria-pressed', String(next));
+      state[item.id] = next;
+      saveTodoState(artifact.id, state);
+    };
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+  card.appendChild(header);
+  card.appendChild(list);
+  return card;
+}
+
+function buildQuizCard(envelope, artifact) {
+  const card = document.createElement('article');
+  card.className = 'artifact-card';
+  card.dataset.kind = 'quiz';
+  card.setAttribute('aria-label', 'Quiz');
+  const marker = document.createElement('span');
+  marker.className = 'artifact-card__marker';
+  marker.textContent = formatMarker(artifact.number);
+  const title = document.createElement('h3');
+  title.className = 'artifact-card__title';
+  title.textContent = 'Quiz';
+  const badge = document.createElement('span');
+  badge.className = 'artifact-card__badge';
+  badge.textContent = 'validated';
+  const header = document.createElement('header');
+  header.className = 'artifact-card__header';
+  header.appendChild(marker);
+  header.appendChild(title);
+  header.appendChild(badge);
+  const content = document.createElement('div');
+  content.className = 'artifact-card__content';
+  envelope.content.questions.forEach((q, qi) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'artifact-card__quiz-question';
+    const qtext = document.createElement('div');
+    qtext.className = 'artifact-card__quiz-qtext';
+    qtext.textContent = `${qi + 1}. ${q.question}`;
+    qtext.addEventListener('animationend', () => qtext.classList.add('typed'), { once: true });
+    const options = document.createElement('div');
+    options.className = 'artifact-card__quiz-options';
+    options.setAttribute('role', 'radiogroup');
+    options.setAttribute('aria-label', `Question ${qi + 1}`);
+    const refs = [];
+    q.options.forEach((opt, oi) => {
+      const optBtn = document.createElement('button');
+      optBtn.className = 'artifact-card__quiz-option';
+      optBtn.type = 'button';
+      optBtn.setAttribute('role', 'radio');
+      optBtn.setAttribute('aria-checked', 'false');
+      const radio = document.createElement('span');
+      radio.className = 'artifact-card__quiz-radio';
+      radio.setAttribute('aria-hidden', 'true');
+      const text = document.createElement('span');
+      text.textContent = opt;
+      optBtn.appendChild(radio);
+      optBtn.appendChild(text);
+      optBtn.dataset.index = String(oi);
+      refs.push(optBtn);
+      options.appendChild(optBtn);
+    });
+    const explain = document.createElement('div');
+    explain.className = 'artifact-card__quiz-explain';
+    explain.hidden = true;
+    const actions = document.createElement('div');
+    actions.className = 'artifact-card__quiz-actions';
+    const revealBtn = document.createElement('button');
+    revealBtn.className = 'artifact-card__quiz-btn';
+    revealBtn.type = 'button';
+    revealBtn.textContent = 'Reveal answer';
+    let revealed = false;
+    let selected = null;
+    const reveal = () => {
+      revealed = true;
+      refs.forEach((btn, idx) => {
+        btn.setAttribute('aria-checked', String(idx === selected));
+        btn.setAttribute('aria-disabled', 'true');
+        if (idx === q.correct_index) {
+          btn.classList.add(selected === idx ? 'correct' : 'reveal-correct');
+        } else if (idx === selected) {
+          btn.classList.add('incorrect');
+        }
+      });
+      card.classList.add('revealed');
+      if (selected === q.correct_index) {
+        explain.textContent = q.explanation ? `Correct. ${q.explanation}` : 'Correct.';
+      } else {
+        explain.textContent = q.explanation ? `Not quite. ${q.explanation}` : 'Not quite. The marked option is correct.';
+      }
+      explain.hidden = false;
+      revealBtn.textContent = 'Answer revealed';
+      revealBtn.disabled = true;
+    };
+    refs.forEach(btn => {
+      btn.onclick = () => {
+        if (revealed) return;
+        selected = Number(btn.dataset.index);
+        refs.forEach((b, idx) => {
+          b.classList.toggle('selected', idx === selected);
+          b.setAttribute('aria-checked', String(idx === selected));
+        });
+      };
+    });
+    revealBtn.onclick = reveal;
+    actions.appendChild(revealBtn);
+    wrap.appendChild(qtext);
+    wrap.appendChild(options);
+    wrap.appendChild(actions);
+    wrap.appendChild(explain);
+    content.appendChild(wrap);
+  });
+  card.appendChild(header);
+  card.appendChild(content);
+  return card;
+}
+
+function buildErrorCard(kind, title, message) {
+  const card = document.createElement('article');
+  card.className = 'artifact-card';
+  card.dataset.kind = kind;
+  card.setAttribute('aria-label', title);
+  const marker = document.createElement('span');
+  marker.className = 'artifact-card__marker';
+  marker.textContent = formatMarker(artifactCounter);
+  const t = document.createElement('h3');
+  t.className = 'artifact-card__title';
+  t.textContent = title;
+  const badge = document.createElement('span');
+  badge.className = 'artifact-card__badge';
+  badge.textContent = 'unavailable';
+  const header = document.createElement('header');
+  header.className = 'artifact-card__header';
+  header.appendChild(marker);
+  header.appendChild(t);
+  header.appendChild(badge);
+  const fallback = document.createElement('div');
+  fallback.className = 'artifact-card__fallback';
+  fallback.textContent = message;
+  card.appendChild(header);
+  card.appendChild(fallback);
+  return card;
+}
+
+function appendArtifact(envelope) {
+  const kind = envelope.kind;
+  const number = ++artifactCounter;
+  const artifact = { id: envelope.output_id, kind, number, element: null };
+  let element = null;
+  if (kind === ARTIFACT_KIND.DIAGRAM) {
+    element = buildDiagramCard(envelope, artifact);
+  } else if (kind === ARTIFACT_KIND.TODO) {
+    element = buildTodoCard(envelope, artifact);
+  } else if (kind === ARTIFACT_KIND.QUIZ) {
+    element = buildQuizCard(envelope, artifact);
+  } else {
+    element = buildErrorCard('chat', 'Unsupported artifact', 'This artifact kind is not displayed.');
+  }
+  artifact.element = element;
+  artifacts.push(artifact);
+  const isPlanArtifact = kind === ARTIFACT_KIND.QUIZ || kind === ARTIFACT_KIND.TODO;
+  const target = isPlanArtifact ? document.getElementById('plan-artifacts') : diagramBody;
+  if (target.querySelector('.diagram-panel__empty')) target.innerHTML = '';
+  target.appendChild(element);
+  show_card(element);
+  updateArtifactsCount();
+  if (isPlanArtifact) focusPlanArtifact(element);
+  else openArtifactsRail();
+  return artifact;
+}
+
+function appendErrorArtifact(kind, title, message) {
+  artifactCounter += 1;
+  const element = buildErrorCard(kind, title, message);
+  artifacts.push({ id: `error-${artifactCounter}`, kind, number: artifactCounter, element });
+  if (diagramBody.querySelector('.diagram-panel__empty')) diagramBody.innerHTML = '';
+  diagramBody.appendChild(element);
+  show_card(element);
+  updateArtifactsCount();
+  openArtifactsRail();
+}
+
+function appendPlanDiagramCard(plan_diagram) {
+  const source = plan_diagram && plan_diagram.source;
+  if (!source) return;
+  const number = ++artifactCounter;
+  const envelope = {
+    kind: ARTIFACT_KIND.DIAGRAM,
+    output_id: `plan-diagram-${number}`,
+    content: {
+      title: sessionGoal || 'Lesson plan',
+      source,
+      diagram_type: plan_diagram.diagram_type || 'flowchart'
+    },
+    validation: { status: 'validated' }
+  };
+  const artifact = { id: envelope.output_id, kind: envelope.kind, number, element: null };
+  const element = buildDiagramCard(envelope, artifact);
+  const marker = element.querySelector('.artifact-card__marker');
+  if (marker) marker.textContent = 'PLAN \u00b7 GRAPH';
+  artifact.element = element;
+  artifacts.push(artifact);
+  if (diagramBody.querySelector('.diagram-panel__empty')) diagramBody.innerHTML = '';
+  diagramBody.appendChild(element);
+  show_card(element);
+  updateArtifactsCount();
+  openArtifactsRail();
+}
+
+function appendIllustratedCard(envelope, parentMessage) {
+  if (!parentMessage) return;
+  if (parentMessage.querySelector('.illustrated-card')) return;
+  const card = document.createElement('div');
+  card.className = 'illustrated-card';
+  const label = document.createElement('div');
+  label.className = 'illustrated-card__label';
+  label.textContent = 'Sage illustrated this';
+  const wrap = document.createElement('div');
+  wrap.className = 'illustrated-card__diagram';
+  card.appendChild(label);
+  card.appendChild(wrap);
+  parentMessage.appendChild(card);
+  renderMermaidIn(wrap, envelope.content.source);
+}
+
+function setComposerError(message) {
+  if (!message) {
+    composerError.hidden = true;
+    composerError.textContent = '';
+    return;
+  }
+  composerError.hidden = false;
+  composerError.textContent = message;
+}
+function setComposerStatus(message) {
+  composerStatus.textContent = message;
+}
+function clearComposerError() { setComposerError(''); }
+
+function tool_status_text(ev) {
+  const authored = typeof ev.status === 'string' ? ev.status.trim() : '';
+  if (authored) return authored;
+  const name = String(ev.tool || ev.name || '').toLowerCase();
+  if (TOOL_STATUS[name]) return TOOL_STATUS[name];
+  return name ? `running ${name.replace(/_/g, ' ')}\u2026` : 'working\u2026';
+}
+
+function label_for_chunk(chunk_id, chunks) {
+  const match = (chunks || []).find(c => c && (c.id === chunk_id || c.chunk_id === chunk_id));
+  if (!match) return `chunk ${String(chunk_id ?? '').slice(0, 8)}`;
+  const label = match.display_name || match.title || match.file_name || match.document || match.source || (typeof match.file === 'string' ? match.file : null);
+  return label || `chunk ${String(chunk_id ?? '').slice(0, 8)}`;
+}
+
+function append_chips_row(message_el) {
+  const row = document.createElement('div');
+  row.className = 'cite-row';
+  message_el.appendChild(row);
+  return row;
+}
+
+function append_citation_chips(message_el, ids, chunks) {
+  if (!message_el || !ids.length) return;
+  const row = append_chips_row(message_el);
+  ids.forEach(id => {
+    const chip = document.createElement('span');
+    chip.className = 'cite';
+    chip.textContent = label_for_chunk(id, chunks);
+    row.appendChild(chip);
+  });
+}
+
+function append_web_source_chips(message_el, sources) {
+  if (!message_el || !(sources || []).length) return;
+  const row = append_chips_row(message_el);
+  sources.forEach(s => {
+    if (!s || !s.url) return;
+    const a = document.createElement('a');
+    a.className = 'cite';
+    a.href = s.url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = s.title || s.url;
+    row.appendChild(a);
+  });
+  if (!row.children.length) row.remove();
+}
+
+function append_action_chips(message_el, actions) {
+  if (!message_el || !(actions || []).length) return;
+  const row = append_chips_row(message_el);
+  actions.forEach(action => {
+    if (!action) return;
+    const btn = document.createElement('button');
+    btn.className = 'cite';
+    btn.type = 'button';
+    const label = action.label || action.id || 'continue';
+    btn.textContent = label;
+    btn.setAttribute('aria-label', String(label));
+    const action_id = String(action.id || '').toLowerCase();
+    btn.onclick = () => {
+      if (action_id.includes('ask_question')) { input.focus(); return; }
+      if (action.prompt) { input.value = action.prompt; sendMessage(); }
+    };
+    row.appendChild(btn);
+  });
+  if (!row.children.length) row.remove();
+}
+
+function build_probe_card(question, ordinal, marker_text, on_select) {
+  const card = document.createElement('article');
+  card.className = 'artifact-card';
+  card.dataset.kind = 'quiz';
+  card.dataset.ordinal = String(ordinal);
+  card.dataset.selected = '';
+  card.setAttribute('aria-label', `Question ${ordinal}`);
+  const marker = document.createElement('span');
+  marker.className = 'artifact-card__marker';
+  marker.textContent = marker_text;
+  const title = document.createElement('h3');
+  title.className = 'artifact-card__title';
+  title.textContent = `Question ${ordinal}`;
+  const header = document.createElement('header');
+  header.className = 'artifact-card__header';
+  header.appendChild(marker);
+  header.appendChild(title);
+  const content = document.createElement('div');
+  content.className = 'artifact-card__content';
+  const wrap = document.createElement('div');
+  wrap.className = 'artifact-card__quiz-question';
+  const qtext = document.createElement('div');
+  qtext.className = 'artifact-card__quiz-qtext';
+  qtext.textContent = String(question.question || '');
+  qtext.addEventListener('animationend', () => qtext.classList.add('typed'), { once: true });
+  const options_el = document.createElement('div');
+  options_el.className = 'artifact-card__quiz-options';
+  options_el.setAttribute('role', 'radiogroup');
+  options_el.setAttribute('aria-label', `Question ${ordinal}`);
+  const option_buttons = [];
+  (Array.isArray(question.options) ? question.options : []).forEach((opt, oi) => {
+    const opt_btn = document.createElement('button');
+    opt_btn.type = 'button';
+    opt_btn.className = 'artifact-card__quiz-option';
+    opt_btn.setAttribute('role', 'radio');
+    opt_btn.setAttribute('aria-checked', 'false');
+    const radio = document.createElement('span');
+    radio.className = 'artifact-card__quiz-radio';
+    radio.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.textContent = `${String.fromCharCode(65 + oi)}) ${opt}`;
+    opt_btn.appendChild(radio);
+    opt_btn.appendChild(label);
+    opt_btn.onclick = () => {
+      card.dataset.selected = String(oi);
+      option_buttons.forEach((btn, idx) => {
+        btn.classList.toggle('selected', idx === oi);
+        btn.setAttribute('aria-checked', String(idx === oi));
+      });
+      on_select();
+    };
+    option_buttons.push(opt_btn);
+    options_el.appendChild(opt_btn);
+  });
+  wrap.appendChild(qtext);
+  wrap.appendChild(options_el);
+  content.appendChild(wrap);
+  card.appendChild(header);
+  card.appendChild(content);
+  return card;
+}
+
+function start_probe_batch(items, kind_label) {
+  if (!Array.isArray(items) || !items.length) return;
+  const entries = [];
+  let send_btn = null;
+  const submit = () => {
+    if (!send_btn || send_btn.disabled) return;
+    const parts = [];
+    entries.forEach(entry => {
+      const sel = entry.card.dataset.selected;
+      if (sel === '') return;
+      parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))}`);
+    });
+    if (!parts.length) return;
+    entries.forEach(entry => entry.card.classList.add('sent'));
+    send_btn.disabled = true;
+    queue_probe_reply(parts.join('; '));
+  };
+  const update_state = () => {
+    if (!send_btn) return;
+    const open = entries.filter(entry => !entry.card.classList.contains('sent'));
+    const answered = open.filter(entry => entry.card.dataset.selected !== '');
+    send_btn.disabled = answered.length === 0;
+    if (open.length > 0 && answered.length === open.length) submit();
+  };
+  const wrap = document.createElement('div');
+  wrap.className = 'probe-wrap';
+  items.forEach((question, qi) => {
+    const marker_text = kind_label === 'check'
+      ? 'CHECK'
+      : `PROBE \u00b7 ${String(qi + 1).padStart(2, '0')}`;
+    const card = build_probe_card(question, qi + 1, marker_text, update_state);
+    entries.push({ card });
+    wrap.appendChild(card);
+  });
+  const actions = document.createElement('div');
+  actions.className = 'probe-actions';
+  send_btn = document.createElement('button');
+  send_btn.type = 'button';
+  send_btn.className = 'probe-send';
+  send_btn.textContent = 'Send answers';
+  send_btn.disabled = true;
+  send_btn.onclick = submit;
+  actions.appendChild(send_btn);
+  wrap.appendChild(actions);
+  const anchor = document.getElementById('streaming-msg') || box.lastElementChild;
+  if (anchor && anchor.parentElement === box) anchor.after(wrap);
+  else box.appendChild(wrap);
+  entries.forEach(entry => show_card(entry.card));
+  box.scrollTop = box.scrollHeight;
+}
+
+function queue_probe_reply(text) {
+  if (streaming) { pending_probe_reply = text; return; }
+  input.value = text;
+  sendMessage();
+}
+
+function artifactErrorMessage(envelope, error_codes) {
+  if (error_codes.includes('mermaid_validator_unavailable')) {
+    return 'Diagram validation is offline. Try again, or ask Sage to describe it in text.';
+  }
+  if (error_codes.includes('mermaid_invalid')) {
+    return 'The model returned an invalid diagram - retrying...';
+  }
+  if (error_codes.includes('insufficient_context')) {
+    return 'Sage has no source material to draw from for this request.';
+  }
+  if (error_codes.includes('mermaid_unsafe_source')) {
+    return 'The diagram contained an unsupported directive. Ask Sage to describe it in text.';
+  }
+  return 'Sage could not generate that artifact. Please try again.';
+}
+
+async function requestArtifact(kind, prompt, count = 3, allowRetry = true) {
+  if (!sessionId) {
+    setComposerError('Select a session first.');
+    return null;
+  }
+  clearComposerError();
+  setComposerStatus(`generating ${kind}...`);
+  try {
+    const res = await fetch(`${API}/sessions/${sessionId}/outputs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ output_kind: kind, prompt, count }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = data && data.detail ? data.detail : {};
+      const codes = Array.isArray(detail.issue_codes) ? detail.issue_codes : [];
+      if (res.status === 422 && codes.includes('mermaid_invalid') && allowRetry) {
+        setComposerStatus('retrying...');
+        return await requestArtifact(kind, prompt, count, false);
+      }
+      const message = artifactErrorMessage({}, codes);
+      setComposerError(message);
+      if (kind === ARTIFACT_KIND.DIAGRAM) {
+        appendErrorArtifact(kind, 'Diagram unavailable', message);
+      }
+      setComposerStatus('');
+      return null;
+    }
+    setComposerStatus('');
+    return data;
+  } catch (e) {
+    setComposerError('Connection error. Please try again.');
+    setComposerStatus('');
+    return null;
+  }
+}
+
+function artifactContext() {
+  const text = input.value.trim();
+  if (text) return text;
+  if (sessionGoal) return sessionGoal;
+  return 'the current learning topic';
+}
+
+async function generateFromComposer(kind) {
+  const prompt = artifactContext();
+  const count = kind === ARTIFACT_KIND.QUIZ ? 5 : 3;
+  const envelope = await requestArtifact(kind, prompt, count);
+  if (envelope && envelope.kind === kind) {
+    appendArtifact(envelope);
+  }
+}
+
+document.getElementById('composer-diagram')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.DIAGRAM));
+document.getElementById('composer-quiz')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.QUIZ));
+document.getElementById('composer-todo')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.TODO));
+
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text || streaming || !sessionId) return;
+  input.value = '';
+  input.style.height = 'auto';
+
+  const first_turn = !box.querySelector('.msg');
+  addMessage('user', text);
+  addTypingIndicator();
+  let fullText = '';
+  let bubble = null;
+  let bubble_started = false;
+  let stream_done = false;
+  let was_aborted = false;
+  let done_error_message = null;
+  let done_actions = [];
+  let done_web_sources = [];
+  let meta_chunks = [];
+  let citation_ids = [];
+  streaming = true;
+  sendBtn.style.display = 'none';
+  if (stopBtn) stopBtn.style.display = 'grid';
+  document.getElementById('attach-btn').style.display = 'none';
+  pendingDiagramAuto = DIAGRAM_INTENT.test(text);
+
+  const ctrl = new AbortController();
+  streamCtrl = ctrl;
+
+  try {
+  const res = await fetch(`${API}/sessions/${sessionId}/turns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify({ message: text, client_msg_id: client_msg_id() }),
+      signal: ctrl.signal
+    });
+    if (!res.ok) throw new Error(`Stream failed: ${res.status}`);
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    const consume_line = line => {
+      if (!line.startsWith('data:')) return;
+      try {
+        const ev = JSON.parse(line.slice(5).trim());
+        if (ev.type === 'delta') {
+          if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
+          fullText += ev.delta || '';
+          bubble.innerHTML = sanitize_html(renderMd(fullText));
+          render_math(false);
+          box.scrollTop = box.scrollHeight;
+        } else if (ev.type === 'meta') {
+          meta_chunks = Array.isArray(ev.chunks) ? ev.chunks : [];
+          if (bubble) bubble.dataset.sources = String(meta_chunks.length);
+        } else if (ev.type === 'citation') {
+          const cid = ev.chunk_id !== undefined ? ev.chunk_id : ev.id;
+          if (cid !== undefined && cid !== null && !citation_ids.some(existing => existing === cid)) citation_ids.push(cid);
+        } else if (ev.type === 'tool_call') {
+          setComposerStatus(tool_status_text(ev));
+        } else if (ev.type === 'tool_result') {
+          setComposerStatus('');
+          if (ev.name === 'run_probe' && Array.isArray(ev.questions) && ev.questions.length) {
+            start_probe_batch(ev.questions, 'probe');
+          } else if (ev.name === 'advance_lesson' && ev.check_question && ev.check_question.question) {
+            start_probe_batch([ev.check_question], 'check');
+          } else if (ev.name === 'build_plan' && ev.plan_diagram && ev.plan_diagram.source) {
+            appendPlanDiagramCard(ev.plan_diagram);
+          }
+        } else if (ev.type === 'done') {
+          stream_done = true;
+          if (Array.isArray(ev.actions)) done_actions = ev.actions;
+          if (Array.isArray(ev.web_sources)) done_web_sources = ev.web_sources;
+        } else if (ev.type === 'error') {
+          stream_done = true;
+          done_error_message = ev.message || 'Generation failed';
+        }
+      } catch (_) {}
+    };
+    while (!stream_done) {
+      const { done, value } = await reader.read();
+      if (done) { buf += dec.decode(); break; }
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      lines.forEach(consume_line);
+    }
+    if (buf.trim()) consume_line(buf);
+  } catch (e) {
+    was_aborted = e.name === 'AbortError';
+    if (!was_aborted) {
+      removeTypingIndicator();
+      bubble = bubble_started ? bubble : addStreamingMessage();
+      bubble.innerHTML = `<div style="color:var(--love)">Connection error</div>`;
+    }
+  }
+
+  streaming = false;
+  streamCtrl = null;
+  sendBtn.style.display = '';
+  if (stopBtn) stopBtn.style.display = 'none';
+  document.getElementById('attach-btn').style.display = '';
+  setComposerStatus('');
+  removeTypingIndicator();
+  const streamingEl = document.getElementById('streaming-msg');
+  if (streamingEl) streamingEl.remove();
+  let assistant_msg = null;
+  if (fullText) {
+    assistant_msg = addMessage('assistant', fullText);
+  } else if (was_aborted) {
+  } else if (done_error_message) {
+    assistant_msg = addMessage('assistant', esc(`Error: ${done_error_message}`));
+  } else {
+    assistant_msg = addMessage('assistant', 'Sage could not produce a response. Please try again.');
+  }
+  if (assistant_msg) {
+    append_citation_chips(assistant_msg, citation_ids, meta_chunks);
+    append_web_source_chips(assistant_msg, done_web_sources);
+    append_action_chips(assistant_msg, done_actions);
+    render_math(true);
+    if (pendingDiagramAuto) {
+      const envelope = await requestArtifact(ARTIFACT_KIND.DIAGRAM, text, 3);
+      if (envelope && envelope.kind === ARTIFACT_KIND.DIAGRAM) {
+        appendIllustratedCard(envelope, assistant_msg);
+      }
+    }
+  }
+  if (pending_probe_reply) {
+    const reply = pending_probe_reply;
+    pending_probe_reply = null;
+    queue_probe_reply(reply);
+  }
+  if (sessionId && first_turn) { fetch(`${API}/sessions/${sessionId}/title`, { method: 'POST' }).then(loadSessionList_safe).catch(() => {}); }
+}
+
+sendBtn?.addEventListener('click', sendMessage);
+stopBtn?.addEventListener('click', () => {
+  if (!streamCtrl) return;
+  streamCtrl.abort();
+  if (sessionId) fetch(`${API}/sessions/${sessionId}/stop`, { method: 'POST' }).catch(() => {});
+});
+input?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+input?.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
+
+async function loadSession(id) {
+  try {
+    const res = await fetch(`${API}/sessions/${id}`);
+    const data = await res.json();
+    const sess = data.session || data;
+    const session_title = sess.title || sess.goal || 'Untitled';
+    sessionGoal = sess.goal || '';
+     document.getElementById('session-title').textContent = ` - ${session_title}`;
+     document.title = `Sage - ${session_title}`;
+    document.getElementById('phase-badge').textContent = sess.phase;
+    document.getElementById('phase-badge').dataset.phase = sess.phase;
+    if (data.messages) data.messages.forEach(m => addMessage(m.role, m.content));
+    if (data.selected_files) document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
+    if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+    loadSessionsList();
+  } catch (e) { console.error('Failed to load session:', e); }
+}
+
+async function loadSessionsList() {
+  try {
+    const res = await fetch(`${API}/sessions`);
+    const sessions = await res.json();
+    document.getElementById('sessions-list').innerHTML = sessions.map(s => `<div class="sidebar__item${s.id === sessionId ? ' active' : ''}" onclick="window.location.href='?session=${encodeURIComponent(s.id)}'" role="link" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='?session=${encodeURIComponent(s.id)}'}"><span class="sidebar__item-badge" data-phase="${esc(s.phase)}">${esc(s.phase)}</span><span class="sidebar__item-text">${esc(s.title || s.goal || 'Untitled')}</span></div>`).join('');
+  } catch (e) {}
+}
+function loadSessionList_safe() { return loadSessionsList(); }
+
+if (window.mermaid) window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', themeVariables: { primaryColor: '#383835', primaryTextColor: '#f0efe8', primaryBorderColor: '#c4a7e7', lineColor: '#7a7872', secondaryColor: '#2f2f2c', tertiaryColor: '#1a1a19', fontFamily: "'Newsreader', Georgia, serif" } });
+
+(function workspace_upload_fix(){
+  try{
+    const file_input = document.getElementById('file-input');
+    const upload_modal = document.getElementById('upload-modal');
+    const upload_backdrop = document.getElementById('upload-backdrop');
+    const upload_close = document.getElementById('upload-close');
+    const upload_zone = document.getElementById('upload-zone');
+    const upload_list = document.getElementById('upload-list');
+    const upload_cancel = document.getElementById('upload-cancel');
+    const upload_submit = document.getElementById('upload-submit');
+    const upload_status = document.getElementById('upload-status');
+    const attach_btn = document.getElementById('attach-btn');
+    const upload_btn = document.getElementById('upload-btn');
+    const files_list_el = document.getElementById('files-list');
+    let pending_files = [];
+    function esc_html(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+    function fmt_size(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'}
+    function open_upload_modal(){
+      if(!upload_modal) return;
+      upload_modal.classList.add('open');
+      upload_modal.style.display='flex';
+      upload_modal.setAttribute('aria-hidden','false');
+      pending_files=[];
+      render_pending();
+      if(upload_status) upload_status.textContent='';
+    }
+    function close_upload_modal(){
+      if(!upload_modal) return;
+      upload_modal.classList.remove('open');
+      upload_modal.style.display='none';
+      upload_modal.setAttribute('aria-hidden','true');
+      pending_files=[];
+      render_pending();
+      if(upload_status) upload_status.textContent='';
+      if(file_input) file_input.value='';
+    }
+    function render_pending(){
+      if(!upload_list) return;
+      if(!pending_files.length){
+        upload_list.innerHTML='';
+        if(upload_submit) upload_submit.disabled=true;
+        return;
+      }
+      upload_list.innerHTML = pending_files.map((f,i)=> `<div class="upload_item"><span class="upload_item_name">${esc_html(f.name)}</span><span class="upload_item_size">${fmt_size(f.size)}</span><button class="upload_item_remove" type="button" data-idx="${i}" aria-label="Remove ${esc_html(f.name)}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 4l6 6M10 4L4 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button></div>`).join('');
+      if(upload_submit) upload_submit.disabled=false;
+    }
+    function add_pending_files(files){
+      for(const f of files){
+        if(!pending_files.find(p=> p.name===f.name && p.size===f.size)){
+          pending_files.push(f);
+        }
+      }
+      render_pending();
+    }
+    async function refresh_files_list(){
+      try{
+        const r = await fetch(`${API}/files`);
+        if(!r.ok) return;
+        const data = await r.json();
+        const list = Array.isArray(data)? data : (data.files||data);
+        if(!files_list_el) return;
+        if(!list.length){
+          files_list_el.innerHTML = '<div style="padding:8px 12px;font-size:13px;color:var(--meta)">No files uploaded</div>';
+          return;
+        }
+        files_list_el.innerHTML = list.map(f=> `<div class="sidebar__item" data-file-id="${esc_html(f.id)}" role="button" tabindex="0" aria-label="file ${esc_html(f.display_name||f.storage_name)}"><span class="sidebar__item-dot ${f.status==='ready'?'ready':(f.status==='failed'||f.status==='error'?'error':'')}"></span><span class="sidebar__item-text">${esc_html(f.display_name||f.storage_name||'file')}</span><span class="sidebar__item-meta">${f.num_chunks||0} chunks</span></div>`).join('');
+      }catch(e){}
+    }
+    const composer_toast = document.getElementById('composer-toast');
+    let toast_timer = null;
+    function hide_link_toast(){
+      clearTimeout(toast_timer);
+      if(composer_toast) composer_toast.hidden = true;
+    }
+    function show_link_toast(count){
+      if(!composer_toast || !count) return;
+      clearTimeout(toast_timer);
+      composer_toast.textContent = '';
+      const label = document.createElement('span');
+      label.textContent = `\u2713 ${count} ${count === 1 ? 'file' : 'files'} linked to this session.`;
+      const strict_btn = document.createElement('button');
+      strict_btn.type = 'button';
+      strict_btn.className = 'composer-toast__btn';
+      strict_btn.textContent = 'Strict mode \u2014 answer only from these';
+      strict_btn.addEventListener('click', enable_strict_mode);
+      composer_toast.append(label, strict_btn);
+      composer_toast.hidden = false;
+      if(!reduced_motion.matches){
+        composer_toast.classList.remove('toast-in');
+        void composer_toast.offsetWidth;
+        composer_toast.classList.add('toast-in');
+      }
+      toast_timer = setTimeout(hide_link_toast, 8000);
+    }
+    async function enable_strict_mode(){
+      if(!sessionId){
+        setComposerError('Create a session first.');
+        setTimeout(()=>{ clearComposerError(); },3000);
+        return;
+      }
+      try{
+        const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({grounding_mode:'strict'})});
+        if(!r.ok) throw new Error(`Failed to switch to strict mode: ${r.status}`);
+        hide_link_toast();
+        const badge = document.getElementById('phase-badge');
+        if(badge) badge.dataset.grounding = 'strict';
+        setComposerStatus('strict grounding on');
+        setTimeout(()=>{ setComposerStatus(''); },2000);
+      }catch(e){
+        setComposerError(e && e.message ? e.message : 'Could not switch to strict mode.');
+        setTimeout(()=>{ clearComposerError(); },3000);
+      }
+    }
+    async function link_files_to_session(uploaded){
+      const records = Array.isArray(uploaded) ? uploaded : [];
+      const ids = records.map(f => f && f.id).filter(Boolean);
+      if(!ids.length) return;
+      if(!sessionId){
+        setComposerError('Create a session first.');
+        setTimeout(()=>{ clearComposerError(); },3000);
+        return;
+      }
+      try{
+        const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}/files`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({file_ids: ids})});
+        if(!r.ok){
+          const err = await r.json().catch(()=>({}));
+          throw new Error(err.detail || `Linking failed: ${r.status}`);
+        }
+        show_link_toast(ids.length);
+      }catch(e){
+        setComposerError(e && e.message ? e.message : 'Could not link files to session.');
+        setTimeout(()=>{ clearComposerError(); },3000);
+      }
+    }
+    async function handle_files_direct(files){
+      if(!files || !files.length) return;
+      if(upload_status) upload_status.textContent='';
+      const fd = new FormData();
+      for(const f of files) fd.append('files', f);
+      try{
+        setComposerStatus('uploading…');
+        if(upload_status) upload_status.textContent='Uploading…';
+        const r = await fetch(`${API}/files`, {method:'POST', body: fd});
+        if(!r.ok){
+          const err = await r.json().catch(()=>({}));
+          throw new Error(err.detail||`Upload failed: ${r.status}`);
+        }
+        const uploaded = await r.json();
+        if(upload_status) upload_status.textContent='Upload complete';
+        setComposerStatus('upload complete');
+        await refresh_files_list();
+        await link_files_to_session(uploaded);
+        setTimeout(()=>{setComposerStatus(''); if(upload_status) upload_status.textContent='';},1500);
+      }catch(e){
+        const msg = e && e.message ? e.message : 'Upload failed';
+        setComposerError(msg);
+        if(upload_status) upload_status.textContent=msg;
+        setTimeout(()=>{clearComposerError(); if(upload_status) upload_status.textContent='';},3000);
+      }
+    }
+    async function submit_upload(){
+      if(!pending_files.length) return;
+      if(upload_submit) {upload_submit.disabled=true; upload_submit.textContent='Uploading…';}
+      if(upload_status) upload_status.textContent='Uploading…';
+      setComposerStatus('uploading…');
+      const fd = new FormData();
+      for(const f of pending_files) fd.append('files', f);
+      try{
+        const r = await fetch(`${API}/files`, {method:'POST', body: fd});
+        if(!r.ok){
+          const err = await r.json().catch(()=>({}));
+          throw new Error(err.detail||`Upload failed: ${r.status}`);
+        }
+        const uploaded = await r.json();
+        if(upload_status) upload_status.textContent='Upload complete';
+        setComposerStatus('upload complete');
+        await refresh_files_list();
+        await link_files_to_session(uploaded);
+        setTimeout(()=>{ close_upload_modal(); setComposerStatus('');},800);
+      }catch(e){
+        const msg = e && e.message ? e.message : 'Upload failed';
+        setComposerError(msg);
+        if(upload_status) upload_status.textContent=msg;
+        if(upload_submit){ upload_submit.disabled=false; upload_submit.textContent='Upload';}
+        setComposerStatus('');
+      } finally {
+        if(upload_submit) upload_submit.textContent='Upload';
+      }
+    }
+    attach_btn?.addEventListener('click', ()=>{ if(file_input) file_input.click(); });
+    upload_btn?.addEventListener('click', ()=>{ open_upload_modal(); });
+    file_input?.addEventListener('change', e=>{
+      const files = e.target.files;
+      if(!files || !files.length) return;
+      const modal_open = upload_modal && (upload_modal.classList.contains('open') || upload_modal.style.display==='flex');
+      if(modal_open){
+        add_pending_files(files);
+      } else {
+        handle_files_direct(files);
+      }
+      e.target.value='';
+    });
+    upload_zone?.addEventListener('click', ()=> file_input?.click());
+    upload_zone?.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); file_input?.click(); }});
+    upload_zone?.addEventListener('dragover', e=>{ e.preventDefault(); upload_zone.classList.add('dragover');});
+    upload_zone?.addEventListener('dragleave', ()=> upload_zone.classList.remove('dragover'));
+    upload_zone?.addEventListener('drop', e=>{
+      e.preventDefault();
+      upload_zone.classList.remove('dragover');
+      if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+        if(upload_modal && !upload_modal.classList.contains('open')) open_upload_modal();
+        add_pending_files(e.dataTransfer.files);
+      }
+    });
+    upload_backdrop?.addEventListener('click', close_upload_modal);
+    upload_close?.addEventListener('click', close_upload_modal);
+    upload_cancel?.addEventListener('click', close_upload_modal);
+    upload_submit?.addEventListener('click', submit_upload);
+    upload_list?.addEventListener('click', e=>{
+      const btn = e.target.closest('[data-idx]');
+      if(btn){
+        const idx = parseInt(btn.getAttribute('data-idx'),10);
+        if(!isNaN(idx)){ pending_files.splice(idx,1); render_pending(); }
+      }
+    });
+    const input_bar = document.querySelector('.input-bar__wrapper');
+    input_bar?.addEventListener('dragover', e=>{ e.preventDefault(); input_bar.style.borderColor='var(--accent)';});
+    input_bar?.addEventListener('dragleave', ()=>{ input_bar.style.borderColor='';});
+    input_bar?.addEventListener('drop', e=>{
+      e.preventDefault();
+      input_bar.style.borderColor='';
+      if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+        handle_files_direct(e.dataTransfer.files);
+      }
+    });
+    files_list_el?.addEventListener('click', e=>{
+      const item = e.target.closest('[data-file-id]');
+      if(item){
+        const fid = item.getAttribute('data-file-id');
+        const name = item.querySelector('.sidebar__item-text')?.textContent || 'file';
+        setComposerStatus(`selected: ${name}`);
+        setTimeout(()=> setComposerStatus(''),1500);
+      }
+    });
+    files_list_el?.addEventListener('keydown', e=>{
+      if(e.key==='Enter' || e.key===' '){
+        const item = e.target.closest('[data-file-id]');
+        if(item){ e.preventDefault(); item.click(); }
+      }
+    });
+    document.getElementById('plan-nodes')?.addEventListener('click', e=>{
+      const node = e.target.closest('.sidebar__item');
+      if(node){ node.style.opacity='0.6'; setTimeout(()=> node.style.opacity='',200); }
+    });
+    document.addEventListener('keydown', e=>{
+      if(e.key==='Escape' && upload_modal && upload_modal.classList.contains('open')) close_upload_modal();
+    });
+    try{ refresh_files_list(); }catch(e){}
+  }catch(e){ console.error('workspace upload fix error', e)}
+})();
+
+sync_nav_workspace();
+if (sessionId) loadSession(sessionId);
+else document.getElementById('messages').innerHTML = `<div style="text-align:center;padding:var(--space-12);color:var(--meta)"><div style="font-family:var(--font-display);font-size:20px;color:var(--muted);margin-bottom:var(--space-2)">No session selected</div><p>Select a session from the sidebar or create a new one</p></div>`;
+</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:1120ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--fg);background:var(--bg)}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:var(--fg)}
+input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
+.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
+.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--fg)}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
+.logo span{color:var(--muted)}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform 500ms var(--ease),opacity 500ms var(--ease)}
+.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
+.sidebar:not(.collapsed){transform:translateX(0)}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__header:hover{color:var(--muted)}
+.sidebar__chevron{transition:transform var(--dur) var(--ease)}
+.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
+.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
+.sidebar__section.open .sidebar__list{display:block}
+.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
+.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.sidebar__item.active{background:var(--overlay);color:var(--fg)}
+.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg)}
+.content_centered{max-width:700px;width:100%;margin:0 auto;padding:var(--space-8) var(--space-5);overflow-y:auto}
+.page_title{font-family:var(--font-display);font-size:24px;font-weight:500;margin-bottom:var(--space-8)}
+.settings_section{margin-bottom:var(--space-8)}
+.settings_section_title{font-weight:600;font-size:15px;margin-bottom:var(--space-1)}
+.settings_section_desc{color:var(--muted);font-size:13px;margin-bottom:var(--space-5)}
+.field{margin-bottom:var(--space-5)}
+.field_label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:var(--space-2)}
+.field_select{display:block;width:100%;max-width:320px;padding:8px 12px;background:var(--overlay);border:1px solid var(--border);border-radius:var(--r);color:var(--fg);font-size:13px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a8a69e' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer}
+.field_select:focus{outline:none;border-color:var(--accent)}
+.field_textarea{display:block;width:100%;min-height:100px;padding:10px 12px;background:var(--overlay);border:1px solid var(--border);border-radius:var(--r);color:var(--fg);font-size:13px;resize:vertical}
+.field_textarea::placeholder{color:var(--meta)}
+.field_textarea:focus{outline:none;border-color:var(--accent)}
+.field_help{font-size:12px;color:var(--meta);margin-top:var(--space-1)}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease),border-color 150ms var(--ease)}
+.btn_primary{background:var(--accent);color:var(--bg)}
+.btn_primary:hover{background:var(--accent-hover)}
+.btn_danger{background:rgba(235,111,146,0.1);color:var(--love)}
+.btn_danger:hover{background:rgba(235,111,146,0.2)}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
+.sidebar-backdrop.open{display:block}
+@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.content_centered{padding:var(--space-4)}}
+@media(prefers-reduced-motion:reduce){
+*{transition-duration:0ms!important;animation-duration:0ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <a href="index.html" class="logo">S<span>a</span>ge</a>
+  </div>
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <a href="index.html" class="sidebar__item">Home</a>
+      <a href="sage-workspace.html" class="sidebar__item">Workspace</a>
+      <a href="sage-library.html" class="sidebar__item">Library</a>
+      <a href="sage-sessions.html" class="sidebar__item">Sessions</a>
+      <a href="sage-settings.html" class="sidebar__item active">Settings</a>
+      <a href="sage-health.html" class="sidebar__item">Health</a>
+    </div>
+  </div>
+</aside>
+<main class="main">
+<div class="content_centered">
+<h1 class="page_title">Settings</h1>
+<div class="settings_section">
+<div class="settings_section_title">Teaching Preferences</div>
+<div class="settings_section_desc">Control how Sage teaches — depth, pacing, and style of explanations.</div>
+<div class="field">
+<label class="field_label" for="pref-depth">Depth</label>
+<select class="field_select" id="pref-depth">
+<option value="brief">Brief — concise explanations</option>
+<option value="standard">Standard — balanced detail</option>
+<option value="deep">Deep — thorough explanations</option>
+</select>
+<div class="field_help">How detailed should explanations be? Standard covers key ideas with enough context to follow.</div>
+</div>
+<div class="field">
+<label class="field_label" for="pref-pacing">Pacing</label>
+<select class="field_select" id="pref-pacing">
+<option value="slow">Slow — more repetition and practice</option>
+<option value="normal">Normal — standard progression</option>
+<option value="fast">Fast — skip ahead when you're confident</option>
+</select>
+<div class="field_help">How quickly does Sage introduce new concepts? Normal assumes basic familiarity with prerequisites.</div>
+</div>
+<div class="field">
+<label class="field_label" for="pref-style">Teaching Style</label>
+<select class="field_select" id="pref-style">
+<option value="analogy-first">Analogy-first — start with intuitive examples</option>
+<option value="examples-first">Examples-first — concrete examples first</option>
+<option value="formal-first">Formal-first — definitions and theorems first</option>
+</select>
+<div class="field_help">Analogy-first leads with intuitive comparisons before formal definitions.</div>
+</div>
+<div class="field">
+<label class="field_label" for="pref-notes">Additional Notes</label>
+<textarea class="field_textarea" id="pref-notes" placeholder="Anything else Sage should know about how you learn best..."></textarea>
+<div class="field_help">Optional notes that Sage will consider when generating responses.</div>
+</div>
+<button class="btn btn_primary" id="save-prefs">Save Preferences</button>
+</div>
+<div class="settings_section">
+<div class="settings_section_title">Mastery</div>
+<div class="settings_section_desc">Manage your learning progress and concept mastery data.</div>
+<button class="btn btn_danger" id="reset-mastery">Reset Mastery Data</button>
+<div class="field_help" style="margin-top:var(--space-2)">This will clear all concept mastery scores and learning history. This cannot be undone.</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+<script>
+const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
+function toggleSidebar(){try{ sidebar?.classList.toggle('collapsed');backdrop?.classList.toggle('open',!sidebar?.classList.contains('collapsed')); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')))}catch(e){}}
+function close_sidebar(){try{ sidebar?.classList.add('collapsed');backdrop?.classList.remove('open'); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded','false')}catch(e){}}
+const menu_btn=document.getElementById('menu-btn');
+menu_btn?.addEventListener('click',toggleSidebar);
+backdrop?.addEventListener('click',close_sidebar);
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){const sec=b.closest('.sidebar__section'); if(!sec) return; const open=sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open))})});
+if(window.innerWidth<1024)sidebar?.classList.add('collapsed');
+
+const save_btn=document.getElementById('save-prefs');
+save_btn?.addEventListener('click', async()=>{
+  const body={
+    depth:document.getElementById('pref-depth')?.value||'standard',
+    pacing:document.getElementById('pref-pacing')?.value||'normal',
+    style:document.getElementById('pref-style')?.value||'analogy-first',
+    notes:document.getElementById('pref-notes')?.value||''
+  };
+  const orig=save_btn.textContent;
+  save_btn.disabled=true;
+  save_btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/preferences',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(`Save failed: ${r.status}`);
+    save_btn.textContent='Saved ✓';
+    setTimeout(()=>{save_btn.textContent=orig; save_btn.disabled=false;},1500);
+  }catch(e){
+    save_btn.textContent='Save failed — try again';
+    setTimeout(()=>{save_btn.textContent=orig; save_btn.disabled=false;},2500);
+    console.error(e);
+  }
+});
+
+const reset_btn=document.getElementById('reset-mastery');
+reset_btn?.addEventListener('click', async()=>{
+  if(!confirm('Are you sure you want to reset all mastery data? This cannot be undone.'))return;
+  const orig=reset_btn.textContent;
+  reset_btn.disabled=true;
+  try{
+    const r=await fetch('/api/mastery',{method:'DELETE'});
+    if(!r.ok) throw new Error(`Reset failed: ${r.status}`);
+    reset_btn.textContent='Mastery reset';
+    setTimeout(()=>{reset_btn.textContent=orig; reset_btn.disabled=false;},1500);
+  }catch(e){
+    reset_btn.textContent='Reset failed — try again';
+    setTimeout(()=>{reset_btn.textContent=orig; reset_btn.disabled=false;},2500);
+    console.error(e);
+  }
+});
+
+async function loadPrefs(){
+  try{
+    const r=await fetch('/api/preferences');
+    const d=await r.json();
+    const el1=document.getElementById('pref-depth'); if(el1) el1.value=d.depth||'standard';
+    const el2=document.getElementById('pref-pacing'); if(el2) el2.value=d.pacing||'normal';
+    const el3=document.getElementById('pref-style'); if(el3) el3.value=d.style||'analogy-first';
+    const el4=document.getElementById('pref-notes'); if(el4) el4.value=d.notes||'';
+  }catch(e){console.error(e)}
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')close_sidebar()});
+document.getElementById('save-prefs')?.setAttribute('aria-label','Save preferences');
+document.getElementById('reset-mastery')?.setAttribute('aria-label','Reset mastery data');
+loadPrefs();
+</script>
+</body>
+</html>

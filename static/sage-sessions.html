@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Sessions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:1120ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--fg);background:var(--bg)}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:var(--fg)}
+input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
+.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
+.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--fg)}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
+.logo span{color:var(--muted)}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform 500ms var(--ease),opacity 500ms var(--ease)}
+.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
+.sidebar:not(.collapsed){transform:translateX(0)}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__header:hover{color:var(--muted)}
+.sidebar__chevron{transition:transform var(--dur) var(--ease)}
+.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
+.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
+.sidebar__section.open .sidebar__list{display:block}
+.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
+.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.sidebar__item.active{background:var(--overlay);color:var(--fg)}
+.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg)}
+.content_centered{max-width:900px;width:100%;margin:0 auto;padding:var(--space-8) var(--space-5);overflow-y:auto}
+.page_header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)}
+.page_title{font-family:var(--font-display);font-size:24px;font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease),border-color 150ms var(--ease)}
+.btn_primary{background:var(--accent);color:var(--bg)}
+.btn_primary:hover{background:var(--accent-hover)}
+.btn_ghost{color:var(--muted)}
+.btn_ghost:hover{background:var(--overlay);color:var(--fg)}
+.session_card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5);margin-bottom:var(--space-3);transition:background 150ms var(--ease),border-color 150ms var(--ease);cursor:pointer}
+.session_card:hover{background:var(--surface-raised);border-color:var(--border-soft)}
+.session_card_head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-2)}
+.session_card_title{font-family:var(--font-display);font-size:18px;font-weight:500;line-height:1.3}
+.session_card_phase{font-family:var(--font-mono);font-size:11px;font-weight:500;text-transform:uppercase;padding:3px 8px;border-radius:4px;background:var(--overlay);white-space:nowrap;flex-shrink:0;color:var(--meta)}
+.session_card_phase[data-phase="setup"]{color:var(--muted)}
+.session_card_phase[data-phase="probe"]{color:var(--gold)}
+.session_card_phase[data-phase="plan"]{color:var(--gold)}
+.session_card_phase[data-phase="teach"]{color:var(--accent)}
+.session_card_phase[data-phase="check"]{color:var(--rose)}
+.session_card_phase[data-phase="complete"]{color:var(--foam)}
+.session_card_desc{color:var(--muted);font-size:13px;margin-bottom:var(--space-2)}
+.session_card_meta{display:flex;align-items:center;gap:var(--space-3);color:var(--meta);font-size:12px;font-family:var(--font-mono)}
+.btn_delete{margin-top:var(--space-3);font-size:12px;padding:4px 8px;border-radius:4px;background:var(--overlay);color:var(--muted);transition:background 150ms var(--ease),color 150ms var(--ease)}
+.btn_delete:hover{background:rgba(235,111,146,0.15);color:var(--love)}
+.empty{text-align:center;padding:var(--space-12);color:var(--meta)}
+.empty_title{font-family:var(--font-display);font-size:20px;font-weight:500;color:var(--muted);margin-bottom:var(--space-2)}
+.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal_backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.6)}
+.modal_dialog{position:relative;width:90%;max-width:480px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-6);z-index:1}
+.modal_title{font-family:var(--font-display);font-size:20px;font-weight:500;margin-bottom:var(--space-5)}
+.modal_field{margin-bottom:var(--space-4)}
+.modal_label{display:block;font-size:12px;font-weight:500;color:var(--meta);margin-bottom:var(--space-2);letter-spacing:0.03em;text-transform:uppercase}
+.modal_input,.modal_select{width:100%;padding:var(--space-3);background:var(--overlay);border:1px solid var(--border);border-radius:var(--r);color:var(--fg);font-size:14px;transition:border-color 150ms var(--ease)}
+.modal_select{appearance:none;cursor:pointer}
+.modal_input:focus,.modal_select:focus{outline:none;border-color:var(--accent)}
+.modal_input::placeholder{color:var(--meta)}
+.modal_actions{display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-5)}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
+.sidebar-backdrop.open{display:block}
+@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.content_centered{padding:var(--space-4)}}
+@media(prefers-reduced-motion:reduce){
+*{transition-duration:0ms!important;animation-duration:0ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <a href="index.html" class="logo">S<span>a</span>ge</a>
+  </div>
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <a href="index.html" class="sidebar__item">Home</a>
+      <a href="sage-workspace.html" class="sidebar__item">Workspace</a>
+      <a href="sage-library.html" class="sidebar__item">Library</a>
+      <a href="sage-sessions.html" class="sidebar__item active">Sessions</a>
+      <a href="sage-settings.html" class="sidebar__item">Settings</a>
+      <a href="sage-health.html" class="sidebar__item">Health</a>
+    </div>
+  </div>
+</aside>
+<main class="main">
+<div class="content_centered">
+<div class="page_header">
+<h1 class="page_title">Sessions</h1>
+<button class="btn btn_primary" id="new-session-btn">New Session</button>
+</div>
+<div id="session-list"></div>
+<div class="empty" id="empty-state" style="display:none">
+<div class="empty_title">No sessions yet</div>
+<p>Start one from <a href="index.html">Home</a>.</p>
+</div>
+</div>
+</main>
+</div>
+</div>
+
+<div class="modal" id="new-session-modal">
+  <div class="modal_backdrop" id="modal-close"></div>
+  <div class="modal_dialog">
+    <div class="modal_title">New Session</div>
+    <div class="modal_field">
+      <label class="modal_label" for="session-goal">What do you want to learn?</label>
+      <input class="modal_input" id="session-goal" placeholder="e.g., Understand Rolle's Theorem and its proofs">
+    </div>
+    <div class="modal_field">
+      <label class="modal_label" for="session-mode">Grounding Mode</label>
+      <select class="modal_select" id="session-mode">
+        <option value="grounded">Grounded — sources + general knowledge</option>
+        <option value="strict">Strict — only from your files</option>
+      </select>
+    </div>
+    <div class="modal_actions">
+      <button class="btn btn_ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn_primary" id="modal-submit">Create Session</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
+function toggleSidebar(){try{ sidebar?.classList.toggle('collapsed');backdrop?.classList.toggle('open',!sidebar?.classList.contains('collapsed')); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')))}catch(e){}}
+function close_sidebar(){try{ sidebar?.classList.add('collapsed');backdrop?.classList.remove('open'); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded','false')}catch(e){}}
+const menu_btn=document.getElementById('menu-btn');
+menu_btn?.addEventListener('click',toggleSidebar);
+backdrop?.addEventListener('click',close_sidebar);
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){const sec=b.closest('.sidebar__section'); if(!sec) return; const open=sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open))})});
+if(window.innerWidth<1024)sidebar?.classList.add('collapsed');
+
+const new_session_modal=document.getElementById('new-session-modal');
+function open_modal(){new_session_modal?.classList.add('open');document.getElementById('session-goal')?.focus()}
+function close_modal(){new_session_modal?.classList.remove('open')}
+document.getElementById('new-session-btn')?.addEventListener('click', open_modal);
+document.getElementById('modal-close')?.addEventListener('click', close_modal);
+document.getElementById('modal-cancel')?.addEventListener('click', close_modal);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(new_session_modal?.classList.contains('open'))close_modal();else close_sidebar()}});
+document.getElementById('modal-submit')?.addEventListener('click', async()=>{
+  const goal=document.getElementById('session-goal')?.value.trim()||'';
+  const mode=document.getElementById('session-mode')?.value||'grounded';
+  if(!goal) return;
+  const btn=document.getElementById('modal-submit');
+  if(btn) {btn.disabled=true; btn.textContent='Creating…';}
+  try{
+    const r=await fetch('/api/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal,grounding_mode:mode})});
+    if(!r.ok) throw new Error(`Create failed: ${r.status}`);
+    close_modal();
+    const inp=document.getElementById('session-goal');
+    if(inp) inp.value='';
+    loadSessions();
+  }catch(e){console.error(e)} finally { if(btn){ btn.disabled=false; btn.textContent='Create Session';}}
+});
+
+async function loadSessions(){
+  try{
+    const r=await fetch('/api/sessions');
+    const d=await r.json();
+    if(!d.length){document.getElementById('session-list').innerHTML='';document.getElementById('empty-state').style.display='';return}
+    document.getElementById('empty-state').style.display='none';
+    document.getElementById('session-list').innerHTML=d.map(s=>`
+      <div class="session_card" data-session="${esc(s.id)}">
+        <div class="session_card_head">
+          <div class="session_card_title">${esc(s.title||s.goal||'Untitled')}</div>
+          <span class="session_card_phase" data-phase="${esc(s.phase)}">${esc(s.phase)}</span>
+        </div>
+        <div class="session_card_desc">${s.grounding_mode==='strict'?'Strict grounding — only from your files':'Grounded — sources + general knowledge'}</div>
+        <div class="session_card_meta">
+          <span>${s.file_ids?s.file_ids.length:0} files</span>
+          <span>updated ${fmtTime(s.updated_at)}</span>
+        </div>
+        <button class="btn_delete" type="button" data-delete="${esc(s.id)}">Delete</button>
+      </div>
+    `).join('');
+  }catch(e){console.error(e)}
+}
+
+document.getElementById('session-list')?.addEventListener('click',e=>{
+  const del=e.target.closest('[data-delete]');
+  if(del){e.stopPropagation();deleteSession(del.getAttribute('data-delete'),del);return}
+  const card=e.target.closest('.session_card');
+  if(card)window.location.href=`sage-workspace.html?session=${encodeURIComponent(card.getAttribute('data-session'))}`;
+});
+document.getElementById('session-list')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter' || e.key===' '){
+    const card=e.target.closest('.session_card');
+    if(card){ e.preventDefault(); window.location.href=`sage-workspace.html?session=${encodeURIComponent(card.getAttribute('data-session'))}`; }
+  }
+});
+
+async function deleteSession(id,button){
+  const card=button.closest('.session-card')||button.closest('.session_card');
+  const name=card?card.querySelector('.session_card_title').textContent:'this session';
+  if(!confirm(`Delete "${name}"?`))return;
+  try{
+    const response=await fetch(`/api/sessions/${encodeURIComponent(id)}`,{method:'DELETE'});
+    if(!response.ok)throw new Error('Delete failed');
+    await loadSessions();
+  }catch(e){console.error(e)}
+}
+function fmtTime(ts){if(!ts)return'';const d=new Date(ts);if(isNaN(d))return'';const diff=new Date()-d;if(diff<60000)return'just now';if(diff<3600000)return Math.floor(diff/60000)+'m ago';if(diff<86400000)return Math.floor(diff/3600000)+'h ago';return Math.floor(diff/86400000)+'d ago'}
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+loadSessions();
+</script>
+</body>
+</html>
