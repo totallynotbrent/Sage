@@ -1,0 +1,34 @@
+{
+  "agent": "Turing",
+  "task_id": "fix-anim",
+  "verification": "review_only",
+  "notes": "wc -l HEAD: ws=1363 idx=1104; dirty before (T-word-anim after) ws=1409 idx=1154; after fix ws=1428 idx=1173; CSS re-inserted cleanly with explicit from/to; JS hardened with capped delays and fallback timeout; both files verified with node --check and brace balance 251/251 and 190/190; all DESIGN-SPEC animations preserved alongside word animation",
+  "summary": "Fix broken word-by-word animations: harden CSS/JS, cap delays, add fallback visibility",
+  "line_counts": {
+    "after": {
+      "static/index.html": 1173,
+      "static/sage-workspace.html": 1428
+    },
+    "before": {
+      "static/index.html": 1154,
+      "static/sage-workspace.html": 1409
+    }
+  },
+  "committed_at": "",
+  "session_id": "sage-fix-anim",
+  "finalized_by": "Turing",
+  "modules_created": [],
+  "base_commit": "bf147f2d40f118af7961adc9d452792df3f0e1c6",
+  "status": "done",
+  "files": {
+    "deleted": [],
+    "created": [],
+    "modified": [
+      "static/sage-workspace.html",
+      "static/index.html"
+    ]
+  },
+  "documentation": [],
+  "declared_at": "2026-08-23T14:54:35.9149522Z",
+  "final_report": "Fixed broken word-by-word animations in both static/sage-workspace.html and static/index.html. Root causes: (1) unbounded animationDelay word_idx*35ms caused trailing words to stay invisible for up to 17s on long messages, perceived as all animations broken; (2) lack of fallback visibility if CSS animation engine failed kept opacity:0 forever; (3) missing try/catch in wrapWords could throw and break subsequent rendering. Fixes: capped delay at Math.min(word_idx*32,2000) (2s max), added explicit from/to in @keyframes wordIn for robustness, wrapped wrapWords/walk/wrapQuizWords/animateWords in try/catch with null guards (node.classList&&, parent.closest&&), added setTimeout fallback that forces opacity:1 after max_delay+50ms if computed opacity still 0, preserved all original animations (msgCascade 700ms, artifactReveal 500ms, artSlideRight 500ms, artDrawLine 600ms, artFadeIn 400ms, artColorSweep 600ms, artFlipTodo 500ms, gradientSweep 1.2s, cardIn 280ms, pulse 1.4s, typing-indicator) verified via CSS parse and node --check (0 errors), brace balance 251/251 and 190/190, reduced-motion override intact."
+}

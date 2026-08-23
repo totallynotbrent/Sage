@@ -1,0 +1,43 @@
+{
+  "task_id": "T87-commit",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "opencode-turing-t87-commit-batch",
+  "declared_at": "2026-08-23T16:05:00Z",
+  "finalized_by": "Turing (batch committer)",
+  "summary": "Batch commit of the attach-to-session linking work on feature/structured-outputs: commit a 763dd1a7cac1acddc1e01c6cc24c89db74390121 (fix(ui): monotone tone, remove hardcoded analogies, fix all button handlers, word-by-word animation - app/llm/messages.py, app/services/sessions/turn.py, tests/test_api_chat_sse.py), commit b feat(ui): attach-to-session linking with strict mode toast, probe cards on home, animations (static/index.html, static/sage-workspace.html + job-log provenance incl. this log). No push, no merge.",
+  "files": {
+    "modified": [
+      "static/index.html",
+      "static/sage-workspace.html",
+      ".agents/jobs/T-cleanup2.json"
+    ],
+    "created": [
+      ".agents/jobs/T-cleanup2.json",
+      ".agents/jobs/T-word-anim.json",
+      ".agents/jobs/fix-anim.json",
+      ".agents/jobs/T-fix-buttons.json",
+      ".agents/jobs/T-anim-debug.json",
+      ".agents/jobs/T86.json",
+      ".agents/jobs/T87-commit.json"
+    ],
+    "deleted": []
+  },
+  "base_commit": "bf147f2d40f118af7961adc9d452792df3f0e1c6",
+  "committed_at": "763dd1a7cac1acddc1e01c6cc24c89db74390121",
+  "line_counts": {
+    "before": {
+      "static/index.html": 1104,
+      "static/sage-workspace.html": 1363
+    },
+    "after": {
+      "static/index.html": 1300,
+      "static/sage-workspace.html": 1751
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "verification": "review_only",
+  "final_report": "T87-commit done on branch feature/structured-outputs (base bf147f2d40f118af7961adc9d452792df3f0e1c6). Commit a: 763dd1a7cac1acddc1e01c6cc24c89db74390121 'fix(ui): monotone tone, remove hardcoded analogies, fix all button handlers, word-by-word animation' staging exactly app/llm/messages.py (+3/-1 monotone bans on \"I'd love to help\"/\"Great question\"/exclamation marks), app/services/sessions/turn.py (-19 trees-hint block, dolls_row EXISTS query, dolls_used lesson-state entry) and tests/test_api_chat_sse.py (Nesting-dolls assertion replaced with Core-definition check); staged set verified with git diff --cached --stat (3 files, +4/-21). Commit b: 'feat(ui): attach-to-session linking with strict mode toast, probe cards on home, animations' staging static/sage-workspace.html and static/index.html plus job logs T-cleanup2 (committed_at=commit a), T-word-anim, fix-anim, T-fix-buttons, T-anim-debug, T86, and this log. Task listed T84.json, T85.json, T-fix-hardcode.json as candidates but git status showed them clean at HEAD bf147f2 (already landed via bed2a97/b38f011/2547bcd/bf147f2), so they were skipped per the only-stage-if-dirty instruction. Unrelated dirty files (other pages, api/services/tests/docs, untracked screenshots/scripts/static/app.js/static/style.css) left untouched; explicit path staging only. git grep confirmed neither committed HTML references the untracked static/app.js or static/style.css, so commit b is self-contained. Not pushed, not merged.",
+  "notes": "Task brief pinned HEAD 765991e but four commits had already landed on top of it when I started (bed2a97 probe cards, b38f011 T84/T85 provenance, 2547bcd messages.py tone/hardcode fix part 1, bf147f2 T-fix-hardcode committed_at fill); 765991e verified as ancestor, remaining deltas re-checked against current HEAD before staging. line_counts use raw wc -l semantics via Python newline count (wc binary absent on this host; PowerShell Measure-Object -Line undercounts blank lines and was discarded). Post-commit pass fills committed_at=commit-b hash into the five UI logs (T-word-anim, fix-anim, T-fix-buttons, T-anim-debug, T86) and appends commit-b hash here, per the batch-committer checklist; those edits remain local working-tree updates that ride the next commit."
+}

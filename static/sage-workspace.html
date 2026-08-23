@@ -111,6 +111,14 @@ textarea{font:inherit;color:inherit}
 .input-bar__stop{display:none;place-items:center;width:32px;height:32px;border-radius:var(--r);background:var(--love);color:#fff;border:none;cursor:pointer;transition:opacity var(--dur) var(--ease),transform 120ms var(--ease)}
 .input-bar__stop:hover{opacity:0.85}
 .composer-error{font-size:12px;color:var(--love);padding:var(--space-2) var(--space-4);font-family:var(--font-body);line-height:1.5}
+.composer-toast{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2) var(--space-3);background:var(--surface);border-left:3px solid var(--foam);padding:var(--space-3) var(--space-4);font-size:13px;color:var(--fg-2);font-family:var(--font-body);line-height:1.5;border-radius:0 var(--r) var(--r) 0;margin-top:var(--space-2)}
+.composer-toast[hidden]{display:none}
+.composer-toast__btn{font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--foam);color:var(--foam);background:transparent;transition:all var(--dur) var(--ease)}
+.composer-toast__btn:hover{background:rgba(156,207,216,0.12)}
+.toast-in{animation:toastIn var(--dur-slow) var(--ease)}
+@keyframes toastIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.toast-in{animation:none}}
+.phase-badge[data-grounding="strict"]::after{content:" \00b7 strict";color:var(--foam)}
 
 .diagram-panel{width:min(var(--diagram-w),42vw);min-width:320px;border-left:1px solid var(--border);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:transform var(--dur-slow) var(--ease),margin-right var(--dur-slow) var(--ease)}
 .diagram-panel.closed{transform:translateX(100%);margin-right:calc(-1 * min(var(--diagram-w),42vw));pointer-events:none}
@@ -210,10 +218,7 @@ textarea{font:inherit;color:inherit}
 .artifact-card[data-kind="quiz"]{opacity:0;transform:translateY(8px)}
 .artifact-card[data-kind="quiz"].visible{animation:artifactReveal 500ms var(--ease) forwards}
 @keyframes artifactReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.artifact-card[data-kind="quiz"] .artifact-card__quiz-qtext{overflow:hidden;white-space:nowrap;border-right:2px solid var(--accent);width:0}
-.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-qtext{animation:artType 1s steps(30) forwards,artCursorBlink .8s step-end infinite}
-@keyframes artType{to{width:100%}}
-@keyframes artCursorBlink{50%{border-color:transparent}}
+.artifact-card[data-kind="quiz"] .artifact-card__quiz-qtext{overflow:visible;white-space:normal;border-right:none;width:auto}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option{opacity:0;animation:artifactReveal 300ms var(--ease) forwards}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(1){animation-delay:1100ms}
 .artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(2){animation-delay:1300ms}
@@ -236,6 +241,8 @@ textarea{font:inherit;color:inherit}
 .artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(5){animation-delay:560ms}
 .artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(6){animation-delay:680ms}
 @keyframes artFlipTodo{to{opacity:1;transform:perspective(400px) rotateX(0)}}
+.word{display:inline-block;opacity:0;transform:translateY(4px);animation:wordIn 350ms var(--ease) forwards}
+@keyframes wordIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
 @media(max-width:1023px){
 .sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}
@@ -246,7 +253,31 @@ textarea{font:inherit;color:inherit}
 .composer-toolbar{flex-wrap:wrap}
 .topbar__title{max-width:32vw}
 }
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}}
+.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal_backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.6)}
+.modal_dialog{position:relative;width:90%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5);z-index:1;display:flex;flex-direction:column;gap:var(--space-3)}
+.modal_head{display:flex;align-items:center;justify-content:space-between}
+.modal_title{font-family:var(--font-display);font-size:20px;font-weight:500}
+.modal_hint{font-size:12px;color:var(--meta);line-height:1.5}
+.modal_actions{display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-2)}
+.upload_zone{border:2px dashed var(--border);border-radius:var(--r);padding:var(--space-6) var(--space-4);text-align:center;cursor:pointer;transition:border-color 150ms var(--ease),background 150ms var(--ease)}
+.upload_zone:hover,.upload_zone.dragover{border-color:var(--accent);background:var(--accent-dim)}
+.upload_zone_title{font-size:14px;font-weight:500;margin-bottom:4px}
+.upload_zone_hint{font-size:11px;color:var(--meta);font-family:var(--font-mono)}
+.upload_list{display:flex;flex-direction:column;gap:var(--space-2);max-height:180px;overflow-y:auto}
+.upload_item{display:flex;align-items:center;gap:var(--space-2);padding:6px 10px;background:var(--overlay);border-radius:6px;font-size:13px}
+.upload_item_name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upload_item_size{font-family:var(--font-mono);font-size:11px;color:var(--meta);flex-shrink:0}
+.upload_item_remove{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;color:var(--meta)}
+.upload_item_remove:hover{background:var(--surface-warm);color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease)}
+.btn_primary{background:var(--accent);color:var(--bg)}
+.btn_primary:hover{background:var(--accent-hover)}
+.btn_primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn_ghost{background:var(--overlay);color:var(--muted)}
+.btn_ghost:hover{background:var(--surface-warm);color:var(--fg)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}.word{animation:none !important;opacity:1 !important;transform:none !important}}
   </style>
 </head>
 <body>
@@ -321,6 +352,7 @@ textarea{font:inherit;color:inherit}
             </div>
           </div>
           <div class="composer-error" id="composer-error" role="status" aria-live="polite" hidden></div>
+          <div class="composer-toast" id="composer-toast" role="status" aria-live="polite" hidden></div>
         </div>
       </div>
     </main>
@@ -337,6 +369,28 @@ textarea{font:inherit;color:inherit}
         <div class="diagram-panel__empty">No artifacts yet. Use the composer to generate one.</div>
       </div>
     </aside>
+  </div>
+</div>
+
+<input type="file" id="file-input" hidden multiple accept=".pdf,.docx,.pptx,.md,.txt,.tex">
+<div class="modal" id="upload-modal" aria-hidden="true">
+  <div class="modal_backdrop" id="upload-backdrop"></div>
+  <div class="modal_dialog" role="dialog" aria-modal="true" aria-label="Upload files">
+    <div class="modal_head">
+      <div class="modal_title">Upload files</div>
+      <button class="icon-btn" id="upload-close" aria-label="Close upload" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+    </div>
+    <p class="modal_hint">PDF, DOCX, PPTX, MD, TEX, TXT. Drag and drop or click to select. Multiple files allowed.</p>
+    <div class="upload_zone" id="upload-zone" role="button" tabindex="0" aria-label="Upload drop zone">
+      <div class="upload_zone_title">Drag and drop files here</div>
+      <div class="upload_zone_hint">or click to browse — PDF, DOCX, PPTX, MD, TEX, TXT</div>
+    </div>
+    <div class="upload_list" id="upload-list" aria-live="polite"></div>
+    <div class="modal_actions">
+      <button class="btn btn_ghost" id="upload-cancel" type="button">Cancel</button>
+      <button class="btn btn_primary" id="upload-submit" type="button" disabled>Upload</button>
+    </div>
+    <div id="upload-status" class="modal_hint" aria-live="polite"></div>
   </div>
 </div>
 
@@ -390,40 +444,47 @@ const menu_btn = document.getElementById('menu-btn');
 const mobile_query = window.matchMedia('(max-width: 1023px)');
 const reduced_motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 function reconcile_sidebar() {
-  if (mobile_query.matches) {
-    sidebar.classList.add('collapsed');
-    backdrop.classList.remove('open');
-  } else {
-    sidebar.classList.remove('collapsed');
-    backdrop.classList.remove('open');
-  }
-  menu_btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')));
+  try{
+    if (!sidebar || !backdrop || !menu_btn) return;
+    if (mobile_query.matches) {
+      sidebar.classList.add('collapsed');
+      backdrop.classList.remove('open');
+    } else {
+      sidebar.classList.remove('collapsed');
+      backdrop.classList.remove('open');
+    }
+    menu_btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')));
+  }catch(e){}
 }
 function close_sidebar() {
-  sidebar.classList.add('collapsed');
-  backdrop.classList.remove('open');
-  menu_btn.setAttribute('aria-expanded', 'false');
+  try{
+    sidebar?.classList.add('collapsed');
+    backdrop?.classList.remove('open');
+    menu_btn?.setAttribute('aria-expanded', 'false');
+  }catch(e){}
 }
 function toggleSidebar() {
-  let open;
-  if (mobile_query.matches) {
-    open = sidebar.classList.toggle('collapsed') === false;
-    backdrop.classList.toggle('open', open);
-    if (open) closeArtifactsRail();
-  } else {
-    open = sidebar.classList.toggle('collapsed') === false;
-  }
-  menu_btn.setAttribute('aria-expanded', String(open));
+  try{
+    let open;
+    if (mobile_query.matches) {
+      open = sidebar.classList.toggle('collapsed') === false;
+      backdrop.classList.toggle('open', open);
+      if (open) closeArtifactsRail();
+    } else {
+      open = sidebar.classList.toggle('collapsed') === false;
+    }
+    menu_btn.setAttribute('aria-expanded', String(open));
+  }catch(e){}
 }
-reconcile_sidebar();
+try{ reconcile_sidebar(); }catch(e){}
 mobile_query.addEventListener('change', reconcile_sidebar);
 window.addEventListener('resize', reconcile_sidebar);
-menu_btn.onclick = toggleSidebar;
-backdrop.onclick = close_sidebar;
+menu_btn?.addEventListener('click', toggleSidebar);
+backdrop?.addEventListener('click', close_sidebar);
 document.addEventListener('keydown', event => { if (event.key === 'Escape') { close_sidebar(); closeArtifactsRail(); } });
-document.querySelectorAll('.sidebar__header').forEach(b => b.addEventListener('click', () => { const open = b.closest('.sidebar__section').classList.toggle('open'); b.setAttribute('aria-expanded', String(open)); }));
-document.getElementById('closeDiagram').onclick = () => { closeArtifactsRail(); };
-document.getElementById('closeSidebar').onclick = close_sidebar;
+document.querySelectorAll('.sidebar__header').forEach(b => b.addEventListener('click', () => { const sec=b.closest('.sidebar__section'); if(!sec) return; const open = sec.classList.toggle('open'); b.setAttribute('aria-expanded', String(open)); }));
+document.getElementById('closeDiagram')?.addEventListener('click', () => { closeArtifactsRail(); });
+document.getElementById('closeSidebar')?.addEventListener('click', close_sidebar);
 
 function sync_nav_workspace() {
   const link = document.getElementById('nav-workspace');
@@ -476,6 +537,72 @@ function renderChatMermaid(root) {
   });
   window.mermaid.run({ nodes }).catch(() => {});
 }
+function wrapWords(container){
+  try{
+    if(!container||reduced_motion.matches)return;
+    if(container.dataset.wordWrapped==='1')return;
+    let word_idx=0;
+    function walk(node){
+      try{
+        if(node.nodeType===1){
+          const tag=node.tagName;
+          if(tag==='PRE'||tag==='CODE'||tag==='SCRIPT'||tag==='STYLE')return;
+          if(node.classList&&node.classList.contains('word'))return;
+          const children=Array.from(node.childNodes);
+          children.forEach(walk);
+        }else if(node.nodeType===3){
+          const text=node.textContent;
+          if(!text||!text.trim())return;
+          if(text.includes('$')||text.includes('\\(')||text.includes('\\['))return;
+          const parent=node.parentElement;
+          if(parent&&parent.closest&&parent.closest('pre,code'))return;
+          const tokens=text.split(/(\s+)/);
+          if(tokens.length===1&&tokens[0]==='')return;
+          const frag=document.createDocumentFragment();
+          tokens.forEach(tok=>{
+            if(tok==='')return;
+            if(/^\s+$/.test(tok)){
+              frag.appendChild(document.createTextNode(tok));
+            }else{
+              const span=document.createElement('span');
+              span.className='word';
+              span.textContent=tok;
+              span.style.animationDelay=Math.min(word_idx*32,2000)+'ms';
+              word_idx++;
+              frag.appendChild(span);
+            }
+          });
+          if(frag.childNodes.length)node.replaceWith(frag);
+        }
+      }catch(e){}
+    }
+    walk(container);
+    container.dataset.wordWrapped='1';
+    const words=container.querySelectorAll('.word');
+    if(words.length){
+      const max_delay=Math.min((words.length-1)*32,2000)+400;
+      setTimeout(()=>{
+        words.forEach(w=>{
+          if(getComputedStyle(w).opacity==='0'){
+            w.style.opacity='1';
+            w.style.transform='none';
+          }
+        });
+      },max_delay+50);
+    }
+  }catch(e){}
+}
+function animateWords(element){try{wrapWords(element)}catch(e){}}
+function wrapQuizWords(card){
+  try{
+    if(!card||reduced_motion.matches)return;
+    card.querySelectorAll('.artifact-card__quiz-qtext,.artifact-card__quiz-question').forEach(qtext=>{
+      if(qtext.dataset.wordWrapped==='1')return;
+      if(qtext.querySelector('.word'))return;
+      wrapWords(qtext);
+    });
+  }catch(e){}
+}
 
 function addMessage(role, content, options = {}) {
   const d = document.createElement('div');
@@ -491,9 +618,9 @@ function addMessage(role, content, options = {}) {
      html += `<div style="margin:var(--space-2) 0;padding:var(--space-3) var(--space-4);background:var(--surface);border-radius:var(--r);font-size:13px;color:var(--meta);font-style:italic;line-height:1.6"><strong style="color:var(--muted);font-weight:500;font-style:normal">Thinking\u2026</strong> ${esc(options.thinking)}</div>`;
   }
    html += `${role === 'assistant' ? sanitize_html(renderMd(content)) : esc(content)}</div>`;
-  d.innerHTML = html;
+   d.innerHTML = html;
   box.appendChild(d);
-  if (role === 'assistant') { render_math(true); renderChatMermaid(d); }
+  if (role === 'assistant') { render_math(true); renderChatMermaid(d); const bubble=d.querySelector('.msg__bubble'); if(bubble) wrapWords(bubble); }
   box.scrollTop = box.scrollHeight;
   return d;
 }
@@ -537,7 +664,7 @@ function focusPlanArtifact(card) {
     card.focus({ preventScroll: true });
   });
 }
-function show_card(card) { setTimeout(() => card.classList.add('visible'), 60); }
+function show_card(card) { setTimeout(() => { card.classList.add('visible'); wrapQuizWords(card); }, 60); }
 
 function updateArtifactsCount() {
   const supportArtifacts = artifacts.filter(artifact => artifact.kind !== ARTIFACT_KIND.QUIZ && artifact.kind !== ARTIFACT_KIND.TODO);
@@ -1181,9 +1308,9 @@ async function generateFromComposer(kind) {
   }
 }
 
-document.getElementById('composer-diagram').onclick = () => generateFromComposer(ARTIFACT_KIND.DIAGRAM);
-document.getElementById('composer-quiz').onclick = () => generateFromComposer(ARTIFACT_KIND.QUIZ);
-document.getElementById('composer-todo').onclick = () => generateFromComposer(ARTIFACT_KIND.TODO);
+document.getElementById('composer-diagram')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.DIAGRAM));
+document.getElementById('composer-quiz')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.QUIZ));
+document.getElementById('composer-todo')?.addEventListener('click', () => generateFromComposer(ARTIFACT_KIND.TODO));
 
 async function sendMessage() {
   const text = input.value.trim();
@@ -1317,14 +1444,14 @@ async function sendMessage() {
   if (sessionId && first_turn) { fetch(`${API}/sessions/${sessionId}/title`, { method: 'POST' }).then(loadSessionList_safe).catch(() => {}); }
 }
 
-sendBtn.onclick = sendMessage;
-if (stopBtn) stopBtn.onclick = () => {
+sendBtn?.addEventListener('click', sendMessage);
+stopBtn?.addEventListener('click', () => {
   if (!streamCtrl) return;
   streamCtrl.abort();
   if (sessionId) fetch(`${API}/sessions/${sessionId}/stop`, { method: 'POST' }).catch(() => {});
-};
-input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
+});
+input?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+input?.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 120) + 'px'; });
 
 async function loadSession(id) {
   try {
@@ -1354,6 +1481,267 @@ async function loadSessionsList() {
 function loadSessionList_safe() { return loadSessionsList(); }
 
 if (window.mermaid) window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', themeVariables: { primaryColor: '#383835', primaryTextColor: '#f0efe8', primaryBorderColor: '#c4a7e7', lineColor: '#7a7872', secondaryColor: '#2f2f2c', tertiaryColor: '#1a1a19', fontFamily: "'Newsreader', Georgia, serif" } });
+
+(function workspace_upload_fix(){
+  try{
+    const file_input = document.getElementById('file-input');
+    const upload_modal = document.getElementById('upload-modal');
+    const upload_backdrop = document.getElementById('upload-backdrop');
+    const upload_close = document.getElementById('upload-close');
+    const upload_zone = document.getElementById('upload-zone');
+    const upload_list = document.getElementById('upload-list');
+    const upload_cancel = document.getElementById('upload-cancel');
+    const upload_submit = document.getElementById('upload-submit');
+    const upload_status = document.getElementById('upload-status');
+    const attach_btn = document.getElementById('attach-btn');
+    const upload_btn = document.getElementById('upload-btn');
+    const files_list_el = document.getElementById('files-list');
+    let pending_files = [];
+    function esc_html(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+    function fmt_size(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'}
+    function open_upload_modal(){
+      if(!upload_modal) return;
+      upload_modal.classList.add('open');
+      upload_modal.style.display='flex';
+      upload_modal.setAttribute('aria-hidden','false');
+      pending_files=[];
+      render_pending();
+      if(upload_status) upload_status.textContent='';
+    }
+    function close_upload_modal(){
+      if(!upload_modal) return;
+      upload_modal.classList.remove('open');
+      upload_modal.style.display='none';
+      upload_modal.setAttribute('aria-hidden','true');
+      pending_files=[];
+      render_pending();
+      if(upload_status) upload_status.textContent='';
+      if(file_input) file_input.value='';
+    }
+    function render_pending(){
+      if(!upload_list) return;
+      if(!pending_files.length){
+        upload_list.innerHTML='';
+        if(upload_submit) upload_submit.disabled=true;
+        return;
+      }
+      upload_list.innerHTML = pending_files.map((f,i)=> `<div class="upload_item"><span class="upload_item_name">${esc_html(f.name)}</span><span class="upload_item_size">${fmt_size(f.size)}</span><button class="upload_item_remove" type="button" data-idx="${i}" aria-label="Remove ${esc_html(f.name)}"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 4l6 6M10 4L4 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button></div>`).join('');
+      if(upload_submit) upload_submit.disabled=false;
+    }
+    function add_pending_files(files){
+      for(const f of files){
+        if(!pending_files.find(p=> p.name===f.name && p.size===f.size)){
+          pending_files.push(f);
+        }
+      }
+      render_pending();
+    }
+    async function refresh_files_list(){
+      try{
+        const r = await fetch(`${API}/files`);
+        if(!r.ok) return;
+        const data = await r.json();
+        const list = Array.isArray(data)? data : (data.files||data);
+        if(!files_list_el) return;
+        if(!list.length){
+          files_list_el.innerHTML = '<div style="padding:8px 12px;font-size:13px;color:var(--meta)">No files uploaded</div>';
+          return;
+        }
+        files_list_el.innerHTML = list.map(f=> `<div class="sidebar__item" data-file-id="${esc_html(f.id)}" role="button" tabindex="0" aria-label="file ${esc_html(f.display_name||f.storage_name)}"><span class="sidebar__item-dot ${f.status==='ready'?'ready':(f.status==='failed'||f.status==='error'?'error':'')}"></span><span class="sidebar__item-text">${esc_html(f.display_name||f.storage_name||'file')}</span><span class="sidebar__item-meta">${f.num_chunks||0} chunks</span></div>`).join('');
+      }catch(e){}
+    }
+    const composer_toast = document.getElementById('composer-toast');
+    let toast_timer = null;
+    function hide_link_toast(){
+      clearTimeout(toast_timer);
+      if(composer_toast) composer_toast.hidden = true;
+    }
+    function show_link_toast(count){
+      if(!composer_toast || !count) return;
+      clearTimeout(toast_timer);
+      composer_toast.textContent = '';
+      const label = document.createElement('span');
+      label.textContent = `\u2713 ${count} ${count === 1 ? 'file' : 'files'} linked to this session.`;
+      const strict_btn = document.createElement('button');
+      strict_btn.type = 'button';
+      strict_btn.className = 'composer-toast__btn';
+      strict_btn.textContent = 'Strict mode \u2014 answer only from these';
+      strict_btn.addEventListener('click', enable_strict_mode);
+      composer_toast.append(label, strict_btn);
+      composer_toast.hidden = false;
+      if(!reduced_motion.matches){
+        composer_toast.classList.remove('toast-in');
+        void composer_toast.offsetWidth;
+        composer_toast.classList.add('toast-in');
+      }
+      toast_timer = setTimeout(hide_link_toast, 8000);
+    }
+    async function enable_strict_mode(){
+      if(!sessionId){
+        setComposerError('Create a session first.');
+        setTimeout(()=>{ clearComposerError(); },3000);
+        return;
+      }
+      try{
+        const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({grounding_mode:'strict'})});
+        if(!r.ok) throw new Error(`Failed to switch to strict mode: ${r.status}`);
+        hide_link_toast();
+        const badge = document.getElementById('phase-badge');
+        if(badge) badge.dataset.grounding = 'strict';
+        setComposerStatus('strict grounding on');
+        setTimeout(()=>{ setComposerStatus(''); },2000);
+      }catch(e){
+        setComposerError(e && e.message ? e.message : 'Could not switch to strict mode.');
+        setTimeout(()=>{ clearComposerError(); },3000);
+      }
+    }
+    async function link_files_to_session(uploaded){
+      const records = Array.isArray(uploaded) ? uploaded : [];
+      const ids = records.map(f => f && f.id).filter(Boolean);
+      if(!ids.length) return;
+      if(!sessionId){
+        setComposerError('Create a session first.');
+        setTimeout(()=>{ clearComposerError(); },3000);
+        return;
+      }
+      try{
+        const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}/files`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({file_ids: ids})});
+        if(!r.ok){
+          const err = await r.json().catch(()=>({}));
+          throw new Error(err.detail || `Linking failed: ${r.status}`);
+        }
+        show_link_toast(ids.length);
+      }catch(e){
+        setComposerError(e && e.message ? e.message : 'Could not link files to session.');
+        setTimeout(()=>{ clearComposerError(); },3000);
+      }
+    }
+    async function handle_files_direct(files){
+      if(!files || !files.length) return;
+      if(upload_status) upload_status.textContent='';
+      const fd = new FormData();
+      for(const f of files) fd.append('files', f);
+      try{
+        setComposerStatus('uploading…');
+        if(upload_status) upload_status.textContent='Uploading…';
+        const r = await fetch(`${API}/files`, {method:'POST', body: fd});
+        if(!r.ok){
+          const err = await r.json().catch(()=>({}));
+          throw new Error(err.detail||`Upload failed: ${r.status}`);
+        }
+        const uploaded = await r.json();
+        if(upload_status) upload_status.textContent='Upload complete';
+        setComposerStatus('upload complete');
+        await refresh_files_list();
+        await link_files_to_session(uploaded);
+        setTimeout(()=>{setComposerStatus(''); if(upload_status) upload_status.textContent='';},1500);
+      }catch(e){
+        const msg = e && e.message ? e.message : 'Upload failed';
+        setComposerError(msg);
+        if(upload_status) upload_status.textContent=msg;
+        setTimeout(()=>{clearComposerError(); if(upload_status) upload_status.textContent='';},3000);
+      }
+    }
+    async function submit_upload(){
+      if(!pending_files.length) return;
+      if(upload_submit) {upload_submit.disabled=true; upload_submit.textContent='Uploading…';}
+      if(upload_status) upload_status.textContent='Uploading…';
+      setComposerStatus('uploading…');
+      const fd = new FormData();
+      for(const f of pending_files) fd.append('files', f);
+      try{
+        const r = await fetch(`${API}/files`, {method:'POST', body: fd});
+        if(!r.ok){
+          const err = await r.json().catch(()=>({}));
+          throw new Error(err.detail||`Upload failed: ${r.status}`);
+        }
+        const uploaded = await r.json();
+        if(upload_status) upload_status.textContent='Upload complete';
+        setComposerStatus('upload complete');
+        await refresh_files_list();
+        await link_files_to_session(uploaded);
+        setTimeout(()=>{ close_upload_modal(); setComposerStatus('');},800);
+      }catch(e){
+        const msg = e && e.message ? e.message : 'Upload failed';
+        setComposerError(msg);
+        if(upload_status) upload_status.textContent=msg;
+        if(upload_submit){ upload_submit.disabled=false; upload_submit.textContent='Upload';}
+        setComposerStatus('');
+      } finally {
+        if(upload_submit) upload_submit.textContent='Upload';
+      }
+    }
+    attach_btn?.addEventListener('click', ()=>{ if(file_input) file_input.click(); });
+    upload_btn?.addEventListener('click', ()=>{ open_upload_modal(); });
+    file_input?.addEventListener('change', e=>{
+      const files = e.target.files;
+      if(!files || !files.length) return;
+      const modal_open = upload_modal && (upload_modal.classList.contains('open') || upload_modal.style.display==='flex');
+      if(modal_open){
+        add_pending_files(files);
+      } else {
+        handle_files_direct(files);
+      }
+      e.target.value='';
+    });
+    upload_zone?.addEventListener('click', ()=> file_input?.click());
+    upload_zone?.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); file_input?.click(); }});
+    upload_zone?.addEventListener('dragover', e=>{ e.preventDefault(); upload_zone.classList.add('dragover');});
+    upload_zone?.addEventListener('dragleave', ()=> upload_zone.classList.remove('dragover'));
+    upload_zone?.addEventListener('drop', e=>{
+      e.preventDefault();
+      upload_zone.classList.remove('dragover');
+      if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+        if(upload_modal && !upload_modal.classList.contains('open')) open_upload_modal();
+        add_pending_files(e.dataTransfer.files);
+      }
+    });
+    upload_backdrop?.addEventListener('click', close_upload_modal);
+    upload_close?.addEventListener('click', close_upload_modal);
+    upload_cancel?.addEventListener('click', close_upload_modal);
+    upload_submit?.addEventListener('click', submit_upload);
+    upload_list?.addEventListener('click', e=>{
+      const btn = e.target.closest('[data-idx]');
+      if(btn){
+        const idx = parseInt(btn.getAttribute('data-idx'),10);
+        if(!isNaN(idx)){ pending_files.splice(idx,1); render_pending(); }
+      }
+    });
+    const input_bar = document.querySelector('.input-bar__wrapper');
+    input_bar?.addEventListener('dragover', e=>{ e.preventDefault(); input_bar.style.borderColor='var(--accent)';});
+    input_bar?.addEventListener('dragleave', ()=>{ input_bar.style.borderColor='';});
+    input_bar?.addEventListener('drop', e=>{
+      e.preventDefault();
+      input_bar.style.borderColor='';
+      if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+        handle_files_direct(e.dataTransfer.files);
+      }
+    });
+    files_list_el?.addEventListener('click', e=>{
+      const item = e.target.closest('[data-file-id]');
+      if(item){
+        const fid = item.getAttribute('data-file-id');
+        const name = item.querySelector('.sidebar__item-text')?.textContent || 'file';
+        setComposerStatus(`selected: ${name}`);
+        setTimeout(()=> setComposerStatus(''),1500);
+      }
+    });
+    files_list_el?.addEventListener('keydown', e=>{
+      if(e.key==='Enter' || e.key===' '){
+        const item = e.target.closest('[data-file-id]');
+        if(item){ e.preventDefault(); item.click(); }
+      }
+    });
+    document.getElementById('plan-nodes')?.addEventListener('click', e=>{
+      const node = e.target.closest('.sidebar__item');
+      if(node){ node.style.opacity='0.6'; setTimeout(()=> node.style.opacity='',200); }
+    });
+    document.addEventListener('keydown', e=>{
+      if(e.key==='Escape' && upload_modal && upload_modal.classList.contains('open')) close_upload_modal();
+    });
+    try{ refresh_files_list(); }catch(e){}
+  }catch(e){ console.error('workspace upload fix error', e)}
+})();
 
 sync_nav_workspace();
 if (sessionId) loadSession(sessionId);
