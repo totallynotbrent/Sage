@@ -8,20 +8,22 @@
  */
 
 /* Each pattern: [regex for the trailing marker, display labels].
- * First match wins. All case-insensitive. */
+ * First match wins. All case-insensitive. Trailing markdown emphasis,
+ * whitespace and punctuation after the marker is tolerated. */
+const BINARY_AFTER = /(?:\s|\*|_|~)*[?.!]*(?:\s|\*)*$/;
 const BINARY_PATTERNS = [
-  { re: /\(?(yes\s*[/\\|]\s*no|yes\s+or\s+no)\)?\s*[?.!]*$/i, labels: ["Yes", "No"] },
-  { re: /\((higher|lower)\s*[/\\|]\s*(higher|lower)\)?\s*[?.!]*$/i,
+  { re: new RegExp("\\(?(yes\\s*[/\\\\|]\\s*no|yes\\s+or\\s+no)\\)?" + BINARY_AFTER.source, "i"), labels: ["Yes", "No"] },
+  { re: new RegExp("\\((higher|lower)\\s*[/\\\\|]\\s*(higher|lower)\\)?" + BINARY_AFTER.source, "i"),
     labels: ["Higher", "Lower"] },
-  { re: /\((higher|lower)\s+or\s+(higher|lower)\)?\s*[?.!]*$/i,
+  { re: new RegExp("\\((higher|lower)\\s+or\\s+(higher|lower)\\)?" + BINARY_AFTER.source, "i"),
     labels: ["Higher", "Lower"] },
-  { re: /\((increasing|decreasing)\s*[/\\|]\s*(increasing|decreasing)\)?\s*[?.!]*$/i,
+  { re: new RegExp("\\((increasing|decreasing)\\s*[/\\\\|]\\s*(increasing|decreasing)\\)?" + BINARY_AFTER.source, "i"),
     labels: ["Increasing", "Decreasing"] },
-  { re: /\((increasing|decreasing)\s+or\s+(increasing|decreasing)\)?\s*[?.!]*$/i,
+  { re: new RegExp("\\((increasing|decreasing)\\s+or\\s+(increasing|decreasing)\\)?" + BINARY_AFTER.source, "i"),
     labels: ["Increasing", "Decreasing"] },
-  { re: /\((true|false)\s*[/\\|]\s*(true|false)\)?\s*[?.!]*$/i,
+  { re: new RegExp("\\((true|false)\\s*[/\\\\|]\\s*(true|false)\\)?" + BINARY_AFTER.source, "i"),
     labels: ["True", "False"] },
-  { re: /\((true|false)\s+or\s+(true|false)\)?\s*[?.!]*$/i,
+  { re: new RegExp("\\((true|false)\\s+or\\s+(true|false)\\)?" + BINARY_AFTER.source, "i"),
     labels: ["True", "False"] },
 ];
 
