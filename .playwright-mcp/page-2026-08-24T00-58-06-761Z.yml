@@ -1,0 +1,56 @@
+- generic [ref=e2]:
+  - heading "Sage workspace" [level=1] [ref=e3]
+  - generic [ref=e4]:
+    - button "Menu" [ref=e5] [cursor=pointer]
+    - link "Sage" [ref=e8] [cursor=pointer]:
+      - /url: index.html
+    - generic [ref=e9]: "- what is gravity"
+    - generic [ref=e10]: probe
+  - main [ref=e12]:
+    - generic [ref=e13]:
+      - log "Conversation" [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]: You
+          - generic [ref=e17]: what is gravity
+        - generic [ref=e18]:
+          - generic [ref=e19]: You
+          - generic [ref=e20]: hello?
+        - generic [ref=e21]:
+          - generic [ref=e22]: Sage
+          - paragraph [ref=e24]:
+            - generic [ref=e25]: Hello.
+            - generic [ref=e26]: Please
+            - generic [ref=e27]: select
+            - generic [ref=e28]: the
+            - generic [ref=e29]: answers
+            - generic [ref=e30]: to
+            - generic [ref=e31]: the
+            - generic [ref=e32]: questions
+            - generic [ref=e33]: provided
+            - generic [ref=e34]: to
+            - generic [ref=e35]: determine
+            - generic [ref=e36]: your
+            - generic [ref=e37]: current
+            - generic [ref=e38]: understanding
+            - generic [ref=e39]: of
+            - generic [ref=e40]: gravity.
+        - generic [ref=e41]:
+          - generic [ref=e42]: You
+          - generic [ref=e43]: Explain the Tet Offensive in detail.
+        - generic [ref=e44]:
+          - generic [ref=e45]: You
+          - generic [ref=e46]: Explain the Tet Offensive in detail.
+        - generic [ref=e47]:
+          - generic [ref=e48]: You
+          - generic [ref=e49]: Now teach me about the Paris Peace Accords
+      - generic [ref=e50]:
+        - toolbar "Artifact composer" [ref=e51]:
+          - button "Generate diagram" [ref=e52] [cursor=pointer]: Diagram
+          - button "Generate quiz" [ref=e59] [cursor=pointer]: Quiz
+          - button "Generate todo list" [ref=e63] [cursor=pointer]: Todo
+        - generic [ref=e67]:
+          - textbox "Message" [ref=e68]:
+            - /placeholder: Reply to Sage...
+          - generic [ref=e69]:
+            - button "Attach" [ref=e70] [cursor=pointer]
+            - button "Send" [ref=e73] [cursor=pointer]
