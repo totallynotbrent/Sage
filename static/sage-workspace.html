@@ -1456,12 +1456,14 @@ async function sendMessage() {
     append_web_source_chips(assistant_msg, done_web_sources);
     append_action_chips(assistant_msg, done_actions);
     render_math(true);
-    // Binary check question: replace trailing "(yes/no)" with buttons that
-    // submit the answer as a normal chat turn.
+    // Binary/two-option check question: replace the trailing marker
+    // ("(yes/no)", "(higher/lower)", ...) with buttons that submit the
+    // answer as a normal chat turn.
     const binary = detect_binary_question(fullText);
     if (binary) {
       assistant_msg.querySelector('.msg__bubble').innerHTML =
         sanitize_html(renderMd(binary.question));
+      assistant_msg.__binary_labels = binary.labels;
       render_math(true);
       append_binary_buttons(assistant_msg, (answer) => {
         input.value = answer;

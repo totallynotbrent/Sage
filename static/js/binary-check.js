@@ -1,27 +1,47 @@
 /* Binary check-question buttons for Sage workspace.
  *
- * The tutor ends teaching turns with a yes/no (or A/B) check question.
- * Detect the trailing question in the assistant text and replace it with
- * two tappable buttons; the tap sends the answer as a normal chat message
- * so the existing pipeline handles grading.
+ * The tutor ends teaching turns with a two-option check question
+ * (yes/no, higher/lower, increase/decrease, true/false, A/B).
+ * Detect the trailing choice marker in the assistant text and replace it
+ * with tappable buttons; the tap sends the answer as a normal chat message
+ * so the existing grading pipeline handles it unchanged.
  */
 
-/* Matches a trailing "(yes/no)", "yes or no?", "(correct/incorrect)" style
- * binary choice, case-insensitive. Returns match info or null. */
-const BINARY_TAIL_RE = /\(?((?:yes|no)\s*[/\\]\s*(?:yes|no)|(?:yes|no)\s+or\s+(?:yes|no))\)?\s*[?.!]*\s*$/i;
+/* Each pattern: [regex for the trailing marker, display labels].
+ * First match wins. All case-insensitive. */
+const BINARY_PATTERNS = [
+  { re: /\(?(yes\s*[/\\|]\s*no|yes\s+or\s+no)\)?\s*[?.!]*$/i, labels: ["Yes", "No"] },
+  { re: /\((higher|lower)\s*[/\\|]\s*(higher|lower)\)?\s*[?.!]*$/i,
+    labels: ["Higher", "Lower"] },
+  { re: /\((higher|lower)\s+or\s+(higher|lower)\)?\s*[?.!]*$/i,
+    labels: ["Higher", "Lower"] },
+  { re: /\((increasing|decreasing)\s*[/\\|]\s*(increasing|decreasing)\)?\s*[?.!]*$/i,
+    labels: ["Increasing", "Decreasing"] },
+  { re: /\((increasing|decreasing)\s+or\s+(increasing|decreasing)\)?\s*[?.!]*$/i,
+    labels: ["Increasing", "Decreasing"] },
+  { re: /\((true|false)\s*[/\\|]\s*(true|false)\)?\s*[?.!]*$/i,
+    labels: ["True", "False"] },
+  { re: /\((true|false)\s+or\s+(true|false)\)?\s*[?.!]*$/i,
+    labels: ["True", "False"] },
+];
 
 function detect_binary_question(text) {
   const trimmed = (text || "").trim();
-  const m = trimmed.match(BINARY_TAIL_RE);
-  if (!m) return null;
-  return { tail: m[0], question: trimmed.slice(0, trimmed.length - m[0].length).trim() };
+  for (const p of BINARY_PATTERNS) {
+    const m = trimmed.match(p.re);
+    if (m) {
+      return { tail: m[0], question: trimmed.slice(0, trimmed.length - m[0].length).trim(), labels: p.labels };
+    }
+  }
+  return null;
 }
 
 function append_binary_buttons(messageEl, onAnswer) {
   if (!messageEl) return;
   const row = document.createElement("div");
   row.className = "binary-answer-row";
-  for (const label of ["Yes", "No"]) {
+  const labels = messageEl.__binary_labels || ["Yes", "No"];
+  for (const label of labels) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "binary-answer-btn";
