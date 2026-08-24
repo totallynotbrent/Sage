@@ -144,8 +144,8 @@ def make_system_prompt(
     else:
         grounding_rules = (
             "Use the attached source material as your primary context. You may "
-            "supplement it with general model knowledge, but always label what is "
-            "source-backed versus synthesis/general knowledge."
+            "supplement it with general model knowledge when the material is thin; "
+            "teach confidently and do not add disclaimers about knowledge sources."
         )
 
     miss_note = ""
@@ -153,9 +153,8 @@ def make_system_prompt(
         miss_note = (
             " NOTE: The user HAS attached documents to this session, but no "
             "excerpt matched this specific question. Do NOT claim no documents "
-            "exist. Say you could not find relevant excerpts for this question "
-            "and offer either a general-knowledge answer (labeled as such) or "
-            "suggest rephrasing toward the documents' actual topics."
+            "exist. Say you could not find relevant excerpts for this question, "
+            "then teach from general knowledge without belaboring the point."
         )
 
     blocks = [
@@ -165,12 +164,7 @@ def make_system_prompt(
             "neutral, and monotone. Do not use overly friendly or enthusiastic "
             "language. Do not use phrases like \"I'd love to help\", "
             "\"Great question\", or excessive exclamation marks. "
-            "Be conservative: do not fabricate citations, "
-            "page numbers, quotes, or source support. Disclose uncertainty. Always "
-            "distinguish (1) claims directly supported by an attached source, "
-            "(2) synthesis or explanation built from the sources, and (3) general "
-            "model knowledge. If sources are insufficient, say so. If sources "
-            "disagree, identify the disagreement. "
+            "Do not fabricate citations, page numbers, quotes, or source support. "
             "When you draw a claim from a source, cite it inline using the marker "
             "[cit:file_id:chunk_id] exactly as written in the [DOC] blocks, for "
             "example [cit:f1a2b3c4:0:1]. Never invent a citation id. "
@@ -184,7 +178,10 @@ def make_system_prompt(
             "question and do NOT reveal the next step until the learner responds. "
             "Distinguish source-backed vs synthesis. Use analogies sparingly and "
             "only if they aid understanding. Do not repeat the same analogy. End "
-            "each teaching turn with exactly ONE scaffolded check question (yes/no "
+            "each teaching turn with exactly ONE scaffolded check question, always "
+            "formatted to end with the literal marker '(yes/no)' so the UI can "
+            "render answer buttons. Example ending: '...Did the policy achieve "
+            "its goal? (yes/no)' "
             "or fill-in-the-blank), not two open-ended questions. If the learner "
             "replies with 'i dont know', 'idk', or similar uncertainty, then on "
             "your NEXT turn give the direct answer immediately with a tiny concrete "

@@ -12,6 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
   <script src="js/leaked-call-guard.js"></script>
+  <script src="js/binary-check.js"></script>
   <style>
 :root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:180ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -204,6 +205,13 @@ textarea{font:inherit;color:inherit}
 .typing-indicator__status{font-size:13px;color:var(--muted);animation:statusFadeIn var(--dur-slow) var(--ease) both;transition:opacity var(--dur) var(--ease)}
 .typing-indicator__status.swapping{opacity:0}
 @keyframes statusFadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+/* Binary check-question answer buttons */
+.binary-answer-row{display:flex;gap:var(--space-3);margin-top:var(--space-4);animation:binaryRowIn 350ms var(--ease) both}
+@keyframes binaryRowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.binary-answer-btn{flex:1;padding:var(--space-3) var(--space-5);border-radius:var(--r);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:14px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all var(--dur) var(--ease);text-transform:uppercase;letter-spacing:0.05em}
+.binary-answer-btn:hover:not(:disabled){background:var(--accent-dim);border-color:var(--accent);color:var(--accent-hover)}
+.binary-answer-btn.selected{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.binary-answer-btn:disabled{opacity:0.35;cursor:default}
 /* Smooth per-block fade for streaming text (markdown renders p/li/pre
  * directly into the bubble - animate those children). */
 .msg__bubble.streaming > *{animation:streamLineIn 320ms var(--ease) both}
@@ -291,7 +299,7 @@ textarea{font:inherit;color:inherit}
 .btn_primary:disabled{opacity:0.5;cursor:not-allowed}
 .btn_ghost{background:var(--overlay);color:var(--muted)}
 .btn_ghost:hover{background:var(--surface-warm);color:var(--fg)}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}.word{animation:none !important;opacity:1 !important;transform:none !important}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:200ms !important;transition-duration:120ms !important}}
   </style>
 </head>
 <body>
@@ -541,7 +549,7 @@ function renderChatMermaid(root) {
 }
 function wrapWords(container){
   try{
-    if(!container||reduced_motion.matches)return;
+    if(!container)return;
     if(container.dataset.wordWrapped==='1')return;
     let word_idx=0;
     function walk(node){
@@ -597,7 +605,7 @@ function wrapWords(container){
 function animateWords(element){try{wrapWords(element)}catch(e){}}
 function wrapQuizWords(card){
   try{
-    if(!card||reduced_motion.matches)return;
+    if(!card)return;
     card.querySelectorAll('.artifact-card__quiz-qtext,.artifact-card__quiz-question').forEach(qtext=>{
       if(qtext.dataset.wordWrapped==='1')return;
       if(qtext.querySelector('.word'))return;
@@ -1448,6 +1456,18 @@ async function sendMessage() {
     append_web_source_chips(assistant_msg, done_web_sources);
     append_action_chips(assistant_msg, done_actions);
     render_math(true);
+    // Binary check question: replace trailing "(yes/no)" with buttons that
+    // submit the answer as a normal chat turn.
+    const binary = detect_binary_question(fullText);
+    if (binary) {
+      assistant_msg.querySelector('.msg__bubble').innerHTML =
+        sanitize_html(renderMd(binary.question));
+      render_math(true);
+      append_binary_buttons(assistant_msg, (answer) => {
+        input.value = answer;
+        sendMessage();
+      });
+    }
     if (pendingDiagramAuto) {
       const envelope = await requestArtifact(ARTIFACT_KIND.DIAGRAM, text, 3);
       if (envelope && envelope.kind === ARTIFACT_KIND.DIAGRAM) {
