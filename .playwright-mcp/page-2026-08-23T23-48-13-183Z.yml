@@ -1,0 +1,24 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - button "Menu" [ref=e4] [cursor=pointer]
+    - link "Sage" [ref=e7] [cursor=pointer]:
+      - /url: index.html
+  - main [ref=e9]:
+    - generic [ref=e10]:
+      - log "Conversation" [ref=e11]:
+        - generic [ref=e12]:
+          - heading "What are you working on?" [level=1] [ref=e13]
+          - paragraph [ref=e14]: Upload study materials or just start asking questions.
+      - generic [ref=e15]: Sage artifacts
+      - generic [ref=e16]:
+        - toolbar "Artifact composer" [ref=e17]:
+          - button "Generate diagram from prompt" [ref=e18] [cursor=pointer]: Diagram
+          - button "Generate quiz from prompt" [ref=e25] [cursor=pointer]: Quiz
+          - button "Generate todo list from prompt" [ref=e29] [cursor=pointer]: Todo
+          - generic [ref=e33]: Ask Sage anything...
+        - generic [ref=e34]:
+          - textbox "Message" [ref=e35]:
+            - /placeholder: Ask Sage anything...
+          - generic [ref=e36]:
+            - button "Attach" [ref=e37] [cursor=pointer]
+            - button "Send" [ref=e40] [cursor=pointer]

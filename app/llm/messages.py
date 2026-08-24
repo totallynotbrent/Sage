@@ -33,6 +33,10 @@ TUTOR_TOOL_GUIDANCE = (
 
 PHASE_PLAYBOOK = (
     "TEACHING ARC (follow strictly): setup→probe→plan→teach→check loop→complete. "
+    "IMPORTANT: invoke tools ONLY through the tool-calls mechanism of the API. "
+    "Never write tool calls as visible text such as <call:run_probe/> — the UI "
+    "renders probe questions itself and text-form calls are discarded, which "
+    "breaks the lesson. "
     "- setup: greet once, then IMMEDIATELY call run_probe before teaching "
     "anything. After calling run_probe, the web UI renders the questions as "
     "interactive answer cards automatically. Do not restate or reformat them; "
