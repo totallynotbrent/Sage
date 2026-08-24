@@ -182,6 +182,9 @@ textarea{font:inherit;color:inherit}
 
 .typing-indicator{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0}
 .typing-indicator__bar{width:80px;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;animation:gradientSweep 1.2s ease infinite}
+.typing-indicator__status{font-size:13px;color:var(--muted);animation:statusFadeIn var(--dur-slow) var(--ease) both;transition:opacity var(--dur) var(--ease)}
+.typing-indicator__status.swapping{opacity:0}
+@keyframes statusFadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 .msg__bubble.streaming>*{animation:streamLineIn 320ms var(--ease) both}
 @keyframes streamLineIn{from{opacity:.25}to{opacity:1}}
 @keyframes gradientSweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
