@@ -77,7 +77,7 @@ class SessionService(TurnMixin):
         messages = rows_to_dicts(
             self.conn.execute(
                 "SELECT * FROM messages WHERE session_id = ? "
-                "AND partial = 0 ORDER BY created_at",
+                "AND (partial = 0 OR content != '') ORDER BY created_at",
                 (session_id,),
             )
         )
@@ -168,6 +168,19 @@ class SessionService(TurnMixin):
         self.conn.commit()
         return self.get(session_id)
 
+    def update_title(self, session_id: str, title: str) -> Session:
+        session = self.get(session_id)
+        clean_title = " ".join(title.split()).strip()[:80]
+        if not clean_title:
+            clean_title = session.goal[:80]
+        now = utc_now()
+        self.conn.execute(
+            "UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?",
+            (clean_title, now, session_id),
+        )
+        self.conn.commit()
+        return self.get(session_id)
+
     def _to_session(self, row: dict) -> Session:
         try:
             file_ids = json.loads(row.get("file_ids_json") or "[]")
@@ -245,6 +258,27 @@ class SessionService(TurnMixin):
         ).fetchone()
         return row_to_dict(row), True
 
+    def persist_user_message(self, session_id: str, content: str) -> Message:
+        now = utc_now()
+        self.conn.execute(
+            """
+            INSERT INTO messages (id, session_id, role, kind, content,
+                                  citations_json, partial, created_at)
+            VALUES (?, ?, 'user', 'text', ?, '[]', 0, ?)
+            """,
+            (new_id(), session_id, content, now),
+        )
+        self.conn.execute(
+            "UPDATE sessions SET updated_at = ? WHERE id = ?", (now, session_id)
+        )
+        self.conn.commit()
+        row = self.conn.execute(
+            "SELECT * FROM messages WHERE session_id = ? AND role = 'user' "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            (session_id,),
+        ).fetchone()
+        return self._message_dict(row_to_dict(row) or {})
+
     def persist_message(
         self,
         session_id: str,
@@ -270,6 +304,19 @@ class SessionService(TurnMixin):
             (session_id, client_msg_id),
         ).fetchone()
         return self._message_dict(row_to_dict(row) or {})
+
+    def persist_partial_content(
+        self, session_id: str, client_msg_id: str, content: str
+    ) -> None:
+        if not content:
+            return
+        now = utc_now()
+        self.conn.execute(
+            "UPDATE messages SET content = ?, created_at = ? "
+            "WHERE session_id = ? AND client_msg_id = ? AND partial = 1",
+            (content, now, session_id, client_msg_id),
+        )
+        self.conn.commit()
 
     def find_message(self, session_id: str, client_msg_id: str) -> dict | None:
         row = self.conn.execute(

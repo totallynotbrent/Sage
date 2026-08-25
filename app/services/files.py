@@ -38,7 +38,9 @@ _MIME_BY_EXT = {
 
 
 def sanitize_display_name(filename: str) -> str:
-    name = Path(filename or "").name
+    # Treat backslashes as separators too so Windows-style traversal
+    # ("..\\name.txt") cannot smuggle path components into display names.
+    name = Path(str(filename or "").replace("\\", "/")).name
     name = _CONTROL_CHARS.sub("", name).strip()
     if re.search(r"\[/?doc\]", filename or "", flags=re.IGNORECASE):
         raise ValueError("file names may not contain [DOC] or [/DOC] markers")

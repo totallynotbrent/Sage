@@ -13,3 +13,6 @@ pylatexenc
 # Development / test
 pytest
 pytest-asyncio
+openai>=1.0
+ollama>=0.4
+

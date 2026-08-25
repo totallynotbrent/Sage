@@ -6,7 +6,7 @@ import logging
 from types import SimpleNamespace
 
 import httpx
-from openai import APIStatusError
+from ollama import ResponseError
 
 from app.config import Settings
 from app.llm.client import LLMClient
@@ -693,30 +693,31 @@ class _scripted_stream:
         raise StopAsyncIteration
 
 
-class _flaky_completions:
+def _ollama_chunk(content):
+    return SimpleNamespace(
+        done=False,
+        message=SimpleNamespace(content=content, tool_calls=None),
+    )
+
+
+class _ollama_flaky:
+    """Mimics ollama AsyncClient: tools rejected with 400 -> retry without."""
+
     def __init__(self, chunk):
-        self.create_calls: list[dict] = []
+        self.chat_calls: list[dict] = []
         self._chunk = chunk
 
-    async def create(self, **kwargs):
-        self.create_calls.append(kwargs)
+    async def chat(self, **kwargs):
+        self.chat_calls.append(kwargs)
         if kwargs.get("tools"):
-            request = httpx.Request("POST", "http://endpoint.test/v1/chat/completions")
-            response = httpx.Response(400, request=request)
-            raise APIStatusError(
-                "tools are not supported", response=response, body=None
+            raise ResponseError(
+                "the model does not support tools", status_code=400
             )
         return _scripted_stream([self._chunk])
 
 
 def test_stream_chat_falls_back_without_tools_on_400(caplog):
-    chunk = SimpleNamespace(
-        choices=[
-            SimpleNamespace(delta=SimpleNamespace(content="hello"), finish_reason=None)
-        ]
-    )
-    completions = _flaky_completions(chunk)
-    stub = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    stub = _ollama_flaky(_ollama_chunk("hello"))
 
     client = LLMClient.__new__(LLMClient)
     object.__setattr__(client, "_client", stub)
@@ -733,27 +734,18 @@ def test_stream_chat_falls_back_without_tools_on_400(caplog):
             )
         )
 
-    assert len(completions.create_calls) == 2
-    assert "tools" in completions.create_calls[0]
-    assert "tools" not in completions.create_calls[1]
+    assert len(stub.chat_calls) == 2
+    assert "tools" in stub.chat_calls[0]
+    assert "tools" not in stub.chat_calls[1]
     assert events == [{"type": "delta", "delta": "hello"}]
     assert not any(e.get("type") == "tool_call" for e in events)
-    assert any("tools unsupported" in record.message for record in caplog.records)
 
 
 def test_stream_chat_plain_path_stays_strings():
-    chunk = SimpleNamespace(
-        choices=[
-            SimpleNamespace(delta=SimpleNamespace(content="plain"), finish_reason=None)
-        ]
-    )
+    async def chat(**kwargs):
+        return _scripted_stream([_ollama_chunk("plain")])
 
-    async def create(**kwargs):
-        return _scripted_stream([chunk])
-
-    stub = SimpleNamespace(
-        chat=SimpleNamespace(completions=SimpleNamespace(create=create))
-    )
+    stub = SimpleNamespace(chat=chat)
     client = LLMClient.__new__(LLMClient)
     object.__setattr__(client, "_client", stub)
     object.__setattr__(

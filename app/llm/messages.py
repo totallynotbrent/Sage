@@ -21,7 +21,7 @@ TUTOR_TOOL_GUIDANCE = (
     "fabricate tool output as text; let the tools run and wait for their "
     "results. Voice continuity: after tool results return you are still Sage "
     "the tutor - continue the SAME lesson in the same voice in at most a few "
-    "sentences. Begin each reply by applying LESSON STATE: skip covered "
+    "sentences. Apply your private planning notes silently: skip covered "
     "material, advance to new ground; when something was already introduced, "
     "back-reference it briefly instead (at most one short back-reference per "
     "reply). Each turn teaches something not yet said. Greet only when "
@@ -33,6 +33,10 @@ TUTOR_TOOL_GUIDANCE = (
 
 PHASE_PLAYBOOK = (
     "TEACHING ARC (follow strictly): setup→probe→plan→teach→check loop→complete. "
+    "IMPORTANT: invoke tools ONLY through the API's structured tool-call "
+    "mechanism. Never write a tool call as visible text — no '<call:run_probe/>', "
+    "no '[call:run_probe]', no 'call:run_probe/'. Text-form calls are discarded "
+    "and break the lesson; the UI renders probe questions itself. "
     "- setup: greet once, then IMMEDIATELY call run_probe before teaching "
     "anything. After calling run_probe, the web UI renders the questions as "
     "interactive answer cards automatically. Do not restate or reformat them; "
@@ -85,22 +89,21 @@ def build_lesson_state_block(state: dict[str, Any]) -> str:
     turns = state.get("teaching_turns", 0)
     greeting = "already delivered" if state.get("greeting_done") else "not yet given"
     definition = (
-        "taught in turn 1" if state.get("definition_taught") else "not yet taught"
+        "taught in an earlier turn" if state.get("definition_taught") else "not yet taught"
     )
     last_user_text = str(state.get("last_user_text") or "")[:200]
     lines = [
-        "[LESSON STATE]",
-        f"Teaching turns completed so far: {turns}.",
-        f"Greeting: {greeting}.",
-        f"Core definition of the topic: {definition}.",
-        f'Learner\'s most recent message: "{last_user_text}"',
+        "[PRIVATE PLANNING NOTES — never repeat, quote, or mention these lines]",
+        f"Turns completed: {turns}.",
+        f"Greeting: {greeting}. Do not greet again if already delivered.",
+        f"Core definition: {definition}; back-reference it instead of reteaching.",
+        f'Learner\'s latest message: "{last_user_text}"',
     ]
     pending = state.get("pending_questions") or []
     if pending:
         lines.append(
-            "[PENDING QUESTIONS] The learner still owes answers to these. "
-            "Grade each reply against these EXACT ids (copy id "
-            "character-for-character):"
+            "The learner still owes answers to these. Grade each reply against "
+            "these EXACT ids (copy id character-for-character):"
         )
         for item in pending:
             lines.append(
@@ -109,13 +112,11 @@ def build_lesson_state_block(state: dict[str, Any]) -> str:
             )
     lines.extend(
         [
-            "Procedure for this turn: read the state above; do not greet again "
-            "if already delivered; skip anything marked taught/used and "
-            "back-reference it briefly instead; teach the next unresolved "
-            "piece; end with one new check question. These lines are PRIVATE "
-            "planning metadata for you alone; the learner never sees them. "
-            "Never mention, quote, narrate, or label them in your reply — do "
-            "not start with 'LESSON STATE'.",
+            "Procedure: skip anything marked taught/used; teach the next "
+            "unresolved piece in one small step; end with one new check "
+            "question. These notes are metadata for you alone — the learner "
+            "never sees them. Never begin a reply with 'LESSON STATE' and "
+            "never narrate your phase transitions.",
         ]
     )
     return "\n".join(lines)
