@@ -1,1 +1,0 @@
-QM-7 Safety Protocol: Never expose specimen QM-7 to temperatures above 31 degrees Celsius; the bioluminescence permanently shifts from green to amber.
