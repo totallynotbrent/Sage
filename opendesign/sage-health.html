@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Health</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:1120ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--fg);background:var(--bg)}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:var(--fg)}
+input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
+.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
+.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--fg)}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
+.logo span{color:var(--muted)}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform var(--dur-slow) var(--ease),opacity var(--dur-slow) var(--ease)}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__header:hover{color:var(--muted)}
+.sidebar__chevron{transition:transform var(--dur) var(--ease)}
+.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
+.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
+.sidebar__section.open .sidebar__list{display:block}
+.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
+.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.sidebar__item.active{background:var(--overlay);color:var(--fg)}
+.sidebar__item-dot{width:6px;height:6px;border-radius:50%;background:var(--meta);flex-shrink:0}
+.sidebar__item-dot.ready{background:var(--foam)}
+.sidebar__item-dot.error{background:var(--love)}
+.sidebar__item-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar__item-meta{font-size:11px;color:var(--meta);flex-shrink:0}
+.sidebar__item-badge{font-size:10px;font-weight:500;letter-spacing:0.03em;padding:2px 7px;border-radius:var(--r);background:var(--overlay);color:var(--meta);flex-shrink:0}
+.sidebar__item-badge[data-phase="teach"]{color:var(--accent)}
+.sidebar__item-badge[data-phase="plan"]{color:var(--gold)}
+.sidebar__item-badge[data-phase="complete"]{color:var(--foam)}
+.sidebar__action{display:flex;align-items:center;gap:var(--space-2);width:100%;padding:var(--space-2) var(--space-4) var(--space-3);font-size:13px;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__action:hover{color:var(--accent)}
+.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg)}
+.content_centered{max-width:600px;width:100%;margin:0 auto;padding:var(--space-8) var(--space-5)}
+.page_title{font-family:var(--font-display);font-size:24px;font-weight:500;margin-bottom:var(--space-6)}
+.health_card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5)}
+.health_overall{display:flex;align-items:center;gap:var(--space-4);padding-bottom:var(--space-5);margin-bottom:var(--space-4);border-bottom:1px solid var(--border)}
+.health_icon{width:40px;height:40px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600}
+.health_icon.ok{background:rgba(156,207,216,0.12);color:var(--foam)}
+.health_icon.warn{background:rgba(246,193,119,0.12);color:var(--gold)}
+.health_icon.error{background:rgba(235,111,146,0.12);color:var(--love)}
+.health_overall_text{flex:1}
+.health_overall_title{font-weight:600;font-size:15px;margin-bottom:2px}
+.status_badge{font-family:var(--font-mono);font-size:11px;font-weight:500;text-transform:uppercase;padding:3px 8px;border-radius:4px}
+.status_badge.ok{background:rgba(156,207,216,0.12);color:var(--foam)}
+.status_badge.warn{background:rgba(246,193,119,0.12);color:var(--gold)}
+.status_badge.error{background:rgba(235,111,146,0.12);color:var(--love)}
+.health_row{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) 0;border-bottom:1px solid var(--border)}
+.health_row:last-child{border-bottom:none}
+.health_label{color:var(--muted);font-size:13px}
+.health_value{font-family:var(--font-mono);font-size:13px;font-weight:500}
+.health_value.foam{color:var(--foam)}
+.health_value.love{color:var(--love)}
+.health_value.gold{color:var(--gold)}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease),border-color 150ms var(--ease)}
+.btn_primary{background:var(--accent);color:var(--bg)}
+.btn_primary:hover{background:var(--accent-hover)}
+.btn_secondary{background:transparent;border:1px solid var(--border);color:var(--fg)}
+.btn_secondary:hover{background:var(--overlay);border-color:var(--border-soft)}
+.btn svg{width:14px;height:14px}
+
+/* ── Animations ──────────────────────────────── */
+.sidebar{transition:transform 500ms var(--ease),opacity 500ms var(--ease)}
+.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
+.sidebar:not(.collapsed){transform:translateX(0)}
+
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
+.sidebar-backdrop.open{display:block}
+@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}}
+@media(prefers-reduced-motion:reduce){
+*{transition-duration:0ms!important;animation-duration:0ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app" data-od-id="app">
+  <div class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <a href="sage-home.html" class="logo">S<span>a</span>ge</a>
+  </div>
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <a href="sage-home.html" class="sidebar__item">Home</a>
+      <a href="sage-workspace.html" class="sidebar__item">Workspace</a>
+      <a href="sage-library.html" class="sidebar__item">Library</a>
+      <a href="sage-sessions.html" class="sidebar__item">Sessions</a>
+      <a href="sage-settings.html" class="sidebar__item">Settings</a>
+      <a href="sage-health.html" class="sidebar__item">Health</a>
+    </div>
+  </div>
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Sessions</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="teach">teach</span><span class="sidebar__item-text">Rolle's Theorem</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="plan">plan</span><span class="sidebar__item-text">BFS & Dijkstra</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="complete">done</span><span class="sidebar__item-text">Continuity</span></div>
+    </div>
+  </div>
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Plan</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <div class="sidebar__item"><span class="sidebar__item-badge">1</span><span class="sidebar__item-text">Define Rolle's Theorem</span><span class="sidebar__item-meta" style="color:var(--foam)">done</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge">2</span><span class="sidebar__item-text">Gather prerequisites</span><span class="sidebar__item-meta" style="color:var(--foam)">done</span></div>
+      <div class="sidebar__item active"><span class="sidebar__item-badge" style="background:var(--accent);color:var(--bg)">3</span><span class="sidebar__item-text">Explain proof strategy</span><span class="sidebar__item-meta" style="color:var(--accent)">current</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge">4</span><span class="sidebar__item-text">Practice problems</span><span class="sidebar__item-meta">pending</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge">5</span><span class="sidebar__item-text">Assess understanding</span><span class="sidebar__item-meta">pending</span></div>
+    </div>
+  </div>
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Files · 4</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Graph Theory — Lecture 4.pdf</span><span class="sidebar__item-meta">42</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Real Analysis — defs & thms.tex</span><span class="sidebar__item-meta">31</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Algorithms — notes.md</span><span class="sidebar__item-meta">18</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-dot error"></span><span class="sidebar__item-text">Scanned — ch3.PDF</span><span class="sidebar__item-meta">—</span></div>
+    </div>
+    <button class="sidebar__action">+ Upload file</button>
+  </div>
+</aside>
+<main class="main" data-od-id="main">
+<div class="content_centered">
+<h1 class="page_title" data-od-id="page-title">System Health</h1>
+<div class="health_card" data-od-id="health-card">
+<div class="health_overall" data-od-id="health-overall">
+<div class="health_icon ok" data-od-id="health-icon">✓</div>
+<div class="health_overall_text">
+<div class="health_overall_title" data-od-id="health-title">Overall Status</div>
+</div>
+<span class="status_badge ok" data-od-id="health-badge">ok</span>
+</div>
+<div class="health_row" data-od-id="row-model">
+<span class="health_label">Model Configured</span>
+<span class="health_value foam" data-od-id="val-model">Yes</span>
+</div>
+<div class="health_row" data-od-id="row-endpoint">
+<span class="health_label">Endpoint Reachable</span>
+<span class="health_value foam" data-od-id="val-endpoint">Yes</span>
+</div>
+<div class="health_row" data-od-id="row-checked">
+<span class="health_label">Checked At</span>
+<span class="health_value" data-od-id="val-checked">8/21/2026, 4:30:00 PM</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+<script>
+(function(){
+var menu_btn=document.getElementById("menu-btn");
+var sidebar=document.getElementById("sidebar");
+var backdrop=document.getElementById("sidebar-backdrop");
+function toggleSidebar(){sidebar.classList.toggle("collapsed");backdrop.classList.toggle("open",!sidebar.classList.contains("collapsed"))}
+function close_sidebar(){sidebar.classList.add("collapsed");backdrop.classList.remove("open")}
+menu_btn.addEventListener("click",toggleSidebar);
+backdrop.addEventListener("click",close_sidebar);
+document.addEventListener("keydown",function(e){if(e.key==="Escape")close_sidebar()});
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){b.closest('.sidebar__section').classList.toggle('open')})});
+if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+var refresh_btn=document.getElementById("refresh_btn");
+refresh_btn.addEventListener("click",function(){location.reload()})
+})();
+</script>
+</body>
+</html>

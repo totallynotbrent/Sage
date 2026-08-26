@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-mockup.html",
+  "entry": "sage-mockup.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T20:43:05.439Z",
+  "updatedAt": "2026-08-21T20:43:05.439Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

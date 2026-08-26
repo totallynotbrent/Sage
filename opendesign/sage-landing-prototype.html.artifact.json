@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-landing-prototype.html",
+  "entry": "sage-landing-prototype.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T20:06:40.078Z",
+  "updatedAt": "2026-08-21T20:06:40.082Z",
+  "metadata": {
+    "inferred": true
+  }
+}

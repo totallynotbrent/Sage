@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-health.html",
+  "entry": "sage-health.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T20:49:19.305Z",
+  "updatedAt": "2026-08-21T20:49:19.305Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

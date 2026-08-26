@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-sessions.html",
+  "entry": "sage-sessions.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T20:50:37.591Z",
+  "updatedAt": "2026-08-21T20:50:37.591Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

@@ -25,6 +25,20 @@ class Settings(BaseSettings):
     brot_api_key: str = Field(default="", validation_alias="BROT_API_KEY")
     brot_model: str = Field(default="gemma4:31b-cloud", validation_alias="BROT_MODEL")
     searxng_url: str = Field(default="", validation_alias="SEARXNG_URL")
+    ollama_num_ctx: int = Field(default=131072, validation_alias="OLLAMA_NUM_CTX")
+    ollama_keep_alive: int = Field(default=-1, validation_alias="OLLAMA_KEEP_ALIVE")
+    ollama_thinking: bool = Field(default=True, validation_alias="OLLAMA_THINKING")
+    streaming: bool = Field(
+        default=True,
+        validation_alias="SAGE_STREAMING",
+        description=(
+            "True = stream deltas to the UI as they arrive. False (default) = "
+            "buffer the full reply server-side, then emit it as one simulated "
+            "word-by-word animation. Buffered mode guarantees tool calls are "
+            "caught cleanly before any text reaches the UI."
+        ),
+    )
+
 
     host: str = "0.0.0.0"
     port: int = 8000

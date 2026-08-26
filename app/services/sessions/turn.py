@@ -31,7 +31,7 @@ SUFFICIENCY_NOTICE = (
     "explain based on general knowledge."
 )
 
-_MAX_TOOL_ITERATIONS = 4
+_MAX_TOOL_ITERATIONS = 6
 
 
 @dataclass
@@ -145,11 +145,20 @@ class TurnMixin:
                     (session_id,),
                 ).fetchone()
                 assistant_count = int(assistant_row["n"])
+                # Include the assistant's previous reply so the model remembers its own
+                # check/fill-in questions when grading short answers like "error".
+                last_assistant_row = self.conn.execute(
+                    "SELECT content FROM messages WHERE session_id = ? "
+                    "AND role = 'assistant' AND partial = 0 AND TRIM(COALESCE(content,'')) != '' "
+                    "ORDER BY created_at DESC LIMIT 1",
+                    (session_id,),
+                ).fetchone()
                 lesson_state = {
                     "teaching_turns": assistant_count,
                     "greeting_done": assistant_count > 0,
                     "definition_taught": assistant_count > 0,
                     "last_user_text": user_text,
+                    "your_previous_reply": (last_assistant_row["content"] if last_assistant_row else "")[-400:],
                 }
                 pending_rows = self.conn.execute(
                     "SELECT id, kind, question FROM quiz_questions "
@@ -157,6 +166,23 @@ class TurnMixin:
                     "ORDER BY created_at LIMIT 10",
                     (session_id,),
                 ).fetchall()
+                # Conversation arc: compact digest of the full session so the model
+                # always knows the story so far, even beyond the history window.
+                arc_rows = self.conn.execute(
+                    "SELECT role, content FROM messages "
+                    "WHERE session_id = ? AND partial = 0 AND TRIM(COALESCE(content,'')) != '' "
+                    "ORDER BY created_at",
+                    (session_id,),
+                ).fetchall()
+                arc_lines = []
+                for row in arc_rows:
+                    role = "Learner" if row["role"] == "user" else "You"
+                    content = (row["content"] or "").replace("\n", " ")
+                    # first sentence-ish snippet per message keeps it compact
+                    snippet = content[:160] + ("…" if len(content) > 160 else "")
+                    arc_lines.append(f"{role}: {snippet}")
+                lesson_state["conversation_arc"] = "\n".join(arc_lines)
+
                 lesson_state["pending_questions"] = [
                     {
                         "id": row["id"],
@@ -189,6 +215,9 @@ class TurnMixin:
                 stashed_actions: list[dict] = []
                 web_sources: list[dict] = []
                 step_actions_recorded = False
+                # Track recent calls to break duplicate-call loops (model sometimes
+                # repeats the same tool call with the same arguments).
+                recent_calls: list[tuple[str, str]] = []
 
                 for _ in range(_MAX_TOOL_ITERATIONS):
                     had_tool_call = False
@@ -207,6 +236,11 @@ class TurnMixin:
                         if isinstance(item, str):
                             item = {"type": "delta", "delta": item}
                         event_type = item.get("type")
+                        if event_type == "thinking":
+                            # Model's private reasoning — surfaced for the UI's
+                            # collapsible "thinking" section (Claude-style).
+                            yield {"type": "thinking", "thinking": item.get("thinking") or ""}
+                            continue
                         if event_type == "tool_call":
                             had_tool_call = True
                             name = str(item.get("name") or "")
@@ -223,6 +257,24 @@ class TurnMixin:
                             if isinstance(model_status, str) and model_status.strip():
                                 tool_call_event["status"] = model_status
                             yield tool_call_event
+                            # Loop guard: same tool + same args as a previous call this turn
+                            call_sig = (name, json.dumps(arguments, sort_keys=True))
+                            if call_sig in recent_calls and name != "grade_answer":
+                                result = {
+                                    "error": "duplicate_call",
+                                    "summary": f"{name} already ran; use its earlier result and continue.",
+                                    "hint": "Do not repeat this call. Respond to the learner now.",
+                                }
+                                messages.append(
+                                    {
+                                        "role": "tool",
+                                        "tool_call_id": str(item.get("id") or name),
+                                        "content": json.dumps(result),
+                                    }
+                                )
+                                had_tool_call = False  # force exit to text pass
+                                continue
+                            recent_calls.append(call_sig)
                             if name == "record_step_actions" and step_actions_recorded:
                                 result = {
                                     "note": "actions already recorded this turn",
@@ -279,6 +331,19 @@ class TurnMixin:
                                         "diagram_type": result.get("diagram_type"),
                                     }
                                 )
+                            # Button-first: forward full artifact payloads so the UI
+                            # can render quiz/todo/latex cards in the right rail
+                            # without any composer buttons or hardcoded prompts.
+                            if name in ("generate_quiz", "generate_todo", "generate_latex") and not result.get("error"):
+                                tool_event["artifact"] = {
+                                    "kind": result.get("kind"),
+                                    "title": result.get("title"),
+                                    "source": result.get("source"),
+                                    "latex": result.get("latex"),
+                                    "questions": result.get("questions"),
+                                    "items": result.get("items"),
+                                    "diagram_type": result.get("diagram_type"),
+                                }
                             if name == "run_probe":
                                 tool_event["questions"] = result.get("questions", [])
                             if name == "advance_lesson" and result.get(
@@ -291,25 +356,46 @@ class TurnMixin:
                             continue
                         delta = item.get("delta") or ""
                         buffer.append(delta)
-                        yield {"type": "delta", "delta": delta}
+                        if getattr(getattr(self, "settings", None), "streaming", False):
+                            yield {"type": "delta", "delta": delta}
+                        # buffered mode: text emitted after loop as one
+                        # simulated-typing event (see below)
                     if not had_tool_call:
                         break
 
+
+                # Defense in depth: strip any leaked call: fragments that slipped through (e.g. gemma's "call:run_probe/")
+                # Bread's native /api/chat never hits this path, but Sage's model does — ensure storage is clean even if
+                # the guard in app/llm/client.py regresses. Also keeps history used for next-turn context leak-free.
+                import re as _re
                 full_text = "".join(buffer)
+                full_text = _re.sub(r"<call:\w+\b[^>]*>?", "", full_text)
+                full_text = _re.sub(r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t.:;,!?)(\\\"'-]))\[?call:\w+\b/?\]?(?:\s*status\s*=\s*[\"'][^\"']*[\"'])?(?:\s*\([^)\"']*\))?", "", full_text)
+                full_text = _re.sub(r"<call:\w+\b[^<]*$", "", full_text)
+                # Buffered mode (SAGE_STREAMING=false): emit the full sanitized reply
+                # as a single simulated-typing event the UI animates word-by-word.
+                if not getattr(self.settings, "streaming", False) and full_text:
+                    yield {"type": "buffered_text", "text": full_text}
                 sent_ids = {c["id"] for c in chunks}
                 citations = [
                     marker
                     for marker in extract_citation_markers(full_text)
                     if marker in sent_ids
                 ]
-                message = self.persist_message(
-                    session_id, client_msg_id, full_text, citations
-                )
-                for citation in citations:
-                    yield {"type": "citation", "chunk_id": citation}
+                # Skip persisting empty assistant turns (tool-only responses like
+                # advance_lesson with no prose) — they add blank bubbles in the UI
+                # and noise in history.
+                if full_text.strip():
+                    message = self.persist_message(
+                        session_id, client_msg_id, full_text, citations
+                    )
+                    for citation in citations:
+                        yield {"type": "citation", "chunk_id": citation}
+                else:
+                    message = None
                 yield {
                     "type": "done",
-                    "message_id": message.id,
+                    "message_id": getattr(message, "id", None) if message else None,
                     "client_msg_id": client_msg_id,
                     "replayed": False,
                     "actions": stashed_actions,

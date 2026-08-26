@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-animations.html",
+  "entry": "sage-animations.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T23:19:00.707Z",
+  "updatedAt": "2026-08-21T23:19:00.707Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "task_id": "T5_title_fix",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "turing-t5-title-fix",
+  "declared_at": "2026-08-20T06:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Restore the browser document title from the loaded session title.",
+  "files": {
+    "modified": ["static/sage-workspace.html", ".agents/jobs/T5_title_fix.json"],
+    "created": [".agents/jobs/T5_title_fix.json"],
+    "deleted": []
+  },
+  "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "committed_at": "",
+  "manifest": ["static/sage-workspace.html", ".agents/jobs/T5_title_fix.json"],
+  "line_counts": {
+    "before": {"static/sage-workspace.html": 0, ".agents/jobs/T5_title_fix.json": 0},
+    "after": {"static/sage-workspace.html": 408, ".agents/jobs/T5_title_fix.json": 26}
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "Updated loadSession to assign document.title using the resolved session title while preserving the initial generic Sage — Workspace title. The assignment is direct text assignment and does not use innerHTML. No other source files were changed. Verification is analyzer_pending; Merlin should verify the generic initial title and the restored session title in a browser.",
+  "verification": "analyzer_pending",
+  "notes": "Initial generic document title remains in the head before loadSession completes."
+}

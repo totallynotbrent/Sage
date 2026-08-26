@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:180ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:var(--r)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r)}
+:focus:not(:focus-visible){outline:none}
+
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
+.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
+.logo span{color:var(--muted)}
+.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--fg)}
+.icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform var(--dur-slow) var(--ease),opacity var(--dur-slow) var(--ease)}
+.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
+.sidebar:not(.collapsed){transform:translateX(0);opacity:1;visibility:visible}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
+.sidebar-backdrop.open{display:block}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__header:hover{color:var(--muted)}
+.sidebar__header:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:var(--r)}
+.sidebar__chevron{transition:transform var(--dur-slow) var(--ease)}
+.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
+.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
+.sidebar__section.open .sidebar__list{display:block}
+.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.sidebar__item.active{background:var(--overlay);color:var(--fg)}
+.sidebar__item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:var(--r)}
+.sidebar__item-dot{width:6px;height:6px;border-radius:50%;background:var(--meta);flex-shrink:0}
+.sidebar__item-dot.ready{background:var(--foam)}
+.sidebar__item-dot.error{background:var(--love)}
+.sidebar__item-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar__item-meta{font-size:11px;color:var(--meta);flex-shrink:0}
+.sidebar__item-badge{font-size:10px;font-weight:500;letter-spacing:0.03em;padding:2px 7px;border-radius:var(--r);background:var(--overlay);color:var(--meta);flex-shrink:0}
+.sidebar__item-badge[data-phase="teach"]{color:var(--accent)}
+.sidebar__item-badge[data-phase="plan"]{color:var(--gold)}
+.sidebar__item-badge[data-phase="complete"]{color:var(--foam)}
+.sidebar__action{display:flex;align-items:center;gap:var(--space-2);width:100%;padding:var(--space-2) var(--space-4) var(--space-3);font-size:13px;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__action:hover{color:var(--accent)}
+.sidebar__action:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:var(--r)}
+
+.main{flex:1;display:flex;min-width:0;min-height:0;overflow:hidden;background:var(--bg)}
+
+.view{flex:1;display:none;flex-direction:column;min-width:0;overflow:hidden}
+.view.active{display:flex}
+
+.hero{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:var(--space-4);text-align:center;padding:var(--space-8)}
+.hero h1{font-family:var(--font-display);font-size:32px;font-weight:500;color:var(--fg);line-height:1.2;letter-spacing:-0.02em}
+.hero p{font-size:16px;color:var(--muted);max-width:360px;line-height:1.5}
+
+.chat{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
+.chat__messages{flex:1;overflow-y:auto;padding:var(--space-6) var(--space-4);display:flex;flex-direction:column;gap:var(--space-2)}
+.msg{display:flex;flex-direction:column;max-width:760px;width:100%;margin:0 auto;padding:var(--space-5) 0;animation:msgCascade 700ms var(--ease) both}
+.msg:nth-child(1){animation-delay:0ms}.msg:nth-child(2){animation-delay:250ms}.msg:nth-child(3){animation-delay:500ms}.msg:nth-child(4){animation-delay:750ms}.msg:nth-child(5){animation-delay:1000ms}
+@keyframes msgCascade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.msg--user{align-items:flex-end}
+.msg--assistant{align-items:flex-start}
+.msg__role{font-size:11px;font-weight:500;color:var(--meta);margin-bottom:var(--space-2);padding:0 var(--space-4);letter-spacing:0.04em;text-transform:uppercase}
+.msg__bubble{padding:var(--space-4) var(--space-5);border-radius:var(--r);line-height:1.7;word-wrap:break-word;overflow-wrap:break-word;max-width:100%}
+.msg--user .msg__bubble{background:var(--surface-raised);color:var(--fg)}
+.msg--assistant .msg__bubble{background:transparent;color:var(--fg)}
+.msg__bubble p{margin:0 0 var(--space-3)}.msg__bubble p:last-child{margin-bottom:0}
+.msg__bubble strong{font-weight:600;color:var(--fg)}.msg__bubble em{color:var(--muted);font-style:italic}
+.msg__bubble code{font-family:var(--font-mono);font-size:13px;background:var(--overlay);padding:2px 6px;border-radius:var(--r)}
+
+.cite{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--r);background:var(--overlay);color:var(--accent);cursor:pointer;vertical-align:middle;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+.cite:hover{background:var(--surface-warm);color:var(--accent-hover)}
+.cite:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+.input-bar{padding:var(--space-3) var(--space-4) var(--space-5);flex-shrink:0;min-height:0}
+.composer-toolbar{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2)}
+.composer-toolbar__btn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--meta);background:none;border:none;cursor:pointer;transition:color var(--dur) var(--ease),background var(--dur) var(--ease)}
+.composer-toolbar__btn:hover{color:var(--fg);background:var(--overlay)}
+.composer-toolbar__btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.composer-toolbar__btn svg{width:14px;height:14px;flex-shrink:0}
+.composer-toolbar__spacer{flex:1}
+.composer-toolbar__status{font-family:var(--font-mono);font-size:10px;color:var(--meta);letter-spacing:0.04em}
+.input-bar__wrapper{display:flex;align-items:flex-end;gap:var(--space-2);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-3) var(--space-4);transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+.input-bar__wrapper:focus-within{border-color:var(--accent);background:var(--surface-raised);box-shadow:0 0 0 3px rgba(196,167,231,0.15)}
+.input-bar__textarea{flex:1;min-width:0;resize:none;border:none;background:transparent;font-size:15px;font-family:var(--font-mono);line-height:1.5;max-height:120px;min-height:22px;padding:6px 0;color:var(--fg)}
+.input-bar__textarea:focus{outline:none}
+.input-bar__textarea::placeholder{color:var(--meta)}
+.input-bar__actions{display:flex;align-items:center;gap:var(--space-1);flex-shrink:0}
+.input-bar__send{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--r);background:var(--accent);color:var(--bg);border:none;cursor:pointer;transition:background var(--dur) var(--ease),transform 120ms var(--ease),box-shadow var(--dur) var(--ease)}
+.input-bar__send:hover{background:var(--accent-hover);box-shadow:0 0 0 3px rgba(196,167,231,0.2)}
+.input-bar__send:active{transform:scale(0.9)}
+.input-bar__send:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.input-bar__stop{display:none;place-items:center;width:32px;height:32px;border-radius:var(--r);background:var(--love);color:#fff;border:none;cursor:pointer}
+
+.diagram-panel{width:min(var(--diagram-w),42vw);min-width:320px;border-left:1px solid var(--border);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:transform 500ms var(--ease)}
+.diagram-panel.closed{transform:translateX(100%);pointer-events:none}
+.diagram-panel__header{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border);flex-shrink:0;gap:var(--space-3)}
+.diagram-panel__title{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--fg);display:flex;align-items:baseline;gap:var(--space-2);flex:1;min-width:0}
+.diagram-panel__count{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em}
+.diagram-panel__body{flex:1;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)}
+.diagram-panel__empty{color:var(--meta);font-size:13px;text-align:center;padding:var(--space-8) var(--space-4)}
+
+.artifact-card{position:relative;background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.artifact-card[data-kind="mermaid"]{border-left-color:var(--foam)}
+.artifact-card[data-kind="quiz"]{border-left-color:var(--gold)}
+.artifact-card[data-kind="todo"]{border-left-color:var(--rose)}
+.artifact-card__header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.artifact-card__marker{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--meta);flex-shrink:0}
+.artifact-card__title{font-family:var(--font-display);font-style:italic;font-size:16px;font-weight:500;color:var(--fg);line-height:1.3;flex:1;min-width:140px}
+.artifact-card__badge{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--accent-dim);color:var(--accent);flex-shrink:0;display:inline-flex;align-items:center;gap:4px}
+.artifact-card__badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--foam)}
+.artifact-card__diagram{display:flex;align-items:center;justify-content:center;background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);min-height:120px}
+.artifact-card__diagram svg{max-width:100%;height:auto}
+.artifact-card__todo-list{display:flex;flex-direction:column;gap:var(--space-2)}
+.artifact-card__todo-item{display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-2) 0;cursor:pointer;background:none;border:none;color:inherit;text-align:left;width:100%;font-family:inherit;font-size:14px;line-height:1.5;transition:color var(--dur) var(--ease)}
+.artifact-card__todo-item:hover{color:var(--fg)}
+.artifact-card__todo-item:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:var(--r)}
+.artifact-card__todo-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--meta);flex-shrink:0;display:grid;place-items:center;margin-top:2px;transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+.artifact-card__todo-item[data-done="true"] .artifact-card__todo-check{background:var(--foam);border-color:var(--foam)}
+.artifact-card__todo-item[data-done="true"] .artifact-card__todo-check::after{content:'';width:5px;height:9px;border:solid var(--bg);border-width:0 2px 2px 0;transform:rotate(45deg) translateY(-1px)}
+.artifact-card__todo-item[data-done="true"] .artifact-card__todo-text{text-decoration:line-through;color:var(--meta)}
+.artifact-card__todo-text{flex:1;min-width:0}
+.artifact-card__quiz-question{padding:var(--space-3) 0;border-top:1px solid var(--border-soft)}
+.artifact-card__quiz-question:first-child{border-top:0}
+.artifact-card__quiz-qtext{font-family:var(--font-display);font-size:15px;font-weight:500;color:var(--fg);margin-bottom:var(--space-3);line-height:1.4}
+.artifact-card__quiz-options{display:flex;flex-direction:column;gap:var(--space-2)}
+.artifact-card__quiz-option{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--r);font-size:13px;cursor:pointer;background:var(--overlay);border:1px solid transparent;transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease),color var(--dur) var(--ease)}
+.artifact-card__quiz-option:hover{background:var(--surface-warm);color:var(--fg)}
+.artifact-card__quiz-option:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.artifact-card__quiz-option.selected{border-color:var(--accent);background:var(--accent-dim)}
+.artifact-card__quiz-option.correct{background:rgba(156,207,216,0.1);border-color:var(--foam)}
+.artifact-card__quiz-option.incorrect{background:rgba(235,111,146,0.1);border-color:var(--love)}
+.artifact-card__quiz-radio{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--meta);flex-shrink:0;transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+.artifact-card__quiz-option.selected .artifact-card__quiz-radio{border-color:var(--accent);background:var(--accent)}
+.artifact-card__quiz-option.correct .artifact-card__quiz-radio{border-color:var(--foam);background:var(--foam)}
+.artifact-card__quiz-option.incorrect .artifact-card__quiz-radio{border-color:var(--love);background:var(--love)}
+.artifact-card__quiz-btn{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:6px 12px;border-radius:5px;background:var(--overlay);color:var(--muted);border:1px solid var(--border);cursor:pointer;transition:background var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease);margin-top:var(--space-2)}
+.artifact-card__quiz-btn:hover{background:var(--surface-warm);color:var(--fg);border-color:var(--border-soft)}
+.artifact-card__quiz-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+.library{flex:1;overflow-y:auto;padding:var(--space-6) var(--space-8);max-width:1000px;margin:0 auto;width:100%}
+.library__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)}
+.library__title{font-family:var(--font-display);font-size:24px;font-weight:500;color:var(--fg)}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--r);padding:var(--space-10) var(--space-4);text-align:center;color:var(--meta);cursor:pointer;transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease);margin-bottom:var(--space-6)}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:var(--accent-dim)}
+.upload-zone__text{font-size:14px;margin-bottom:var(--space-1)}
+.upload-zone__hint{font-size:12px;color:var(--meta)}
+.file-table{width:100%;border-collapse:collapse}
+.file-table th{text-align:left;padding:var(--space-3) var(--space-4);font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--meta);border-bottom:1px solid var(--border)}
+.file-table td{padding:var(--space-3) var(--space-4);font-size:14px;border-bottom:1px solid var(--border);vertical-align:middle}
+.file-table tr:hover td{background:var(--overlay)}
+.status{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:2px 8px;border-radius:var(--r)}
+.status--ready{background:rgba(156,207,216,0.1);color:var(--foam)}
+.status--error{background:rgba(235,111,146,0.1);color:var(--love)}
+.status__dot{width:6px;height:6px;border-radius:50%}
+.status--ready .status__dot{background:var(--foam)}
+.status--error .status__dot{background:var(--love)}
+.file-actions{display:flex;gap:var(--space-1)}
+.file-action{display:grid;place-items:center;width:28px;height:28px;border-radius:var(--r);border:none;background:none;color:var(--meta);cursor:pointer;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+.file-action:hover{background:var(--overlay);color:var(--fg)}
+.file-action:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.file-action--danger:hover{color:var(--love)}
+
+.sessions{flex:1;overflow-y:auto;padding:var(--space-6) var(--space-8);max-width:1000px;margin:0 auto;width:100%}
+.sessions__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)}
+.sessions__title{font-family:var(--font-display);font-size:24px;font-weight:500;color:var(--fg)}
+.session-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5);margin-bottom:var(--space-3);cursor:pointer;transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+.session-card:hover{border-color:var(--border-soft);background:var(--surface-raised);box-shadow:0 0 0 1px var(--border-soft)}
+.session-card__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)}
+.session-card__title{font-family:var(--font-display);font-size:18px;font-weight:500;color:var(--fg)}
+.session-card__phase{font-size:11px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:2px 8px;border-radius:var(--r);background:var(--overlay);color:var(--meta)}
+.session-card__phase[data-phase="teach"]{color:var(--accent)}
+.session-card__phase[data-phase="plan"]{color:var(--gold)}
+.session-card__phase[data-phase="complete"]{color:var(--foam)}
+.session-card__desc{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:var(--space-3)}
+.session-card__meta{display:flex;gap:var(--space-4);font-size:12px;color:var(--meta)}
+.session-card__delete{font-size:12px;color:var(--meta);padding:4px 10px;border-radius:var(--r);background:var(--overlay);border:none;cursor:pointer;transition:color var(--dur) var(--ease),background var(--dur) var(--ease);font-family:var(--font-body)}
+.session-card__delete:hover{color:var(--love);background:rgba(235,111,146,0.1)}
+.session-card__delete:focus-visible{outline:2px solid var(--love);outline-offset:1px}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;border:none;cursor:pointer;transition:background var(--dur) var(--ease),color var(--dur) var(--ease),transform 120ms var(--ease),box-shadow var(--dur) var(--ease);font-family:var(--font-body)}
+.btn:active{transform:scale(0.96)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn--primary{background:var(--accent);color:var(--bg)}
+.btn--primary:hover{background:var(--accent-hover);box-shadow:0 0 0 3px rgba(196,167,231,0.2)}
+.btn--sm{padding:5px 12px;font-size:12px}
+
+.phase-divider{display:flex;align-items:center;gap:var(--space-4);margin:var(--space-4) 0;color:var(--meta);font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase}
+.phase-divider::before,.phase-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── Animations ──────────────────────────────── */
+@keyframes artifactReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes borderWipe{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes gradientSweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.typing-indicator{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) 0}
+.typing-indicator__bar{width:80px;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:200% 100%;animation:gradientSweep 1.2s ease infinite}
+
+/* ── Artifact Animations ──────────────────── */
+.artifact-card[data-kind="mermaid"]{opacity:0;transform:translateX(30px)}.artifact-card[data-kind="mermaid"].visible{animation:artSlideRight 500ms var(--ease) forwards}
+@keyframes artSlideRight{to{opacity:1;transform:translateX(0)}}
+.artifact-card[data-kind="mermaid"] .artifact-card__diagram svg line{stroke-dasharray:40;stroke-dashoffset:40}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line{animation:artDrawLine 600ms var(--ease) forwards}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(1){animation-delay:200ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(2){animation-delay:350ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(3){animation-delay:500ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(4){animation-delay:650ms}
+.artifact-card[data-kind="mermaid"] .artifact-card__diagram svg circle,.artifact-card[data-kind="mermaid"] .artifact-card__diagram svg text{opacity:0}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg circle,.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg text{animation:artFadeIn 400ms var(--ease) forwards}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg circle:nth-child(5){animation-delay:100ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg circle:nth-child(6){animation-delay:250ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg circle:nth-child(7){animation-delay:400ms}
+.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg circle:nth-child(8){animation-delay:550ms}
+@keyframes artDrawLine{to{stroke-dashoffset:0}}
+@keyframes artFadeIn{to{opacity:1}}
+
+.artifact-card[data-kind="quiz"]{opacity:0;transform:translateY(8px)}.artifact-card[data-kind="quiz"].visible{animation:artifactReveal 500ms var(--ease) forwards}
+.artifact-card[data-kind="quiz"] .artifact-card__quiz-question{overflow:hidden;white-space:nowrap;border-right:2px solid var(--accent);width:0}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-question{animation:artType 1s steps(30) forwards,artCursorBlink .8s step-end infinite}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option{opacity:0;animation:artifactReveal 300ms var(--ease) forwards}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(1){animation-delay:1100ms}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(2){animation-delay:1300ms}
+.artifact-card[data-kind="quiz"].visible .artifact-card__quiz-option:nth-child(3){animation-delay:1500ms}
+@keyframes artType{to{width:100%}}
+@keyframes artCursorBlink{50%{border-color:transparent}}
+.artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.correct{box-shadow:0 0 24px rgba(156,207,216,0.35);position:relative;overflow:hidden}
+.artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.correct::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(156,207,216,0.2),transparent);animation:artColorSweep 600ms var(--ease) forwards}
+@keyframes artColorSweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.artifact-card[data-kind="quiz"].revealed .artifact-card__quiz-option.incorrect{opacity:0.4}
+
+.artifact-card[data-kind="todo"]{opacity:0}.artifact-card[data-kind="todo"].visible{animation:artifactReveal 500ms var(--ease) forwards}
+.artifact-card[data-kind="todo"] .artifact-card__todo-item{opacity:0;transform:perspective(400px) rotateX(90deg)}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item{animation:artFlipTodo 500ms var(--ease) forwards}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(1){animation-delay:80ms}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(2){animation-delay:200ms}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(3){animation-delay:320ms}
+.artifact-card[data-kind="todo"].visible .artifact-card__todo-item:nth-child(4){animation-delay:440ms}
+@keyframes artFlipTodo{to{opacity:1;transform:perspective(400px) rotateX(0)}}
+
+@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.diagram-panel{position:absolute;right:0;top:0;bottom:0;z-index:25;width:100%;max-width:var(--diagram-w);border-left:1px solid var(--border)}.library,.sessions{padding:var(--space-4)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <a href="sage-home.html" class="logo">S<span>a</span>ge</a>
+  </div>
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Sidebar">
+      <div class="sidebar__section open">
+        <button class="sidebar__header" aria-expanded="true"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list">
+          <a href="sage-home.html" class="sidebar__item">Home</a>
+          <a href="sage-workspace.html" class="sidebar__item">Workspace</a>
+          <a href="sage-library.html" class="sidebar__item">Library</a>
+          <a href="sage-sessions.html" class="sidebar__item">Sessions</a>
+          <a href="sage-settings.html" class="sidebar__item">Settings</a>
+          <a href="sage-health.html" class="sidebar__item">Health</a>
+        </div>
+      </div>
+      <div class="sidebar__section open">
+        <button class="sidebar__header" aria-expanded="true"><span>Sessions</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list">
+          <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="teach">teach</span><span class="sidebar__item-text">Rolle's Theorem</span></div>
+          <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="plan">plan</span><span class="sidebar__item-text">BFS & Dijkstra</span></div>
+          <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="complete">done</span><span class="sidebar__item-text">Continuity</span></div>
+        </div>
+      </div>
+      <div class="sidebar__section open">
+        <button class="sidebar__header" aria-expanded="true"><span>Plan</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list">
+          <div class="sidebar__item"><span class="sidebar__item-badge">1</span><span class="sidebar__item-text">Define Rolle's Theorem</span><span class="sidebar__item-meta" style="color:var(--foam)">done</span></div>
+          <div class="sidebar__item"><span class="sidebar__item-badge">2</span><span class="sidebar__item-text">Gather prerequisites</span><span class="sidebar__item-meta" style="color:var(--foam)">done</span></div>
+          <div class="sidebar__item active"><span class="sidebar__item-badge" style="background:var(--accent);color:var(--bg)">3</span><span class="sidebar__item-text">Explain proof strategy</span><span class="sidebar__item-meta" style="color:var(--accent)">current</span></div>
+          <div class="sidebar__item"><span class="sidebar__item-badge">4</span><span class="sidebar__item-text">Practice problems</span><span class="sidebar__item-meta">pending</span></div>
+          <div class="sidebar__item"><span class="sidebar__item-badge">5</span><span class="sidebar__item-text">Assess understanding</span><span class="sidebar__item-meta">pending</span></div>
+        </div>
+      </div>
+      <div class="sidebar__section open">
+        <button class="sidebar__header" aria-expanded="true"><span>Files · 4</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list">
+          <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Graph Theory — Lecture 4.pdf</span><span class="sidebar__item-meta">42</span></div>
+          <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Real Analysis — defs & thms.tex</span><span class="sidebar__item-meta">31</span></div>
+          <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Algorithms — notes.md</span><span class="sidebar__item-meta">18</span></div>
+          <div class="sidebar__item"><span class="sidebar__item-dot error"></span><span class="sidebar__item-text">Scanned — ch3.PDF</span><span class="sidebar__item-meta">—</span></div>
+        </div>
+        <button class="sidebar__action">+ Upload file</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- HOME VIEW -->
+      <div class="view active" id="view-home">
+        <div class="chat">
+          <div class="chat__messages" id="home-messages" role="log" aria-live="polite">
+            <div class="hero">
+              <h1>What are you working on?</h1>
+              <p>Upload study materials or just start asking questions.</p>
+            </div>
+          </div>
+          <div class="input-bar">
+            <div class="input-bar__wrapper">
+              <textarea class="input-bar__textarea" id="home-input" placeholder="Ask Sage anything..." rows="1" aria-label="Message input"></textarea>
+              <div class="input-bar__actions">
+                <button class="input-bar__send" id="home-send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l12-6-5 12v-6H3z" fill="currentColor"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WORKSPACE VIEW -->
+      <div class="view" id="view-workspace">
+        <div class="chat">
+          <div class="chat__messages" id="ws-messages" role="log" aria-live="polite">
+            <div class="msg msg--user"><div class="msg__role">You</div><div class="msg__bubble">Why does BFS guarantee the shortest path in an unweighted graph?</div></div>
+            <div class="msg msg--assistant"><div class="msg__role">Sage</div><div class="msg__bubble"><strong>BFS explores in layers —</strong> each frontier holds nodes at distance k from s. The first time we discover v, we've used the fewest edges. Your Lecture 4 §2.1 says: "nodes are discovered in nondecreasing distance from s."<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="cite">Graph Theory §2.1 p.4</span><span class="cite">notes.md · BFS layering</span><span class="cite">91 chunks selected</span></div><div style="font-family:var(--font-mono);font-size:11px;color:var(--meta);margin-top:8px">SSE: meta → delta* → citation* → done · citations are chunk_ids</div></div></div>
+            <div class="msg msg--assistant"><div class="msg__role">Sage · teach artifact</div><div class="msg__bubble">Next step on <strong>BFS layering</strong>: draw the queue after dequeuing <code>a</code> where edges a→b, a→c, b→d. Then explain why d's distance is 2. <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><span class="cite">continue</span><span class="cite">practice</span><span class="cite">example</span><span class="cite">deeper</span></div></div></div>
+          </div>
+          <div class="input-bar">
+            <div class="composer-toolbar" role="toolbar" aria-label="Composer tools">
+              <button class="composer-toolbar__btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="1.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8.5" y="8.5" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 5.5v3M10.5 5.5v3M5.5 3.5h3M5.5 10.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> Diagram</button>
+              <button class="composer-toolbar__btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3a1.5 1.5 0 011.5-1.5h7A1.5 1.5 0 0112 3v6a1.5 1.5 0 01-1.5 1.5H6.5L4 13v-2.5h-.5A1.5 1.5 0 012 9V3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M5 5.5h4M5 7.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> Quiz</button>
+              <button class="composer-toolbar__btn"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="2.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6.5l1.5 1.5 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 9.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> Todo</button>
+              <span class="composer-toolbar__spacer"></span>
+              <span class="composer-toolbar__status">POST /api/sessions/{id}/turns · /stop to cancel</span>
+            </div>
+            <div class="input-bar__wrapper">
+              <textarea class="input-bar__textarea" id="ws-input" placeholder="Reply to Sage..." rows="1" aria-label="Message input"></textarea>
+              <div class="input-bar__actions">
+                <button class="input-bar__send" id="ws-send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9l12-6-5 12v-6H3z" fill="currentColor"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <aside class="diagram-panel" id="diagramPanel" aria-label="Artifacts panel">
+          <div class="diagram-panel__header">
+            <div class="diagram-panel__title"><span>Artifacts</span><span class="diagram-panel__count">3</span></div>
+            <button class="icon-btn" id="closeDiagram" style="width:28px;height:28px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+          </div>
+          <div class="diagram-panel__body">
+            <div class="artifact-card" data-kind="mermaid">
+              <div class="artifact-card__header"><span class="artifact-card__marker">ARTIFACT · 01 · diagram</span><span class="artifact-card__badge">validated</span></div>
+              <div class="artifact-card__title">BFS layering — queue evolution</div>
+              <div class="artifact-card__diagram"><div class="mermaid">flowchart LR
+  S --> A & B & C
+  A --> D
+  B --> D
+  C --> E
+  D --> F</div></div>
+              <div style="font-family:var(--font-mono);font-size:11px;color:var(--meta)">POST /api/sessions/{id}/outputs · kind: mermaid · source validated</div>
+            </div>
+            <div class="artifact-card" data-kind="todo">
+              <div class="artifact-card__header"><span class="artifact-card__marker">ARTIFACT · 02 · todo</span><span class="artifact-card__badge">validated</span></div>
+              <div class="artifact-card__title">Study checklist — BFS & Rolle</div>
+              <div class="artifact-card__todo-list">
+                <button class="artifact-card__todo-item" data-done="false"><span class="artifact-card__todo-check"></span><span class="artifact-card__todo-text">Re-read Lecture 4 §2.1 — BFS layering</span></button>
+                <button class="artifact-card__todo-item" data-done="false"><span class="artifact-card__todo-check"></span><span class="artifact-card__todo-text">Draw queue after visiting a, b, c</span></button>
+                <button class="artifact-card__todo-item" data-done="true"><span class="artifact-card__todo-check"></span><span class="artifact-card__todo-text">State Rolle: continuous [a,b], diff (a,b), f(a)=f(b)</span></button>
+              </div>
+            </div>
+            <div class="artifact-card" data-kind="quiz">
+              <div class="artifact-card__header"><span class="artifact-card__marker">ARTIFACT · 03 · quiz</span><span class="artifact-card__badge">validated</span></div>
+              <div class="artifact-card__quiz-question">
+                <div class="artifact-card__quiz-qtext">1. BFS visits v already marked visited — what do you do?</div>
+                <div class="artifact-card__quiz-options">
+                  <button class="artifact-card__quiz-option"><span class="artifact-card__quiz-radio"></span><span>Enqueue it again to be safe</span></button>
+                  <button class="artifact-card__quiz-option"><span class="artifact-card__quiz-radio"></span><span>Skip it — shortest distance already settled</span></button>
+                  <button class="artifact-card__quiz-option"><span class="artifact-card__quiz-radio"></span><span>Restart BFS from v</span></button>
+                </div>
+                <button class="artifact-card__quiz-btn">Reveal answer</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- LIBRARY VIEW -->
+      <div class="view" id="view-library">
+        <div class="library">
+          <div class="library__header">
+            <h2 class="library__title">Library</h2>
+            <button class="btn btn--primary btn--sm">Upload Files</button>
+          </div>
+          <div class="upload-zone">
+            <div class="upload-zone__text">Drag and drop files here</div>
+            <div class="upload-zone__hint">PDF, DOCX, PPTX, MD, TEX, TXT</div>
+          </div>
+          <table class="file-table">
+            <thead><tr><th>Name</th><th>Size</th><th>Chunks</th><th>Status</th><th style="width:100px">Actions</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Graph Theory — Lecture 4.pdf</strong><div style="font-family:var(--font-mono);font-size:11px;color:var(--meta)">sha256 · paired with .tex · 1.4 MB</div></td><td>1.4 MB</td><td>42</td><td><span class="status status--ready"><span class="status__dot"></span>ready</span></td><td><div class="file-actions"><button class="file-action" title="Excerpts">⋯</button><button class="file-action file-action--danger" title="Delete">✕</button></div></td></tr>
+              <tr><td><strong>Real Analysis — defs & thms.tex</strong><div style="font-family:var(--font-mono);font-size:11px;color:var(--meta)">environment: theorem / definition · label thm:rolle</div></td><td>84 KB</td><td>31</td><td><span class="status status--ready"><span class="status__dot"></span>ready</span></td><td><div class="file-actions"><button class="file-action" title="Excerpts">⋯</button></div></td></tr>
+              <tr><td><strong>Algorithms — notes.md</strong></td><td>22 KB</td><td>18</td><td><span class="status status--ready"><span class="status__dot"></span>ready</span></td><td><div class="file-actions"><button class="file-action" title="Excerpts">⋯</button></div></td></tr>
+              <tr><td><strong>Scanned — ch3.PDF</strong><div style="font-size:12px;color:var(--love)">extraction failed — no text layer</div></td><td>2.1 MB</td><td>—</td><td><span class="status status--error"><span class="status__dot"></span>error</span></td><td><div class="file-actions"><button class="file-action" title="Retry">↻</button><button class="file-action file-action--danger" title="Delete">✕</button></div></td></tr>
+            </tbody>
+          </table>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--meta);margin-top:12px">GET /api/files · GET /api/files/{id}/excerpts?chunk={id} · POST /api/files/{id}/retry · DELETE /api/files/{id}</div>
+        </div>
+      </div>
+
+      <!-- SESSIONS VIEW -->
+      <div class="view" id="view-sessions">
+        <div class="sessions">
+          <div class="sessions__header">
+            <h2 class="sessions__title">Sessions</h2>
+            <button class="btn btn--primary" id="new-session-btn">+ New Session</button>
+          </div>
+          <div class="session-card">
+            <div class="session-card__header">
+              <div class="session-card__title">Understand Rolle's Theorem and its proofs</div>
+              <span class="session-card__phase" data-phase="teach">teach</span>
+            </div>
+            <div class="session-card__desc">Real Analysis · thm:rolle · 3 files selected · Grounded — sources + general knowledge</div>
+            <div class="session-card__meta"><span>2 / 5 nodes</span><span>updated 2h ago</span><span>grounded</span></div>
+            <div style="margin-top:var(--space-3)"><button class="session-card__delete">Delete</button></div>
+          </div>
+          <div class="session-card">
+            <div class="session-card__header">
+              <div class="session-card__title">BFS & Dijkstra — when to use which</div>
+              <span class="session-card__phase" data-phase="plan">plan</span>
+            </div>
+            <div class="session-card__desc">Graph algorithms · 1 file · Grounded — sources + general knowledge</div>
+            <div class="session-card__meta"><span>0 / 4 nodes</span><span>updated 1d ago</span><span>strict</span></div>
+            <div style="margin-top:var(--space-3)"><button class="session-card__delete">Delete</button></div>
+          </div>
+          <div class="session-card">
+            <div class="session-card__header">
+              <div class="session-card__title">Continuity & uniform continuity</div>
+              <span class="session-card__phase" data-phase="complete">complete</span>
+            </div>
+            <div class="session-card__desc">Definitions & counterexamples · Grounded — sources + general knowledge</div>
+            <div class="session-card__meta"><span>5 / 5 nodes</span><span>updated 3d ago</span><span>grounded</span></div>
+            <div style="margin-top:var(--space-3)"><button class="session-card__delete">Delete</button></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'dark',themeVariables:{primaryColor:'#383835',primaryTextColor:'#f0efe8',primaryBorderColor:'#c4a7e7',lineColor:'#7a7872',secondaryColor:'#2f2f2c',tertiaryColor:'#1a1a19',fontFamily:"'Newsreader', Georgia, serif"}});
+try{mermaid.run({nodes:document.querySelectorAll('.mermaid')})}catch(e){}
+
+var sidebar=document.getElementById('sidebar');var backdrop=document.getElementById('sidebar-backdrop');
+function toggleSidebar(){sidebar.classList.toggle('collapsed');backdrop.classList.toggle('open',!sidebar.classList.contains('collapsed'))}
+function closeSidebar(){sidebar.classList.add('collapsed');backdrop.classList.remove('open')}
+document.getElementById('menu-btn').onclick=toggleSidebar;
+backdrop.onclick=closeSidebar;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSidebar()});
+document.querySelectorAll('.sidebar__header').forEach(b=>b.addEventListener('click',()=>{const section=b.closest('.sidebar__section');section.classList.toggle('open');b.setAttribute('aria-expanded',section.classList.contains('open'))}));
+if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+
+document.querySelectorAll('.sidebar__item[data-view]').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.sidebar__item[data-view]').forEach(x=>x.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+item.dataset.view).classList.add('active');
+    if(window.innerWidth<1024)closeSidebar();
+  });
+});
+
+document.querySelectorAll('.artifact-card__todo-item').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const done=btn.dataset.done!=='true';
+    btn.dataset.done=String(done);
+  });
+});
+
+document.querySelectorAll('.artifact-card__quiz-option').forEach(opt=>{
+  opt.addEventListener('click',()=>{
+    const group=opt.closest('.artifact-card__quiz-options');
+    group.querySelectorAll('.artifact-card__quiz-option').forEach(x=>{x.classList.remove('selected','correct','incorrect')});
+    opt.classList.add('selected');
+  });
+});
+
+document.querySelectorAll('.artifact-card__quiz-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const card=btn.closest('.artifact-card');
+    const options=card.querySelectorAll('.artifact-card__quiz-option');
+    options.forEach((opt,i)=>{
+      opt.classList.remove('selected');
+      if(i===1)opt.classList.add('correct');
+      else opt.classList.add('incorrect');
+    });
+    card.classList.add('revealed');
+    btn.textContent='Answer revealed';
+    btn.disabled=true;
+  });
+});
+
+document.querySelectorAll('.artifact-card').forEach((c,i)=>setTimeout(()=>c.classList.add('visible'),i*150));
+
+document.getElementById('closeDiagram').onclick=()=>{
+  document.getElementById('diagramPanel').classList.add('closed');
+};
+
+document.getElementById('home-send')?.addEventListener('click',()=>{
+  const input=document.getElementById('home-input');
+  const text=input.value.trim();
+  if(!text)return;
+  const box=document.getElementById('home-messages');
+  const hero=box.querySelector('.hero');
+  if(hero)hero.remove();
+  const d=document.createElement('div');d.className='msg msg--user';
+  d.innerHTML='<div class="msg__role">You</div><div class="msg__bubble">'+text.replace(/</g,'&lt;')+'</div>';
+  box.appendChild(d);
+  input.value='';
+  const typing=document.createElement('div');typing.className='msg msg--assistant';typing.id='typing-indicator';
+  typing.innerHTML='<div class="msg__role">Sage</div><div class="msg__bubble"><div class="typing-indicator"><div class="typing-indicator__bar"></div></div></div>';
+  box.appendChild(typing);box.scrollTop=box.scrollHeight;
+  setTimeout(()=>{
+    typing.remove();
+    const s=document.createElement('div');s.className='msg msg--assistant';
+    s.innerHTML='<div class="msg__role">Sage</div><div class="msg__bubble">Got it — grounding on your 91 chunks. <em>Simulated SSE delta…</em> <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><span class="cite">Graph Theory §2.1 p.4</span><span class="cite">thm:rolle · p.2</span></div></div>';
+    box.appendChild(s);
+    box.scrollTop=box.scrollHeight;
+  },800);
+  box.scrollTop=box.scrollHeight;
+});
+document.getElementById('home-input')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('home-send').click()}});
+</script>
+</body>
+</html>

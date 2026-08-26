@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-streaming-demo.html",
+  "entry": "sage-streaming-demo.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T23:23:09.020Z",
+  "updatedAt": "2026-08-21T23:23:09.020Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-workspace.html",
+  "entry": "sage-workspace.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T20:53:10.109Z",
+  "updatedAt": "2026-08-21T20:53:10.109Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

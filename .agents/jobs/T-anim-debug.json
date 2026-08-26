@@ -78,7 +78,7 @@
   "line_counts": {},
   "files": { "modified": [], "created": [".agents/jobs/T-anim-debug.json"], "deleted": [] },
   "base_commit": "",
-  "committed_at": "",
+  "committed_at": "8f529e8978420558d3329998f7248a434edb59f4",
   "modules_created": [],
   "documentation": [],
   "final_report": "PASS on animation health: live Playwright run against http://raspberrypi.local:8000/sage-workspace.html shows zero JavaScript errors (only a favicon 404), msgCascade applied to all .msg elements, wordIn applied to all .word spans with 236/236 at opacity 1 (zero stuck), artifactReveal applied to 3 visible probe cards, 5/6 stylesheets readable with 364 rules (the 6th is the Google Fonts cross-origin sheet whose cssRules are CORS-blocked by spec, not failed), prefers-reduced-motion reduce=false so nothing suppresses motion. Probe cards appeared after sending 'teach me recursion' from a session-scoped URL. Two non-animation findings recorded: (1) Send silently no-ops without a ?session= query param — sendMessage guards on !sessionId and the composer stays enabled; (2) the sidebar sessions list never loads on a bare page boot because loadSessionsList() is only invoked inside the session-detail path or after a first turn. Screenshots in .agents/jobs/evidence/. No source files modified."

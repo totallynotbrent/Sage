@@ -20,6 +20,7 @@ def settings(tmp_path) -> Settings:
         brot_api_key="test-key",
         brot_base_url="http://127.0.0.1:9/v1",
         brot_model="test-model",
+        streaming=True,
         max_upload_mb=30,
         max_total_mb=500,
         chunk_chars=100,

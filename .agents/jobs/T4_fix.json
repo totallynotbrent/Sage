@@ -1,0 +1,48 @@
+{
+  "task_id": "T4_fix",
+  "agent": "Turing",
+  "status": "done",
+  "session_id": "turing-t4-fix-pass",
+  "declared_at": "2026-08-20T00:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Fix concrete T4 verification defects in streaming completion, mobile drawers, heading semantics, and home chat persistence flow",
+  "files": {
+    "modified": [
+      "app/llm/client.py",
+      "app/services/sessions/session.py",
+      "app/services/sessions/turn.py",
+      "static/index.html",
+      "static/sage-workspace.html",
+      "tests/test_llm_client.py"
+    ],
+    "created": [],
+    "deleted": []
+  },
+  "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "committed_at": "",
+  "line_counts": {
+    "before": {
+      "app/llm/client.py": 188,
+      "app/services/sessions/session.py": 255,
+      "app/services/sessions/turn.py": 212,
+      "static/index.html": 0,
+      "static/sage-workspace.html": 0,
+      "tests/test_llm_client.py": 0,
+      ".agents/jobs/T4_fix.json": 0
+    },
+    "after": {
+      "app/llm/client.py": 191,
+      "app/services/sessions/session.py": 326,
+      "app/services/sessions/turn.py": 215,
+      "static/index.html": 223,
+      "static/sage-workspace.html": 358,
+      "tests/test_llm_client.py": 24,
+      ".agents/jobs/T4_fix.json": 48
+    }
+  },
+  "modules_created": [],
+  "documentation": [],
+  "final_report": "Fixed T4's concrete defects. Provider stream EOF now ends normally on StopAsyncIteration, preserving cancellation and provider-error handling. Turn persistence now records the user message alongside the completed assistant response, while the home flow awaits title completion before refreshing recent sessions. Mobile collapsed drawers on home and workspace now have zero width constraints, no border, hidden visibility, and no pointer events while preserving open behavior and resize reconciliation. Home now has exactly one h1 by making the logo wrapper a div without changing its link or visual class. Added a focused EOF regression test. Focused pytest (15 passed) and Python compileall passed. Browser verification was not run; Merlin must rerun it.",
+  "verification": "analyzer_pending",
+  "notes": "Manifest declared before editing; focused tests may be added only if existing coverage does not provide a suitable seam. No main.py changes."
+}

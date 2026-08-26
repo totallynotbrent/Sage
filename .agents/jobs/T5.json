@@ -1,27 +1,25 @@
 {
   "task_id": "T5",
-  "agent": "merlin",
+  "agent": "Turing",
   "status": "done",
-  "summary": "Fixed O(n^2) chunk-boundary search in _snap_end: the unbounded text.find(marker, lo) calls scanned the entire remaining string for every window, making _split_text quadratic on newline-free text (10MB single-line uploads). Bounded both find calls to the +-20% tolerance window [lo, hi + len(marker)], which preserves exact output semantics (a match at position p fits the slice iff p <= hi, identical to the old condition) while doing constant work per window. Added a regression test asserting exact boundaries and a <5s wall-clock guard on a 4MB single-line split.",
+  "session_id": "turing-t5-client-msg-id",
+  "declared_at": "2026-08-20T06:00:00Z",
+  "finalized_by": "Turing",
+  "summary": "Add a LAN-safe client message ID fallback to both chat entry points.",
   "files": {
-    "modified": [
-      "app/services/chunking.py",
-      "tests/test_chunking.py"
-    ],
+    "modified": ["static/index.html", "static/sage-workspace.html", ".agents/jobs/T5.json", "oc-issues.txt"],
     "created": [],
     "deleted": []
   },
+  "base_commit": "1b1a231345a40f4a3d49e4f25df2298f69420535",
+  "committed_at": "",
   "line_counts": {
-    "before": {
-      "app/services/chunking.py": 115,
-      "tests/test_chunking.py": 80
-    },
-    "after": {
-      "app/services/chunking.py": 116,
-      "tests/test_chunking.py": 101
-    }
+    "before": {"static/index.html": 0, "static/sage-workspace.html": 0, ".agents/jobs/T5.json": 27, "oc-issues.txt": 0},
+    "after": {"static/index.html": 262, "static/sage-workspace.html": 406, ".agents/jobs/T5.json": 25, "oc-issues.txt": 72}
   },
   "modules_created": [],
   "documentation": [],
-  "notes": "Root cause: _snap_end called text.find(marker, lo) and text.find(marker, position + 1) with no upper bound; on newline-free text each window performed 2 full scans of the remaining string -> O(n^2) (measured 5.04s/1MB, 23.31s/2MB, 77.23s/4MB before). Fix passes bound = hi + len(marker) to both finds; work per window is O(tolerance). Byte-identical output verified against the original implementation across 307 generated inputs x 5 parameter sets (paragraph breaks, single newlines, dense newlines, empty/short text, markers at window edges): 0 mismatches. Before/after: _split_text(text,100,20) 1MB 5.04s->0.036s, 2MB 23.31s->0.081s, 4MB 77.23s->0.149s (roughly linear); test_total_storage_limit_raises 473.2s->15.16s; full suite 140 passed in 15.56s pytest-time / 24.5s wall (139 pre-existing + 1 new test, no skips)."
+  "final_report": "Implemented a LAN-safe client_msg_id generator in static/index.html and static/sage-workspace.html. Each chat flow now uses crypto.randomUUID when available and falls back to a version 4, variant 1 UUID assembled from crypto.getRandomValues when available plus Math.random and the current time. The existing home send lock still prevents duplicate session creation, and the awaited session creation remains before the turn POST; response streaming, rendering, title refresh, and backend persistence paths are unchanged. No backend files were modified. JSON validation passed, the UUID format smoke check passed, and source inspection confirmed both turn requests use client_msg_id().",
+  "verification": "analyzer_pending",
+  "notes": "Manifest initially declared source files and T5.json; oc-issues.txt was added after two PowerShell filesystem-command failures, per system-error logging policy. Rechecked the declared source files against base_commit; no concurrent changes were detected. Existing home flow sets streaming before session creation, preventing duplicate creation from repeated sends; the turn request remains after the awaited create response."
 }

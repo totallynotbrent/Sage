@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Socratic Workspace · Unified Artifact + Action Bar + LaTeX Scale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},chtml:{scale:1},startup:{pageReady:()=>MathJax.startup.defaultPageReady()}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root{
+  --canvas:#191724;
+  --canvas-ink:#181818;
+  --surface:#1f1d2e;
+  --surface-warm:#2f2f2c;
+  --overlay:#26233a;
+  --border:#403d52;
+  --border-soft:#2a283e;
+  --ink:#e0def4;
+  --ink-muted:#908caa;
+  --ink-faint:#6e6a86;
+  --iris:#c4a7e7;
+  --iris-hover:#d1bdf0;
+  --foam:#9ccfd8;
+  --pine:#31748f;
+  --gold:#f6c177;
+  --love:#eb6f92;
+  --rose:#ebbcba;
+  --font-sans:"Geist","Geist Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"Geist Mono","JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Monaco,monospace;
+  --font-display:"Newsreader",Georgia,serif;
+  --radius:8px;
+  --sidebar-w:260px;
+  --mirror-w:380px;
+  --header-h:52px;
+  --max:760px;
+  --ease:cubic-bezier(0.32,0.72,0,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--canvas);color:var(--ink);font-family:var(--font-sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:999px}::-webkit-scrollbar-track{background:transparent}
+a{color:var(--foam);text-decoration:none}a:hover{text-decoration:underline}
+button{font:inherit}
+.header{height:var(--header-h);display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.header__left,.header__right{display:flex;align-items:center;gap:12px}
+.header__mark{font-family:var(--font-display);font-size:19px;letter-spacing:-0.02em;font-weight:500;color:var(--ink)}
+.header__mark i{font-style:italic;color:var(--iris);font-weight:400}
+.header__sep{width:1px;height:18px;background:var(--border)}
+.header__session{font-size:13px;color:var(--ink-muted);max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header__phase{font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgba(196,167,231,0.13);color:var(--iris);border:1px solid rgba(196,167,231,0.2)}
+.icon-btn{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--ink-muted);cursor:pointer;transition:all 160ms var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--ink);border-color:var(--border)}
+.icon-btn:focus-visible{outline:2px solid var(--iris);outline-offset:2px}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.layout{flex:1;display:flex;min-height:0;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar__top{padding:14px 12px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sidebar__label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-faint)}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__h{width:100%;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-faint);background:none;border:none;cursor:pointer}
+.sidebar__h:hover{color:var(--ink-muted)}
+.sidebar__list{padding:0 8px 8px;display:flex;flex-direction:column;gap:2px}
+.s-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--ink-muted);font-size:13px;line-height:1.3;transition:background 160ms var(--ease),color 160ms var(--ease)}
+.s-item:hover{background:var(--overlay);color:var(--ink)}
+.s-item.active{background:var(--overlay);color:var(--ink);border:1px solid var(--border)}
+.s-item__dot{width:6px;height:6px;border-radius:50%;background:var(--ink-faint);flex-shrink:0}
+.s-item__dot.live{background:var(--foam);box-shadow:0 0 0 4px rgba(156,207,216,0.14)}
+.s-item__text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-item__meta{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint)}
+.sidebar__foot{margin-top:auto;padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.btn-ghost{width:100%;text-align:left;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--ink-muted);font-size:13px;cursor:pointer;transition:all 160ms var(--ease)}
+.btn-ghost:hover{background:var(--overlay);color:var(--ink)}
+.main{flex:1;display:flex;min-width:0;min-height:0;overflow:hidden;background:var(--canvas)}
+.chat{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.chat__scroll{flex:1;overflow-y:auto;scroll-behavior:smooth}
+.chat__inner{max-width:var(--max);margin:0 auto;padding:24px 16px 12px;display:flex;flex-direction:column;gap:6px}
+.msg{display:flex;flex-direction:column;max-width:var(--max);width:100%;margin:0 auto;padding:14px 0;animation:msgIn 520ms var(--ease) both}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg--user{align-items:flex-end}
+.msg--assistant{align-items:flex-start}
+.msg__role{font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-faint);padding:0 4px;margin-bottom:6px}
+.msg__bubble{padding:16px 18px;border-radius:12px;line-height:1.7;max-width:100%;word-wrap:break-word;overflow-wrap:break-word}
+.msg--assistant .msg__bubble{background:transparent;color:var(--ink);font-size:15px;line-height:1.7;padding-left:4px;padding-right:4px}
+.msg--user .msg__bubble{background:var(--surface);border:1px solid var(--border);color:var(--ink);font-size:14px;line-height:1.6;max-width:92%;border-radius:14px}
+.msg__bubble p{margin:0 0 12px}.msg__bubble p:last-child{margin-bottom:0}
+.msg__bubble strong{font-weight:600}
+.msg__bubble em{font-style:italic;color:var(--ink)}
+.theorem{font-family:var(--font-display);font-size:20px;line-height:1.3;font-weight:500;color:var(--ink);margin:14px 0 8px;letter-spacing:-0.01em}
+.theorem em{font-style:italic;color:var(--rose);font-weight:400}
+.theorem__label{font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:4px;font-weight:500}
+.msg__bubble blockquote{border-left:2px solid var(--iris);padding:10px 14px;margin:14px 0;background:rgba(196,167,231,0.07);border-radius:0 8px 8px 0;color:var(--ink-muted);font-style:italic;line-height:1.6}
+.msg__bubble blockquote strong{color:var(--ink);font-style:normal}
+.eq-band{background:var(--overlay);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:14px 0;overflow-x:auto;text-align:center}
+.eq-band .MathJax{color:var(--ink) !important}
+.eq-band .mjx-chtml{color:var(--ink)}
+code.math{font-family:"JetBrains Mono",var(--font-mono);font-size:13px;background:var(--overlay);border:1px solid var(--border);padding:1px 6px;border-radius:6px;color:var(--foam)}
+.artifact-card{position:relative;background:var(--surface-warm);border:1px solid var(--border);border-left-width:3px;border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;animation:cardIn 280ms var(--ease);transition:border-color 180ms var(--ease),transform 180ms var(--ease),box-shadow 180ms var(--ease)}
+.artifact-card:hover{border-color:#4a4763;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.22)}
+.artifact-card[data-kind="diagram"]{border-left-color:var(--foam)}
+.artifact-card[data-kind="quiz"]{border-left-color:var(--gold)}
+.artifact-card[data-kind="todo"]{border-left-color:var(--pine)}
+.artifact-card[data-kind="chat"]{border-left-color:var(--iris)}
+@keyframes cardIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.artifact-card__header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.artifact-card__meta{display:flex;align-items:center;gap:10px;min-width:0}
+.artifact-card__kind{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-faint)}
+.artifact-card__pill{font-family:var(--font-mono);font-size:10px;letter-spacing:0.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--overlay);color:var(--ink-muted);border:1px solid var(--border);font-weight:500}
+.artifact-card__pill.is-validated{color:var(--foam);border-color:rgba(156,207,216,0.24);background:#26233a}
+.artifact-card__sub{font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);white-space:nowrap}
+.artifact-card__title{font-family:var(--font-display);font-style:italic;font-size:18px;line-height:1.32;color:var(--ink);margin:0;font-weight:500}
+.artifact-card__body{color:var(--ink);font-size:14px;line-height:1.6}
+.artifact-card__body p{margin:0 0 8px}.artifact-card__body p:last-child{margin-bottom:0}
+.artifact-card__body code{font-family:var(--font-mono);font-size:12px;background:var(--overlay);border:1px solid var(--border);padding:1px 5px;border-radius:6px}
+.artifact-card__link{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.artifact-card__link:hover{color:var(--ink)}
+.artifact-card.is-mirror-highlight{outline:2px solid var(--iris);outline-offset:2px}
+.artifact-card__diagram{background:#14131e;border:1px solid var(--border);border-radius:8px;padding:14px;overflow:auto}
+.artifact-card__diagram .mermaid{color:var(--ink)}
+.artifact-card__diagram svg{max-width:100%;height:auto}
+.artifact-card__diagram-source{margin-top:10px}
+.artifact-card__diagram-source summary{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-faint);cursor:pointer;list-style:none}
+.artifact-card__diagram-source summary::-webkit-details-marker{display:none}
+.artifact-card__diagram-source pre{margin-top:8px;background:var(--overlay);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:var(--font-mono);font-size:12px;color:var(--ink-muted);white-space:pre-wrap;word-break:break-word}
+.q__prompt{font-family:var(--font-display);font-size:16px;font-weight:500;color:var(--ink);line-height:1.42;margin:4px 0 2px}
+.q__options{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.q__opt{display:flex;align-items:flex-start;gap:12px;padding:11px 12px;border-radius:8px;background:var(--overlay);border:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--ink);transition:all 160ms var(--ease),transform 90ms var(--ease);text-align:left;width:100%}
+.q__opt:hover{background:#2e2b44;border-color:#4a4763}
+.q__opt:active{transform:scale(0.99)}
+.q__opt.is-selected{background:rgba(196,167,231,0.13);border-color:rgba(196,167,231,0.32)}
+.q__opt.is-correct{background:rgba(156,207,216,0.11);border-color:rgba(156,207,216,0.5)}
+.q__opt.is-incorrect{background:rgba(235,111,146,0.10);border-color:rgba(235,111,146,0.44)}
+.q__radio{width:16px;height:16px;border-radius:50%;border:2px solid var(--ink-faint);flex-shrink:0;margin-top:2px;transition:all 160ms var(--ease);display:grid;place-items:center}
+.q__opt.is-selected .q__radio{border-color:var(--iris);background:var(--iris);box-shadow:inset 0 0 0 3px #26233a}
+.q__opt.is-correct .q__radio{border-color:var(--foam);background:var(--foam);box-shadow:inset 0 0 0 3px var(--overlay)}
+.q__opt.is-incorrect .q__radio{border-color:var(--love);background:var(--love)}
+.q__explain{margin-top:8px;font-size:13px;color:var(--ink-muted);font-style:italic;line-height:1.55;background:var(--overlay);border-left:2px solid var(--foam);padding:10px 12px;border-radius:0 8px 8px 0;display:none}
+.q__explain.open{display:block}
+.todo-list{list-style:none;display:flex;flex-direction:column;gap:8px;margin:0;padding:0}
+.todo-item{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:8px;background:var(--overlay);border:1px solid var(--border);cursor:pointer;transition:background 160ms var(--ease)}
+.todo-item:hover{background:#2e2b44}
+.todo-item input{margin-top:3px;accent-color:var(--pine)}
+.todo-item__text{flex:1;font-size:14px;color:var(--ink);line-height:1.5}
+.todo-item input:checked + .todo-item__text{color:var(--ink-faint);text-decoration:line-through}
+.mirror{width:var(--mirror-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.mirror__head{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.mirror__title{font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-faint);display:flex;align-items:center;gap:8px}
+.mirror__dot{width:7px;height:7px;border-radius:50%;background:var(--foam);box-shadow:0 0 0 4px rgba(156,207,216,0.14)}
+.mirror__actions{display:flex;gap:6px}
+.mirror__tabs{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.mirror__tab{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;text-transform:uppercase;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--ink-muted);cursor:pointer;transition:all 140ms var(--ease)}
+.mirror__tab:hover{background:var(--overlay);color:var(--ink)}
+.mirror__tab.active{background:var(--overlay);color:var(--ink);border-color:var(--iris)}
+.mirror__body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.mirror__empty{padding:28px 14px;text-align:center;color:var(--ink-faint);font-size:13px;line-height:1.6}
+.mirror__empty strong{font-family:var(--font-display);font-style:italic;font-size:15px;color:var(--ink);display:block;margin-bottom:6px;font-weight:500}
+.mirror__sync{font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-faint);text-align:center;padding:8px 12px;border-top:1px solid var(--border);background:var(--canvas)}
+.mirror .artifact-card{padding:14px}
+.mirror .artifact-card__title{font-size:15px}
+.mirror .artifact-card__body{font-size:13px}
+.socratic-bar{max-width:var(--max);width:100%;margin:0 auto;padding:10px 16px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.socratic-bar__meta{font-family:var(--font-mono);font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--ink-faint);display:flex;align-items:center;gap:8px;margin-right:auto}
+.socratic-bar__progress{width:72px;height:4px;border-radius:999px;background:var(--overlay);overflow:hidden;border:1px solid var(--border)}
+.socratic-bar__fill{height:100%;background:var(--iris);transition:width 300ms var(--ease)}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:8px;background:var(--iris);color:var(--canvas-ink);font-size:14px;font-weight:600;border:1px solid transparent;cursor:pointer;transition:all 140ms var(--ease);font-family:var(--font-sans)}
+.btn-primary:hover{background:var(--iris-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(196,167,231,0.22)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:0.44;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary:focus-visible{outline:2px solid var(--iris);outline-offset:2px;box-shadow:0 0 0 4px rgba(196,167,231,0.22)}
+.btn-ghost-sm{padding:10px 14px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer;transition:all 140ms var(--ease)}
+.btn-ghost-sm:hover{background:var(--overlay);border-color:var(--ink-faint)}
+.btn-ghost-sm:focus-visible{outline:2px solid var(--iris);outline-offset:2px}
+.btn-ghost-sm:disabled{opacity:0.42;cursor:not-allowed}
+.btn-text{padding:8px 10px;border:none;background:transparent;color:var(--ink-muted);font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(144,140,170,0.5);transition:color 140ms var(--ease)}
+.btn-text:hover{color:var(--ink)}
+.btn-text:focus-visible{outline:2px solid var(--iris);outline-offset:2px;border-radius:6px}
+.btn-text:disabled{opacity:0.42;cursor:not-allowed}
+.input-bar{padding:10px 16px 18px;flex-shrink:0}
+.input-bar__wrap{max-width:var(--max);margin:0 auto;display:flex;align-items:flex-end;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 10px 10px 14px;transition:border-color 160ms var(--ease),box-shadow 160ms var(--ease)}
+.input-bar__wrap:focus-within{border-color:rgba(196,167,231,0.5);box-shadow:0 0 0 3px rgba(196,167,231,0.12)}
+.input-bar__textarea{flex:1;min-width:0;resize:none;border:none;background:transparent;color:var(--ink);font-family:var(--font-sans);font-size:15px;line-height:1.5;max-height:120px;min-height:22px;padding:6px 0;outline:none}
+.input-bar__textarea::placeholder{color:var(--ink-faint)}
+.input-bar__actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.input-bar__send{width:36px;height:36px;display:grid;place-items:center;border-radius:8px;background:var(--iris);color:var(--canvas-ink);border:none;cursor:pointer;transition:all 140ms var(--ease)}
+.input-bar__send:hover{background:var(--iris-hover)}
+.input-bar__send:active{transform:scale(0.96)}
+.input-bar__send:focus-visible{outline:2px solid var(--iris);outline-offset:2px}
+.input-bar__attach{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--ink-muted);cursor:pointer}
+.input-bar__attach:hover{background:var(--overlay);color:var(--ink)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.phase-divider{display:flex;align-items:center;gap:12px;margin:10px 0;color:var(--ink-faint);font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase}
+.phase-divider::before,.phase-divider::after{content:"";flex:1;height:1px;background:var(--border)}
+@media (max-width:1100px){
+  .mirror{position:fixed;right:0;top:var(--header-h);bottom:0;width:min(380px,86vw);transform:translateX(100%);transition:transform 260ms var(--ease);z-index:15;box-shadow:-12px 0 32px rgba(0,0,0,0.28)}
+  .mirror.open{transform:translateX(0)}
+  .backdrop{display:none;position:fixed;inset:0;background:rgba(10,10,18,0.5);z-index:14}
+  .backdrop.open{display:block}
+}
+@media (max-width:720px){
+  .sidebar{position:fixed;left:0;top:var(--header-h);bottom:0;z-index:16;transform:translateX(-100%);transition:transform 260ms var(--ease)}
+  .sidebar.open{transform:translateX(0)}
+  .header__session{display:none}
+  .socratic-bar{gap:8px}
+  .btn-primary{flex:1;justify-content:center}
+  .mirror{width:100vw}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header" role="banner">
+    <div class="header__left">
+      <button class="icon-btn" id="menuBtn" aria-label="Toggle sessions"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 4.5h12M3 9h12M3 13.5h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+      <div class="header__mark">S<i>a</i>ge</div>
+      <div class="header__sep" aria-hidden="true"></div>
+      <div class="header__session" title="Induction & Recursion · Socratic studio">Induction &amp; Recursion · Socratic studio</div>
+      <span class="header__phase" aria-label="Phase: Teach">Teach · step 3/7</span>
+    </div>
+    <div class="header__right">
+      <button class="icon-btn" id="mirrorToggle" aria-label="Toggle artifact mirror" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="2.5" y="3.5" width="13" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 7.5h5M6.5 10.5h3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="13.2" cy="13.2" r="1.8" fill="currentColor"/></svg></button>
+      <button class="icon-btn" aria-label="Settings"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" stroke="currentColor" stroke-width="1.3"/><path d="M9 2.8v1.6M9 13.6v1.6M2.8 9h1.6M13.6 9h1.6M4.6 4.6l1.1 1.1M12.3 12.3l1.1 1.1M4.6 13.4l1.1-1.1M12.3 5.7l1.1-1.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    </div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="Sessions and files">
+      <div class="sidebar__top">
+        <span class="sidebar__label">Workspace</span>
+        <button class="icon-btn" style="width:26px;height:26px" aria-label="New session">＋</button>
+      </div>
+      <div class="sidebar__section">
+        <button class="sidebar__h"><span>Sessions</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list" role="list">
+          <div class="s-item active" role="listitem"><span class="s-item__dot live" aria-hidden="true"></span><span class="s-item__text">Induction &amp; Recursion</span><span class="s-item__meta">now</span></div>
+          <div class="s-item" role="listitem"><span class="s-item__dot"></span><span class="s-item__text">ε–δ limits · notes scan</span><span class="s-item__meta">2h ago</span></div>
+          <div class="s-item" role="listitem"><span class="s-item__dot"></span><span class="s-item__text">Graph isomorphisms</span><span class="s-item__meta">yesterday</span></div>
+          <div class="s-item" role="listitem"><span class="s-item__dot"></span><span class="s-item__text">Bayes revision</span><span class="s-item__meta">Sun</span></div>
+        </div>
+      </div>
+      <div class="sidebar__section">
+        <button class="sidebar__h"><span>Source files · 3</span><span style="font-size:10px;color:var(--foam)">grounded</span></button>
+        <div class="sidebar__list">
+          <div class="s-item"><span class="s-item__dot" style="background:var(--foam)"></span><span class="s-item__text">cs_311_notes.pdf</span><span class="s-item__meta">12 pp</span></div>
+          <div class="s-item"><span class="s-item__dot" style="background:var(--foam)"></span><span class="s-item__text">induction_handout.tex</span><span class="s-item__meta">tex</span></div>
+          <div class="s-item"><span class="s-item__dot" style="background:var(--gold)"></span><span class="s-item__text">recursion_lab.md</span><span class="s-item__meta">md</span></div>
+        </div>
+      </div>
+      <div class="sidebar__foot">
+        <button class="btn-ghost">＋ Attach material</button>
+        <div style="font-size:11px;color:var(--ink-faint);line-height:1.5">Local-first. Nothing leaves this device without your consent. Model: gemma · grounded.</div>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="chat" id="chat">
+        <div class="chat__scroll" id="chatScroll">
+          <div class="chat__inner" id="chatInner">
+            <h1 class="sr-only">Sage Socratic Workspace — Induction and Recursion</h1>
+            <div class="phase-divider"><span>Probe · what you already know</span></div>
+            <div class="msg msg--assistant">
+              <div class="msg__role">Sage</div>
+              <div class="msg__bubble">
+                <p>Let’s pick up where you left off — you said <em>induction feels like “dominoes” but recursion feels like “a function calling itself”</em> and you weren’t sure they’re the same thing.</p>
+                <p>They are two <em>views of the same staircase</em>. Induction climbs up by proof; recursion climbs down by definition.</p>
+                <div class="theorem"><span class="theorem__label">Theorem — Weak induction</span>To prove <em>P(n)</em> for all <em>n ≥ n₀</em> it suffices to show <em>P(n₀)</em> and <em>P(k) ⇒ P(k+1)</em>.</div>
+                <blockquote><strong>Socratic prompt:</strong> Before I show the bridge — in your own words, what does the <em>inductive step</em> let you assume, and what must you still prove?</blockquote>
+                <div class="eq-band" aria-label="Display equation: sum of first n naturals"><span>$$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$</span></div>
+                <p style="color:var(--ink-muted);font-size:13px">Take a breath, try the prompt above. Your answer shapes the next step — no grading, just scaffolding.</p>
+              </div>
+            </div>
+            <div class="msg msg--user">
+              <div class="msg__role">You</div>
+              <div class="msg__bubble">The inductive step lets me assume P(k) is true for some k, but I have to prove it forces P(k+1). Base case grounds it so dominoes actually fall.</div>
+            </div>
+            <div class="msg msg--assistant">
+              <div class="msg__role">Sage · <span style="color:var(--foam)">grounded in cs_311_notes.pdf · p.4</span></div>
+              <div class="msg__bubble">
+                <p>Exactly — and that “assume <code class="math">P(k)</code>” is the <em>inductive hypothesis</em>. Now watch it become code.</p>
+                <p>Define factorial recursively: base <code class="math">fact(0)=1</code>, step <code class="math">fact(n)=n·fact(n-1)</code>. Proving <code class="math">fact(n)=n!</code> by induction mirrors <em>executing</em> <code class="math">fact</code> by recursion — each reduces the problem by one, trusting the smaller case.</p>
+                <div class="eq-band" aria-label="Display equation: factorial recursion"><span>$$fact(n)=\begin{cases}1 &amp; n=0\\ n\cdot fact(n-1) &amp; n&gt;0\end{cases}$$</span></div>
+              </div>
+            </div>
+            <article class="artifact-card" data-kind="diagram" data-id="art-diagram-1" tabindex="0" aria-label="Artifact 01 diagram — recursion vs induction">
+              <header class="artifact-card__header">
+                <div class="artifact-card__meta">
+                  <span class="artifact-card__kind">artifact · 01 · diagram</span>
+                  <span class="artifact-card__pill is-validated">validated</span>
+                </div>
+                <span class="artifact-card__sub">mermaid · grounded</span>
+              </header>
+              <h3 class="artifact-card__title">The same staircase, two directions</h3>
+              <div class="artifact-card__body"><p>Induction proves upward; recursion computes downward. Both need a <em>base</em> and a <em>step that shrinks the argument</em>.</p></div>
+              <div class="artifact-card__diagram">
+                <div class="mermaid" id="mermaid-01">flowchart LR
+  A[Base\nP(0) / fact(0)=1] --> B[Step\nP(k)->P(k+1)]
+  B --> C[Step\nP(k+1)->P(k+2)]
+  C --> D[... all n]
+  E[Call fact(3)] --> F[3 * fact(2)]
+  F --> G[2 * fact(1)]
+  G --> H[1 * fact(0)]
+  H --> I[1]
+  B -. same shape .- F
+  style A fill:#26233a,stroke:#c4a7e7,color:#e0def4
+  style E fill:#26233a,stroke:#9ccfd8,color:#e0def4</div>
+                <details class="artifact-card__diagram-source">
+                  <summary>Source ▸ mermaid</summary>
+                  <pre>flowchart LR
+  A[Base P(0) / fact(0)=1] --> B[Step P(k)->P(k+1)] --> C[...] --> D[all n]
+  E[Call fact(3)] --> F[3*fact(2)] --> G[2*fact(1)] --> H[1*fact(0)] --> I[1]
+  B -. same shape .- F</pre>
+                </details>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <span class="artifact-card__link" role="button" tabindex="0" data-mirror-focus="art-diagram-1">↗ Open in mirror</span>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-faint)">·</span>
+                <span class="artifact-card__link">Copy mermaid</span>
+              </div>
+            </article>
+            <div class="msg msg--assistant">
+              <div class="msg__role">Sage</div>
+              <div class="msg__bubble">
+                <blockquote>Second prompt — if your base case were <em>false</em>, could the inductive step still be vacuously true? What would that mean for the domino picture?</blockquote>
+                <p style="font-size:13px;color:var(--ink-muted)">Answer in your own words — then use <strong>Continue →</strong> below. I’ll stretch or compress the next step based on what you write.</p>
+              </div>
+            </div>
+            <article class="artifact-card" data-kind="quiz" data-id="art-quiz-1" tabindex="0" aria-label="Artifact 02 quiz — one-step check">
+              <header class="artifact-card__header">
+                <div class="artifact-card__meta">
+                  <span class="artifact-card__kind">artifact · 02 · quiz</span>
+                  <span class="artifact-card__pill is-validated">validated</span>
+                </div>
+                <span class="artifact-card__sub">3 questions · one step</span>
+              </header>
+              <h3 class="artifact-card__title">Check the step before we climb</h3>
+              <div class="artifact-card__body"><p>One Socratic rule: <em>answer before you advance</em>. Pick the best response — explanations are grounded in your handout.</p></div>
+              <div style="display:flex;flex-direction:column;gap:14px;margin-top:2px">
+                <div class="q" data-q="1">
+                  <div class="q__prompt">Q1 · Which needs a base case to avoid infinite regress?</div>
+                  <div class="q__options" role="radiogroup" aria-label="Question 1">
+                    <button class="q__opt" role="radio" aria-checked="false" data-correct="false" data-explain="Induction still needs P(n₀) — without it the chain has no start, just like recursion without a base case."><span class="q__radio" aria-hidden="true"></span><span>Only recursion needs a base case</span></button>
+                    <button class="q__opt" role="radio" aria-checked="false" data-correct="true" data-explain="Both: induction needs P(n₀) to anchor the chain; recursion needs fact(0) or it never bottoms out. Same requirement, two idioms."><span class="q__radio" aria-hidden="true"></span><span>Both — induction and recursion</span></button>
+                    <button class="q__opt" role="radio" aria-checked="false" data-correct="false" data-explain="Even if the step is correct, without P(n₀) you prove nothing — the implication alone is not enough."><span class="q__radio" aria-hidden="true"></span><span>Only induction needs a base case</span></button>
+                  </div>
+                  <div class="q__explain" role="status"></div>
+                </div>
+                <div class="q" data-q="2">
+                  <div class="q__prompt">Q2 · What does the inductive hypothesis let you <em>assume</em>?</div>
+                  <div class="q__options" role="radiogroup" aria-label="Question 2">
+                    <button class="q__opt" role="radio" aria-checked="false" data-correct="true" data-explain="Right — you assume P(k) for a fixed k to prove P(k+1). Strong induction widens that to all ≤k, but the idea is the same."><span class="q__radio" aria-hidden="true"></span><span>P(k) for a fixed k, to prove P(k+1)</span></button>
+                    <button class="q__opt" role="radio" aria-checked="false" data-correct="false" data-explain="That would be the conclusion, not the hypothesis — we don’t get to assume what we’re trying to prove."><span class="q__radio" aria-hidden="true"></span><span>P(k+1) is already true</span></button>
+                    <button class="q__opt" role="radio" aria-checked="false" data-correct="false" data-explain="Universal assumption is too strong — weak induction assumes only the single predecessor."><span class="q__radio" aria-hidden="true"></span><span>P(n) for every n at once</span></button>
+                  </div>
+                  <div class="q__explain" role="status"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+                <span class="artifact-card__link" data-mirror-focus="art-quiz-1">↗ Focus mirror</span>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-faint)">· grounded in induction_handout.tex §2</span>
+              </div>
+            </article>
+            <article class="artifact-card" data-kind="todo" data-id="art-todo-1" tabindex="0" aria-label="Artifact 03 todo — next steps">
+              <header class="artifact-card__header">
+                <div class="artifact-card__meta">
+                  <span class="artifact-card__kind">artifact · 03 · todo</span>
+                  <span class="artifact-card__pill">in progress</span>
+                </div>
+                <span class="artifact-card__sub">2 of 5 done</span>
+              </header>
+              <h3 class="artifact-card__title">Tonight’s ladder — one rung at a time</h3>
+              <ul class="todo-list" role="list">
+                <li class="todo-item" role="listitem"><input type="checkbox" checked aria-label="Name the base case"><span class="todo-item__text">Name the base case in your own example</span></li>
+                <li class="todo-item" role="listitem"><input type="checkbox" checked aria-label="State hypothesis"><span class="todo-item__text">State the inductive hypothesis precisely</span></li>
+                <li class="todo-item" role="listitem"><input type="checkbox" aria-label="Bridge to recursion"><span class="todo-item__text">Bridge: rewrite the step as a recursive call</span></li>
+                <li class="todo-item" role="listitem"><input type="checkbox" aria-label="Handle empty input"><span class="todo-item__text">Edge: what if the list is empty?</span></li>
+                <li class="todo-item" role="listitem"><input type="checkbox" aria-label="Write closure"><span class="todo-item__text">Write the closing sentence: “Thus by induction…”</span></li>
+              </ul>
+              <div style="font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);letter-spacing:0.03em">Tip: checking a box here updates the mirror and the progress ring in the header.</div>
+            </article>
+            <div style="height:8px" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="socratic-bar" role="toolbar" aria-label="Socratic step controls">
+          <div class="socratic-bar__meta" aria-live="polite" aria-atomic="true">
+            <span id="stepLabel">Step 3 of 7 · one-step Socratic</span>
+            <span class="socratic-bar__progress" aria-hidden="true"><span class="socratic-bar__fill" id="stepFill" style="width:42%"></span></span>
+          </div>
+          <button class="btn-primary" id="continueBtn" aria-describedby="continueHint">Continue →</button>
+          <button class="btn-ghost-sm" id="askBtn">Ask a question</button>
+          <button class="btn-text" id="explainBtn">Explain differently</button>
+          <span id="continueHint" class="sr-only">Advances only after the quiz check is answered</span>
+        </div>
+        <div class="input-bar">
+          <div class="input-bar__wrap">
+            <textarea class="input-bar__textarea" id="input" rows="1" placeholder="Answer the prompt above, or ask Sage to reframe it…"></textarea>
+            <div class="input-bar__actions">
+              <button class="input-bar__attach" aria-label="Attach file"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M12.8 6.2L7.4 11.6a2 2 0 01-2.8-2.8L9.8 3.6a3.2 3.2 0 014.5 4.5L8.6 13.8a4.2 4.2 0 01-6-6L7.9 2.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <button class="input-bar__send" id="sendBtn" aria-label="Send"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3.2 9L14.8 3.2L10.2 14.8L8 9L3.2 9Z" fill="currentColor" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg></button>
+            </div>
+          </div>
+          <div style="max-width:var(--max);margin:8px auto 0;display:flex;gap:8px;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--ink-faint)">
+            <span>↵ send · Shift+↵ new line · Socratic: Sage never reveals the next step until you try.</span>
+            <span id="saveState" style="color:var(--ink-muted)">Local · saved</span>
+          </div>
+        </div>
+      </div>
+      <aside class="mirror" id="mirror" aria-label="Artifact mirror — synced view">
+        <div class="mirror__head">
+          <div class="mirror__title"><span class="mirror__dot" aria-hidden="true"></span> Mirror · <span id="mirrorCount">3</span> artifacts</div>
+          <div class="mirror__actions">
+            <button class="icon-btn" id="mirrorClose" style="width:28px;height:28px" aria-label="Close mirror">✕</button>
+          </div>
+        </div>
+        <div class="mirror__tabs" role="tablist" aria-label="Artifact filter">
+          <button class="mirror__tab active" role="tab" aria-selected="true" data-filter="all">All</button>
+          <button class="mirror__tab" role="tab" aria-selected="false" data-filter="diagram">Diagram</button>
+          <button class="mirror__tab" role="tab" aria-selected="false" data-filter="quiz">Quiz</button>
+          <button class="mirror__tab" role="tab" aria-selected="false" data-filter="todo">Todo</button>
+        </div>
+        <div class="mirror__body" id="mirrorBody"></div>
+        <div class="mirror__sync">Synced · selecting a card in chat highlights its mirror twin</div>
+      </aside>
+      <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+<script>
+mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'dark',themeVariables:{primaryColor:'#26233a',primaryTextColor:'#e0def4',primaryBorderColor:'#c4a7e7',lineColor:'#908caa',secondaryColor:'#1f1d2e',tertiaryColor:'#191724',fontFamily:'"Geist", "Geist Sans", system-ui, sans-serif',fontSize:'13px'}});
+let mermaidDone=false;
+async function renderMermaid(){
+  if(mermaidDone) return;
+  try{ await mermaid.run({querySelector:'.mermaid'}); mermaidDone=true;}catch(e){ console.warn('mermaid',e)}
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', renderMermaid); else renderMermaid();
+if(window.MathJax && MathJax.typesetPromise){
+  const runMath=()=> MathJax.typesetPromise().catch(()=>{});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', runMath); else runMath();
+}
+const sidebar=document.getElementById('sidebar');
+const chatScroll=document.getElementById('chatScroll');
+const mirror=document.getElementById('mirror');
+const backdrop=document.getElementById('backdrop');
+document.getElementById('menuBtn').addEventListener('click',()=>{
+  const isMobile=window.matchMedia('(max-width:720px)').matches;
+  if(isMobile){ sidebar.classList.toggle('open'); backdrop.classList.toggle('open', sidebar.classList.contains('open')); }
+  else { sidebar.style.display = sidebar.style.display==='none' ? '' : 'none'; }
+});
+document.getElementById('mirrorToggle').addEventListener('click',()=>{
+  const willOpen=!mirror.classList.contains('open');
+  mirror.classList.toggle('open', willOpen);
+  backdrop.classList.toggle('open', willOpen && window.matchMedia('(max-width:1100px)').matches);
+  document.getElementById('mirrorToggle').setAttribute('aria-pressed', String(willOpen));
+});
+document.getElementById('mirrorClose').addEventListener('click',()=>{
+  mirror.classList.remove('open'); backdrop.classList.remove('open');
+  document.getElementById('mirrorToggle').setAttribute('aria-pressed','false');
+});
+backdrop.addEventListener('click',()=>{ mirror.classList.remove('open'); sidebar.classList.remove('open'); backdrop.classList.remove('open'); });
+let currentStep=3;
+const totalSteps=7;
+let streaming=false;
+let quizSolved=false;
+const continueBtn=document.getElementById('continueBtn');
+const askBtn=document.getElementById('askBtn');
+const explainBtn=document.getElementById('explainBtn');
+const stepLabel=document.getElementById('stepLabel');
+const stepFill=document.getElementById('stepFill');
+const input=document.getElementById('input');
+function updateSocraticState(){
+  const pct=Math.round((currentStep/totalSteps)*100);
+  stepFill.style.width=pct+'%';
+  stepLabel.textContent=`Step ${currentStep} of ${totalSteps} · one-step Socratic`;
+  const quizGate = !quizSolved;
+  const shouldDisable = streaming || quizGate;
+  continueBtn.disabled = shouldDisable;
+  continueBtn.setAttribute('aria-disabled', String(shouldDisable));
+  continueBtn.title = shouldDisable ? (streaming ? 'Sage is responding…' : 'Answer the check above to continue') : 'Advance to the next Socratic step';
+}
+updateSocraticState();
+function checkQuizSolved(){
+  const qs=[...document.querySelectorAll('.q')];
+  let correctPicks=0, engaged=0;
+  qs.forEach(g=>{
+    const sel=g.querySelector('.q__opt.is-selected');
+    if(sel){ engaged++; if(sel.dataset.correct==='true') correctPicks++; }
+  });
+  quizSolved = (correctPicks>=1 && engaged===qs.length) || correctPicks===qs.length;
+  updateSocraticState();
+}
+document.querySelectorAll('.q__opt').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const group=btn.closest('.q');
+    const sibs=group.querySelectorAll('.q__opt');
+    sibs.forEach(b=>{ b.classList.remove('is-selected','is-correct','is-incorrect'); b.setAttribute('aria-checked','false'); });
+    btn.classList.add('is-selected');
+    btn.setAttribute('aria-checked','true');
+    const isCorrect=btn.dataset.correct==='true';
+    btn.classList.add(isCorrect?'is-correct':'is-incorrect');
+    const expl=group.querySelector('.q__explain');
+    expl.textContent = btn.dataset.explain;
+    expl.classList.add('open');
+    if(!isCorrect){
+      const correct=[...sibs].find(x=>x.dataset.correct==='true');
+      if(correct) correct.style.outline='1px dashed rgba(156,207,216,0.5)';
+    }
+    checkQuizSolved();
+    syncMirrorSelection(btn.closest('.artifact-card')?.dataset.id);
+  });
+  btn.addEventListener('keydown',e=>{
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); btn.click(); }
+  });
+});
+const chatCards=[...document.querySelectorAll('.artifact-card')];
+const mirrorBody=document.getElementById('mirrorBody');
+function syncMirrorSelection(id){
+  [...mirrorBody.querySelectorAll('.artifact-card')].forEach(c=> c.classList.toggle('is-mirror-highlight', c.dataset.mirrorOf===id));
+  chatCards.forEach(c=> c.classList.toggle('is-mirror-highlight', c.dataset.id===id));
+}
+function buildMirror(){
+  mirrorBody.innerHTML='';
+  const filter=document.querySelector('.mirror__tab.active')?.dataset.filter || 'all';
+  let count=0;
+  chatCards.forEach(src=>{
+    const kind=src.dataset.kind;
+    if(filter!=='all' && filter!==kind) return;
+    count++;
+    const clone=src.cloneNode(true);
+    clone.dataset.mirrorOf=src.dataset.id;
+    clone.removeAttribute('id');
+    clone.querySelectorAll('.q__opt').forEach(b=>{
+      b.addEventListener('click',()=>{
+        const idx=[...clone.querySelectorAll('.q__opt')].indexOf(b);
+        const srcBtn=[...src.querySelectorAll('.q__opt')][idx];
+        if(srcBtn) srcBtn.click();
+      });
+    });
+    clone.addEventListener('click',()=>{
+      src.scrollIntoView({behavior:'smooth',block:'center'});
+      src.focus();
+      syncMirrorSelection(src.dataset.id);
+    });
+    clone.querySelectorAll('[data-mirror-focus]').forEach(el=>{
+      el.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        src.scrollIntoView({behavior:'smooth',block:'center'});
+        syncMirrorSelection(src.dataset.id);
+      });
+    });
+    mirrorBody.appendChild(clone);
+  });
+  if(count===0){
+    const empty=document.createElement('div');
+    empty.className='mirror__empty';
+    empty.innerHTML='<strong>No artifacts of that kind yet</strong>Sage generates diagrams, checks, and plans as you go. Use the sparkle buttons in the input bar in the live app — or scroll the chat to see them in-stream.';
+    mirrorBody.appendChild(empty);
+  }
+  document.getElementById('mirrorCount').textContent=String(count);
+}
+document.querySelectorAll('.mirror__tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.mirror__tab').forEach(t=>{ t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+    tab.classList.add('active'); tab.setAttribute('aria-selected','true');
+    buildMirror();
+  });
+});
+buildMirror();
+chatCards.forEach(card=>{
+  card.addEventListener('click',()=> syncMirrorSelection(card.dataset.id));
+  card.addEventListener('focus',()=> syncMirrorSelection(card.dataset.id));
+});
+continueBtn.addEventListener('click',()=>{
+  if(continueBtn.disabled) return;
+  streaming=true;
+  continueBtn.textContent='Generating…';
+  updateSocraticState();
+  input.disabled=true;
+  const inner=document.getElementById('chatInner');
+  const next=document.createElement('div');
+  next.className='msg msg--assistant';
+  next.innerHTML=`<div class="msg__role">Sage · step ${currentStep+1}</div><div class="msg__bubble"><div class="theorem"><span class="theorem__label">Next — Strong induction &amp; the well-ordering principle</span>Now that the single-step ladder holds, widen the hypothesis: assume <em>all</em> <code class="math">P(i)</code> for <code class="math">i ≤ k</code>.</div><blockquote><strong>Your turn:</strong> Can you restate the factorial correctness proof using strong induction? Where would “assume all smaller” buy you anything over “assume just the predecessor”?</blockquote><div class="eq-band">$$P(k+1) \\iff \\forall i \\le k,\\; P(i) \\Rightarrow P(k+1)$$</div><p style="color:var(--ink-muted);font-size:13px">Try a one-sentence answer — I’ll adapt the next artifact (a proof skeleton) to it.</p></div>`;
+  setTimeout(()=>{
+    inner.appendChild(next);
+    if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([next]).catch(()=>{});
+    currentStep=Math.min(totalSteps, currentStep+1);
+    quizSolved=false;
+    streaming=false;
+    continueBtn.textContent='Continue →';
+    input.disabled=false;
+    input.focus();
+    updateSocraticState();
+    chatScroll.scrollTop=chatScroll.scrollHeight;
+    buildMirror();
+  }, 900);
+});
+askBtn.addEventListener('click',()=>{
+  input.focus();
+  input.value = input.value ? input.value : 'I have a question about the inductive hypothesis — ';
+  input.setSelectionRange(input.value.length, input.value.length);
+});
+explainBtn.addEventListener('click',()=>{
+  const inner=document.getElementById('chatInner');
+  const note=document.createElement('div');
+  note.className='msg msg--assistant';
+  note.innerHTML=`<div class="msg__role">Sage · reframe</div><div class="msg__bubble"><p>Reframed: think of <em>proof by induction</em> as the <strong>verification</strong> of a recursive <strong>construction</strong>. The base case is “empty list is sorted.” The step is “insert the next element correctly assuming the prefix is sorted.”</p><blockquote>Does that insertion-sort picture make the hypothesis feel less abstract?</blockquote></div>`;
+  inner.appendChild(note);
+  chatScroll.scrollTop=chatScroll.scrollHeight;
+});
+document.getElementById('sendBtn').addEventListener('click',()=>{
+  const val=input.value.trim();
+  if(!val) return;
+  const inner=document.getElementById('chatInner');
+  const user=document.createElement('div');
+  user.className='msg msg--user';
+  user.innerHTML=`<div class="msg__role">You</div><div class="msg__bubble">${val.replace(/</g,'&lt;')}</div>`;
+  inner.appendChild(user);
+  input.value='';
+  input.style.height='auto';
+  const ack=document.createElement('div');
+  ack.className='msg msg--assistant';
+  ack.innerHTML=`<div class="msg__role">Sage</div><div class="msg__bubble"><p>Nice — I’m using that. Hit <strong>Continue →</strong> when you’re ready for the next rung, or <em>Ask a question</em> to detour.</p></div>`;
+  inner.appendChild(ack);
+  chatScroll.scrollTop=chatScroll.scrollHeight;
+  if(!quizSolved){
+    quizSolved = document.querySelectorAll('.q__opt.is-selected').length>0;
+    updateSocraticState();
+  }
+});
+input.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); document.getElementById('sendBtn').click(); }
+});
+input.addEventListener('input',()=>{ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,120)+'px'; });
+document.querySelectorAll('.todo-item input').forEach(cb=>{
+  cb.addEventListener('change',()=>{
+    const text=cb.nextElementSibling.textContent.trim();
+    [...mirrorBody.querySelectorAll('.todo-item')].forEach(item=>{
+      if(item.textContent.trim().includes(text)){
+        const mirrorCb=item.querySelector('input');
+        if(mirrorCb) mirrorCb.checked=cb.checked;
+      }
+    });
+    const done=[...document.querySelectorAll('.todo-item input:checked')].length;
+    const total=document.querySelectorAll('.todo-item input').length;
+    document.querySelector('.artifact-card[data-kind="todo"] .artifact-card__sub').textContent=`${done} of ${total} done`;
+    document.querySelector('.artifact-card[data-kind="todo"] .artifact-card__pill').textContent = done===total ? 'done' : 'in progress';
+  });
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ mirror.classList.remove('open'); sidebar.classList.remove('open'); backdrop.classList.remove('open'); }
+});
+</script>
+</body>
+</html>

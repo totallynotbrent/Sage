@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-library.html",
+  "entry": "sage-library.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T20:51:31.540Z",
+  "updatedAt": "2026-08-21T20:51:31.540Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

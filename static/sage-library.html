@@ -5,52 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sage — Library</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:1120ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--fg);background:var(--bg)}
-a{color:var(--accent);text-decoration:none}
-a:hover{color:var(--accent-hover)}
-button{font-family:inherit;cursor:pointer;border:none;background:none;color:var(--fg)}
-input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
-.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
-.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
-.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
-.icon-btn:hover{background:var(--overlay);color:var(--fg)}
-.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
-.logo span{color:var(--muted)}
-.layout{display:flex;flex:1;min-height:0;overflow:hidden}
-.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform 500ms var(--ease),opacity 500ms var(--ease)}
-.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
-.sidebar:not(.collapsed){transform:translateX(0)}
-.sidebar__section{border-bottom:1px solid var(--border)}
-.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
-.sidebar__header:hover{color:var(--muted)}
-.sidebar__chevron{transition:transform var(--dur) var(--ease)}
-.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
-.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
-.sidebar__section.open .sidebar__list{display:block}
-.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
-.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
-.sidebar__item.active{background:var(--overlay);color:var(--fg)}
-.sidebar__item-dot{width:6px;height:6px;border-radius:50%;background:var(--meta);flex-shrink:0}
-.sidebar__item-dot.ready{background:var(--foam)}
-.sidebar__item-dot.error{background:var(--love)}
+<!-- shared design system -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sage.css">
+  <style>
 .sidebar__item-dot.pending{background:var(--gold)}
-.sidebar__item-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sidebar__item-meta{font-size:11px;color:var(--meta);flex-shrink:0}
-.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg)}
-.content_centered{max-width:900px;width:100%;margin:0 auto;padding:var(--space-8) var(--space-5);overflow-y:auto}
-.page_header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)}
-.page_title{font-family:var(--font-display);font-size:24px;font-weight:500}
-.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease),border-color 150ms var(--ease)}
-.btn_primary{background:var(--accent);color:var(--bg)}
-.btn_primary:hover{background:var(--accent-hover)}
 .btn_small{font-size:11px;padding:3px 8px;border-radius:4px;background:var(--overlay);color:var(--muted);transition:background 150ms var(--ease),color 150ms var(--ease)}
 .btn_small:hover{background:var(--surface-raised);color:var(--fg)}
 .btn_small.danger:hover{background:rgba(235,111,146,0.15);color:var(--love)}
 .upload_zone{border:2px dashed var(--border);border-radius:var(--r);padding:var(--space-8) var(--space-5);text-align:center;margin-bottom:var(--space-6);transition:border-color 150ms var(--ease),background 150ms var(--ease);cursor:pointer}
-.upload_zone:hover,.upload_zone.dragover{border-color:var(--accent);background:var(--accent-dim)}
 .upload_zone_title{font-size:15px;font-weight:500;margin-bottom:var(--space-1)}
 .upload_zone_hint{font-size:12px;color:var(--meta);font-family:var(--font-mono)}
 .file_table{width:100%;border-collapse:collapse;margin-bottom:var(--space-6)}
@@ -74,15 +37,6 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
 .status_pill.pending .dot{background:var(--gold)}
 .file_error{font-size:12px;color:var(--love);margin-top:2px}
 .actions{display:flex;gap:var(--space-2)}
-.empty{text-align:center;padding:var(--space-12);color:var(--meta)}
-.empty_title{font-family:var(--font-display);font-size:20px;font-weight:500;color:var(--muted);margin-bottom:var(--space-2)}
-.modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center}
-.modal.open{display:flex}
-.modal_backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.6)}
-.modal_dialog{position:relative;width:90%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-5);z-index:1;display:flex;flex-direction:column;gap:var(--space-3)}
-.modal_head{display:flex;align-items:center;justify-content:space-between}
-.modal_title{font-family:var(--font-display);font-size:20px;font-weight:500}
-.modal_hint{font-size:12px;color:var(--meta);line-height:1.5}
 .modal_fetch_row{display:flex;gap:var(--space-2)}
 .field_input{flex:1;padding:8px 12px;background:var(--overlay);border:1px solid var(--border);border-radius:var(--r);color:var(--fg);font-size:13px;font-family:var(--font-mono);transition:border-color 150ms var(--ease)}
 .field_input:focus{outline:none;border-color:var(--accent)}
@@ -92,15 +46,10 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
 .excerpt_location{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em;text-transform:uppercase}
 .excerpt_text{white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.6;color:var(--fg);background:var(--surface-sunken);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-3)}
 .excerpt_context_label{font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.06em;color:var(--meta)}
-.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
-.sidebar-backdrop.open{display:block}
 @media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.content_centered{padding:var(--space-4)}.file_table{display:block;overflow-x:auto}}
-@media(prefers-reduced-motion:reduce){
-*{transition-duration:0ms!important;animation-duration:0ms!important}
-}
-</style>
+  </style>
 </head>
-<body>
+<body data-sage-animate>
 <div class="app">
   <div class="topbar">
     <button class="icon-btn" id="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
@@ -109,7 +58,12 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
   <div class="layout">
     <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar__section open">
+  
+      <div class="sidebar__section" id="plan-section">
+        <button class="sidebar__header" aria-expanded="false"><span>Plan</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <div class="sidebar__list" id="plan-nodes"></div>
+      </div>
+<div class="sidebar__section open">
     <button class="sidebar__header"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
     <div class="sidebar__list">
       <a href="index.html" class="sidebar__item">Home</a>
@@ -121,8 +75,12 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
     </div>
   </div>
   <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Sessions</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list" id="sessions-list"></div>
+  </div>
+  <div class="sidebar__section open">
     <button class="sidebar__header"><span>Files</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
-    <div class="sidebar__list" id="files-list"></div>
+    <div class="sidebar__list" id="files-list" data-sage-stagger="45"></div>
   </div>
 </aside>
 <main class="main">
@@ -168,9 +126,23 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
   </div>
 </div>
 
+<script src="sage.js"></script>
 <script>
 const sidebar=document.getElementById('sidebar');const backdrop=document.getElementById('sidebar-backdrop');
-function toggleSidebar(){try{ sidebar?.classList.toggle('collapsed');backdrop?.classList.toggle('open',!sidebar?.classList.contains('collapsed')); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')))}catch(e){}}
+function toggleSidebar(){try{
+  const mq = window.matchMedia('(max-width:1023px)');
+  let open;
+  if (mq.matches) {
+    open = sidebar?.classList.toggle('collapsed') === false;
+    backdrop?.classList.toggle('open', open);
+    if (!open) backdrop?.classList.remove('open');
+  } else {
+    // Desktop: slide away without the dark overlay
+    open = sidebar?.classList.toggle('collapsed') === false;
+    backdrop?.classList.remove('open');
+  }
+  const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded', String(open));
+}catch(e){}}
 function close_sidebar(){try{ sidebar?.classList.add('collapsed');backdrop?.classList.remove('open'); const btn=document.getElementById('menu-btn'); if(btn) btn.setAttribute('aria-expanded','false')}catch(e){}}
 const menu_btn=document.getElementById('menu-btn');
 menu_btn?.addEventListener('click',toggleSidebar);

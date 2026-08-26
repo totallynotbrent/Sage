@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Artifact Animations (10 per type)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);font-size:15px;line-height:1.6;color:var(--fg);background:var(--bg)}
+.page{max-width:1100px;margin:0 auto;padding:var(--space-8) var(--space-5)}
+.page h1{font-family:var(--font-display);font-size:32px;font-weight:500;margin-bottom:var(--space-2)}
+.page .sub{color:var(--muted);font-size:15px;margin-bottom:var(--space-6)}
+.tabs{display:flex;gap:var(--space-2);margin-bottom:var(--space-6);border-bottom:1px solid var(--border);padding-bottom:var(--space-3)}
+.tab{padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;border:none;background:none;color:var(--meta);cursor:pointer;transition:all 150ms var(--ease);font-family:var(--font-body)}
+.tab:hover{color:var(--fg)}.tab.active{background:var(--accent);color:var(--bg)}
+.tp{display:none}.tp.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-5)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+.card__hd{display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--border)}
+.card__nm{font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:0.04em;color:var(--meta)}
+.card__bd{font-family:var(--font-mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:999px;background:var(--accent-dim);color:var(--accent)}
+.card__body{flex:1;padding:var(--space-4);min-height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.card__ctrl{display:flex;gap:var(--space-2);padding:var(--space-2) var(--space-4) var(--space-3);border-top:1px solid var(--border)}
+.btn{padding:6px 12px;border-radius:var(--r);font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--overlay);color:var(--meta);cursor:pointer;transition:all 150ms var(--ease);font-family:var(--font-body)}
+.btn:hover{color:var(--fg);background:var(--surface-warm)}
+.desc{font-size:12px;color:var(--meta);padding:0 var(--space-4) var(--space-3)}
+
+/* ═══ Shared artifact ═══ */
+.art{position:relative;background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r);padding:var(--space-4);width:100%;max-width:280px}
+.art.dia{border-left-color:var(--foam)}.art.quiz{border-left-color:var(--gold)}.art.todo{border-left-color:var(--pine)}
+.am{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--meta);margin-bottom:var(--space-2)}
+.ab{display:inline-flex;font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--accent-dim);color:var(--accent);margin-bottom:var(--space-3)}
+.ab::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--foam);margin-right:4px}
+.ad{display:flex;align-items:center;justify-content:center;background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);min-height:80px}
+.at{display:flex;flex-direction:column;gap:var(--space-2)}
+.ai{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--r);background:var(--overlay);font-size:13px;color:var(--fg);position:relative}
+.ac{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--meta);flex-shrink:0;display:grid;place-items:center}
+.ac.done{background:var(--foam);border-color:var(--foam)}.ac.done::after{content:'';width:4px;height:8px;border:solid var(--bg);border-width:0 2px 2px 0;transform:rotate(45deg) translateY(-1px)}
+.aq{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--fg);margin-bottom:var(--space-3);line-height:1.4}
+.ao{display:flex;flex-direction:column;gap:var(--space-2)}
+.aop{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--r);background:var(--overlay);font-size:13px;color:var(--fg);border:1px solid transparent;cursor:pointer;transition:all 200ms var(--ease)}
+.aop:hover{background:var(--surface-warm)}
+.aop.ok{background:rgba(156,207,216,0.1);border-color:var(--foam)}
+.aop.no{background:rgba(235,111,146,0.1);border-color:var(--love);opacity:0.5}
+.ar{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--meta);flex-shrink:0;transition:all 200ms var(--ease)}
+.aop.ok .ar{border-color:var(--foam);background:var(--foam)}
+.arb{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;padding:5px 10px;border-radius:5px;background:var(--overlay);color:var(--muted);border:1px solid var(--border);cursor:pointer;transition:all 200ms var(--ease);margin-top:var(--space-2)}
+.arb:hover{background:var(--surface-warm);color:var(--fg)}
+.dsvg{width:100%;height:60px}
+.dsvg circle{fill:var(--surface-raised);stroke:var(--accent);stroke-width:1.5}
+.dsvg text{fill:var(--fg);font-family:var(--font-mono);font-size:10px;text-anchor:middle;dominant-baseline:central}
+.dsvg line{stroke:var(--meta);stroke-width:1.5}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Artifact Animation Playground</h1>
+  <p class="sub">10 unique animations per artifact type. Click Replay to see each one again.</p>
+  <div class="tabs">
+    <button class="tab active" data-t="dia">Diagrams (10)</button>
+    <button class="tab" data-t="qui">Quizzes (10)</button>
+    <button class="tab" data-t="tod">Todos (10)</button>
+  </div>
+  <div class="tp active" id="p-dia"><div class="grid" id="g-dia"></div></div>
+  <div class="tp" id="p-qui"><div class="grid" id="g-qui"></div></div>
+  <div class="tp" id="p-tod"><div class="grid" id="g-tod"></div></div>
+</div>
+<script>
+const S=`<style>
+/* ══ DIAGRAMS ══ */
+.d1{opacity:0;transform:translateY(8px)}.d1.go{animation:d1f 500ms var(--ease) forwards}
+.d1.go::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;background:var(--foam);transform:scaleY(0);transform-origin:top;animation:d1w 500ms var(--ease) 100ms forwards}
+@keyframes d1f{to{opacity:1;transform:translateY(0)}}@keyframes d1w{to{transform:scaleY(1)}}
+
+.d2 .dsvg line{stroke-dasharray:40;stroke-dashoffset:40}.d2.go .dsvg line{animation:d2l 600ms var(--ease) forwards}
+.d2.go .dsvg line:nth-child(1){animation-delay:100ms}.d2.go .dsvg line:nth-child(2){animation-delay:250ms}.d2.go .dsvg line:nth-child(3){animation-delay:400ms}.d2.go .dsvg line:nth-child(4){animation-delay:550ms}
+.d2 .dsvg circle,.d2 .dsvg text{opacity:0}.d2.go .dsvg circle,.d2.go .dsvg text{animation:d2n 400ms var(--ease) forwards}
+.d2.go .dsvg circle:nth-child(5){animation-delay:0ms}.d2.go .dsvg circle:nth-child(6){animation-delay:150ms}.d2.go .dsvg circle:nth-child(7){animation-delay:300ms}.d2.go .dsvg circle:nth-child(8){animation-delay:450ms}
+@keyframes d2l{to{stroke-dashoffset:0}}@keyframes d2n{to{opacity:1}}
+
+.d3{opacity:0;transform:scale(0.8)}.d3.go{animation:d3f 500ms cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes d3f{to{opacity:1;transform:scale(1)}}
+
+.d4{opacity:0;transform:translateY(20px) rotate(-8deg)}.d4.go{animation:d4f 600ms var(--ease) forwards}
+@keyframes d4f{to{opacity:1;transform:translateY(0) rotate(0)}}
+
+.d5{filter:blur(8px);opacity:0}.d5.go{animation:d5f 700ms var(--ease) forwards}
+@keyframes d5f{to{filter:blur(0);opacity:1}}
+
+.d6{opacity:0;transform:translateX(40px)}.d6.go{animation:d6f 500ms var(--ease) forwards}
+@keyframes d6f{to{opacity:1;transform:translateX(0)}}
+
+.d7{opacity:0;transform:scale(0.5)}.d7.go{animation:d7f 700ms cubic-bezier(0.68,-0.55,0.27,1.55) forwards}
+@keyframes d7f{to{opacity:1;transform:scale(1)}}
+
+.d8{opacity:0;box-shadow:0 0 0 rgba(196,167,231,0)}.d8.go{animation:d8f 800ms var(--ease) forwards}
+@keyframes d8f{0%{opacity:0;box-shadow:0 0 0 rgba(196,167,231,0)}50%{opacity:1;box-shadow:0 0 30px rgba(196,167,231,0.3)}100%{opacity:1;box-shadow:0 0 0 rgba(196,167,231,0)}}
+
+.d9{opacity:0}.d9.go{animation:d9a 400ms var(--ease) forwards}
+.d9.go::before{content:'';position:absolute;left:0;top:0;width:3px;height:0;background:var(--foam);border-radius:3px 0 0 3px;animation:d9b 800ms var(--ease) 200ms forwards}
+@keyframes d9a{to{opacity:1}}@keyframes d9b{to{height:100%}}
+
+.d10{opacity:0;transform:perspective(600px) rotateY(90deg)}.d10.go{animation:d10f 600ms var(--ease) forwards}
+@keyframes d10f{to{opacity:1;transform:perspective(600px) rotateY(0)}}
+
+/* ══ QUIZZES ══ */
+.q1 .aq{opacity:0;transform:translateY(6px)}.q1.go .aq{animation:q1a 400ms var(--ease) forwards}
+.q1 .aop{opacity:0;transform:translateX(12px)}.q1.go .aop{animation:q1b 350ms var(--ease) forwards}
+.q1.go .aop:nth-child(1){animation-delay:200ms}.q1.go .aop:nth-child(2){animation-delay:320ms}.q1.go .aop:nth-child(3){animation-delay:440ms}
+@keyframes q1a{to{opacity:1;transform:translateY(0)}}@keyframes q1b{to{opacity:1;transform:translateX(0)}}
+
+.q2 .aq{opacity:0;animation:q1a 400ms var(--ease) forwards}
+.q2 .aop{opacity:0;transform:perspective(400px) rotateY(90deg)}.q2.go .aop{animation:q2a 500ms var(--ease) forwards}
+.q2.go .aop:nth-child(1){animation-delay:200ms}.q2.go .aop:nth-child(2){animation-delay:350ms}.q2.go .aop:nth-child(3){animation-delay:500ms}
+@keyframes q2a{to{opacity:1;transform:perspective(400px) rotateY(0)}}
+
+.q3 .aq{opacity:0;animation:q1a 400ms var(--ease) forwards}
+.q3 .aop{opacity:0;transform:scale(0)}.q3.go .aop{animation:q3a 450ms cubic-bezier(0.34,1.56,0.64,1) forwards}
+.q3.go .aop:nth-child(1){animation-delay:150ms}.q3.go .aop:nth-child(2){animation-delay:280ms}.q3.go .aop:nth-child(3){animation-delay:410ms}
+@keyframes q3a{to{opacity:1;transform:scale(1)}}
+
+.q4 .aq{overflow:hidden;white-space:nowrap;border-right:2px solid var(--accent);width:0}.q4.go .aq{animation:q4a 1s steps(30) forwards,q4b .8s step-end infinite}
+.q4.go .aop{opacity:0;animation:q1a 300ms var(--ease) forwards}
+.q4.go .aop:nth-child(1){animation-delay:1100ms}.q4.go .aop:nth-child(2){animation-delay:1300ms}.q4.go .aop:nth-child(3){animation-delay:1500ms}
+@keyframes q4a{to{width:100%}}@keyframes q4b{50%{border-color:transparent}}
+
+.q5 .aq{opacity:0;animation:q1a 400ms var(--ease) forwards}
+.q5 .aop{filter:blur(6px);opacity:0}.q5.go .aop{animation:q5a 500ms var(--ease) forwards}
+.q5.go .aop:nth-child(1){animation-delay:200ms}.q5.go .aop:nth-child(2){animation-delay:350ms}.q5.go .aop:nth-child(3){animation-delay:500ms}
+@keyframes q5a{to{filter:blur(0);opacity:1}}
+
+.q6 .aq{opacity:0;animation:q1a 400ms var(--ease) forwards}
+.q6 .aop{opacity:0;transform:translateY(16px)}.q6.go .aop{animation:q6a 400ms var(--ease) forwards}
+.q6.go .aop:nth-child(1){animation-delay:200ms}.q6.go .aop:nth-child(2){animation-delay:300ms}.q6.go .aop:nth-child(3){animation-delay:400ms}
+@keyframes q6a{to{opacity:1;transform:translateY(0)}}
+
+.q7 .aop.ok{box-shadow:none;transition:all 400ms var(--ease)}.q7.on .aop.ok{box-shadow:0 0 24px rgba(156,207,216,0.35)}
+.q7.on .aop.no{filter:blur(1px);opacity:0.4}
+
+.q8.on .aop.no{animation:q8a 400ms var(--ease) forwards}.q8.on .aop.ok{animation:q8b 400ms var(--ease) forwards}
+@keyframes q8a{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes q8b{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+
+.q9.on .aop.ok{position:relative;overflow:hidden}.q9.on .aop.ok::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(156,207,216,0.2),transparent);animation:q9a 600ms var(--ease) forwards}
+@keyframes q9a{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
+.q10 .art{overflow:visible}.q10 .cfd{position:absolute;width:4px;height:4px;border-radius:50%;pointer-events:none;animation:q10a 700ms var(--ease) forwards}
+@keyframes q10a{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}
+
+/* ══ TODOS ══ */
+.t1 .ai{opacity:0;transform:translateY(-8px) rotate(-2deg)}.t1.go .ai{animation:t1a 400ms var(--ease) forwards}
+.t1.go .ai:nth-child(1){animation-delay:80ms}.t1.go .ai:nth-child(2){animation-delay:200ms}.t1.go .ai:nth-child(3){animation-delay:320ms}.t1.go .ai:nth-child(4){animation-delay:440ms}
+@keyframes t1a{to{opacity:1;transform:translateY(0) rotate(0)}}
+
+.t2 .ai{opacity:0}.t2.go .ai{animation:t2a 300ms var(--ease) forwards}
+.t2.go .ai:nth-child(1){animation-delay:0ms}.t2.go .ai:nth-child(2){animation-delay:100ms}.t2.go .ai:nth-child(3){animation-delay:200ms}.t2.go .ai:nth-child(4){animation-delay:300ms}
+.t2 .ac{transform:scale(0)}.t2.go .ac{animation:t2b 300ms cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes t2a{to{opacity:1}}@keyframes t2b{to{transform:scale(1)}}
+
+.t3 .ai{opacity:0;transform:translateX(-20px)}.t3.go .ai{animation:t3a 350ms var(--ease) forwards}
+.t3.go .ai:nth-child(1){animation-delay:80ms}.t3.go .ai:nth-child(2){animation-delay:180ms}.t3.go .ai:nth-child(3){animation-delay:280ms}.t3.go .ai:nth-child(4){animation-delay:380ms}
+@keyframes t3a{to{opacity:1;transform:translateX(0)}}
+
+.t4 .ai{opacity:0;transform:scale(0)}.t4.go .ai{animation:t4a 450ms cubic-bezier(0.34,1.56,0.64,1) forwards}
+.t4.go .ai:nth-child(1){animation-delay:80ms}.t4.go .ai:nth-child(2){animation-delay:200ms}.t4.go .ai:nth-child(3){animation-delay:320ms}.t4.go .ai:nth-child(4){animation-delay:440ms}
+@keyframes t4a{to{opacity:1;transform:scale(1)}}
+
+.t5 .ai{opacity:0}.t5.go .ai{animation:t5a 200ms var(--ease) forwards}
+.t5.go .ai:nth-child(1){animation-delay:80ms}.t5.go .ai:nth-child(2){animation-delay:200ms}.t5.go .ai:nth-child(3){animation-delay:320ms}.t5.go .ai:nth-child(4){animation-delay:440ms}
+.t5 .ai::before{content:'';position:absolute;inset:0;background:var(--overlay);transform:scaleY(0);transform-origin:top;border-radius:var(--r)}.t5.go .ai::before{animation:t5b 300ms var(--ease) forwards}
+@keyframes t5a{to{opacity:1}}@keyframes t5b{to{transform:scaleY(1)}}
+
+.t6 .ai{filter:blur(6px);opacity:0}.t6.go .ai{animation:t6a 500ms var(--ease) forwards}
+.t6.go .ai:nth-child(1){animation-delay:80ms}.t6.go .ai:nth-child(2){animation-delay:200ms}.t6.go .ai:nth-child(3){animation-delay:320ms}.t6.go .ai:nth-child(4){animation-delay:440ms}
+@keyframes t6a{to{filter:blur(0);opacity:1}}
+
+.t7 .ai{opacity:0;transform:rotate(-15deg) translateY(-10px)}.t7.go .ai{animation:t7a 400ms var(--ease) forwards}
+.t7.go .ai:nth-child(1){animation-delay:80ms}.t7.go .ai:nth-child(2){animation-delay:200ms}.t7.go .ai:nth-child(3){animation-delay:320ms}.t7.go .ai:nth-child(4){animation-delay:440ms}
+@keyframes t7a{to{opacity:1;transform:rotate(0) translateY(0)}}
+
+.t8 .ai{opacity:0;transform:translateY(8px)}.t8.go .ai{animation:t8a 400ms var(--ease) forwards}
+.t8.go .ai:nth-child(1){animation-delay:80ms}.t8.go .ai:nth-child(2){animation-delay:200ms}.t8.go .ai:nth-child(3){animation-delay:320ms}.t8.go .ai:nth-child(4){animation-delay:440ms}
+@keyframes t8a{0%{opacity:0;transform:translateY(8px)}60%{opacity:1;transform:translateY(-2px) scale(1.03)}100%{opacity:1;transform:translateY(0) scale(1)}}
+
+.t9 .ai span:last-child{overflow:hidden;white-space:nowrap;width:0}.t9.go .ai span:last-child{animation:t9a 600ms steps(20) forwards}
+.t9.go .ai:nth-child(1) span:last-child{animation-delay:0ms}.t9.go .ai:nth-child(2) span:last-child{animation-delay:400ms}.t9.go .ai:nth-child(3) span:last-child{animation-delay:800ms}.t9.go .ai:nth-child(4) span:last-child{animation-delay:1200ms}
+@keyframes t9a{to{width:100%}}
+
+.t10 .ai{opacity:0;transform:perspective(400px) rotateX(90deg)}.t10.go .ai{animation:t10a 500ms var(--ease) forwards}
+.t10.go .ai:nth-child(1){animation-delay:80ms}.t10.go .ai:nth-child(2){animation-delay:200ms}.t10.go .ai:nth-child(3){animation-delay:320ms}.t10.go .ai:nth-child(4){animation-delay:440ms}
+@keyframes t10a{to{opacity:1;transform:perspective(400px) rotateX(0)}}
+</style>`;
+document.head.insertAdjacentHTML('beforeend',S);
+
+function svg(){return`<svg class="dsvg" viewBox="0 0 200 60"><line x1="40" y1="20" x2="100" y2="20"/><line x1="40" y1="40" x2="100" y2="40"/><line x1="100" y1="20" x2="160" y2="30"/><line x1="100" y1="40" x2="160" y2="30"/><circle cx="40" cy="20" r="10"/><circle cx="40" cy="40" r="10"/><circle cx="100" cy="30" r="10"/><circle cx="160" cy="30" r="10"/><text x="40" y="20">S</text><text x="40" y="40">A</text><text x="100" y="30">B</text><text x="160" y="30">C</text></svg>`}
+function dC(){return`<div class="art dia"><div class="am">ARTIFACT · diagram</div><div class="ab">validated</div><div class="ad">${svg()}</div></div>`}
+function qC(){return`<div class="art quiz"><div class="am">ARTIFACT · quiz</div><div class="aq">Why does BFS guarantee shortest path?</div><div class="ao"><div class="aop"><span class="ar"></span><span>Random exploration</span></div><div class="aop"><span class="ar"></span><span>Layer-by-layer by distance</span></div><div class="aop"><span class="ar"></span><span>Priority queue</span></div></div><button class="arb">Reveal</button></div>`}
+function tC(){return`<div class="art todo"><div class="am">ARTIFACT · todo</div><div class="at"><div class="ai"><span class="ac done"></span><span>Re-read Lecture 4 §2.1</span></div><div class="ai"><span class="ac"></span><span>Draw queue after a, b, c</span></div><div class="ai"><span class="ac"></span><span>State Rolle's conditions</span></div><div class="ai"><span class="ac"></span><span>Practice 3 problems</span></div></div></div>`}
+
+const D=[
+  {n:'1. Border Wipe + Fade',d:'Card fades up, colored border wipes top→bottom.',c:'d1'},
+  {n:'2. Draw-In Lines',d:'Nodes pop in, edges draw with stroke animation.',c:'d2'},
+  {n:'3. Scale Pop',d:'Card bounces from 0.8→1 scale.',c:'d3'},
+  {n:'4. Rotate In',d:'-8° rotation + fade from below.',c:'d4'},
+  {n:'5. Blur Reveal',d:'Starts blurred, sharpens into focus.',c:'d5'},
+  {n:'6. Slide From Right',d:'Slides in from off-screen right.',c:'d6'},
+  {n:'7. Elastic Bounce',d:'Overshoots then settles with elastic feel.',c:'d7'},
+  {n:'8. Glow Entrance',d:'Accent glow pulses outward then fades.',c:'d8'},
+  {n:'9. Typewriter Border',d:'Border draws character-by-character.',c:'d9'},
+  {n:'10. Flip In',d:'Y-axis flip like a turning page.',c:'d10'},
+];
+const Q=[
+  {n:'1. Cascade Slide',d:'Options slide from right with stagger.',c:'q1'},
+  {n:'2. Flip Cards',d:'Each option flips on Y-axis.',c:'q2'},
+  {n:'3. Pop Scale',d:'Options pop from scale 0 with bounce.',c:'q3'},
+  {n:'4. Typewriter',d:'Question types out, then options fade.',c:'q4'},
+  {n:'5. Blur Cascade',d:'Options deblur independently.',c:'q5'},
+  {n:'6. Slide Up Stagger',d:'Rise from below with delay.',c:'q6'},
+  {n:'7. Glow Reveal',d:'Correct glows, incorrects blur.',c:'q7'},
+  {n:'8. Shake Incorrect',d:'Wrong options shake before dimming.',c:'q8'},
+  {n:'9. Color Sweep',d:'Gradient sweeps across correct option.',c:'q9'},
+  {n:'10. Confetti Burst',d:'Colored dots scatter on reveal.',c:'q10'},
+];
+const T=[
+  {n:'1. Clipboard March',d:'Drop from above with -2° rotation.',c:'t1'},
+  {n:'2. Checkmark Animate',d:'Items appear, checkboxes tick in sequence.',c:'t2'},
+  {n:'3. Slide From Left',d:'Items slide in from left.',c:'t3'},
+  {n:'4. Scale Bounce',d:'Pop from scale 0 with elastic bounce.',c:'t4'},
+  {n:'5. Wipe Down',d:'Background wipes down each item.',c:'t5'},
+  {n:'6. Blur In',d:'Items deblur independently.',c:'t6'},
+  {n:'7. Rotate Stack',d:'-15° rotation → flat, like stacking.',c:'t7'},
+  {n:'8. Pulse Arrival',d:'Scale pulse on landing.',c:'t8'},
+  {n:'9. Typewriter List',d:'Items type out char-by-char.',c:'t9'},
+  {n:'10. Flip List',d:'X-axis flip like a scoreboard.',c:'t10'},
+];
+
+function build(gridId,items,cardFn,type){
+  const g=document.getElementById(gridId);
+  items.forEach((item,i)=>{
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=`<div class="card__hd"><span class="card__nm">${item.n}</span><span class="card__bd">${i+1}</span></div><div class="card__body ${item.c}" id="b-${type}-${i}"></div><div class="card__ctrl"><button class="btn" data-i="${i}">↻ Replay</button></div><div class="desc">${item.d}</div>`;
+    g.appendChild(card);
+    const body=card.querySelector('.card__body');
+    body.innerHTML=cardFn();
+    if(type==='qui'){
+      const btn=body.querySelector('.arb');
+      const opts=body.querySelectorAll('.aop');
+      btn?.addEventListener('click',()=>{
+        opts[1].classList.add('ok');opts[0].classList.add('no');opts[2].classList.add('no');
+        body.classList.add('on');btn.textContent='Revealed';btn.disabled=true;
+        if(item.c==='q10')confetti(body);
+      });
+    }
+    requestAnimationFrame(()=>requestAnimationFrame(()=>body.classList.add('go')));
+    card.querySelector('[data-i]').addEventListener('click',()=>{
+      body.classList.remove('go','on');body.innerHTML=cardFn();
+      if(type==='qui'){
+        const btn=body.querySelector('.arb');
+        const opts=body.querySelectorAll('.aop');
+        btn?.addEventListener('click',()=>{
+          opts[1].classList.add('ok');opts[0].classList.add('no');opts[2].classList.add('no');
+          body.classList.add('on');btn.textContent='Revealed';btn.disabled=true;
+          if(item.c==='q10')confetti(body);
+        });
+      }
+      requestAnimationFrame(()=>requestAnimationFrame(()=>body.classList.add('go')));
+    });
+  });
+}
+build('g-dia',D,dC,'dia');
+build('g-qui',Q,qC,'qui');
+build('g-tod',T,tC,'tod');
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tp').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');document.getElementById('p-'+t.dataset.t).classList.add('active');
+}));
+
+function confetti(el){
+  const colors=['var(--foam)','var(--gold)','var(--accent)','var(--rose)','var(--pine)'];
+  for(let i=0;i<12;i++){
+    const d=document.createElement('div');d.className='cfd';
+    d.style.cssText=`left:50%;top:50%;background:${colors[i%5]};--dx:${(Math.random()-0.5)*80}px;--dy:${-30-Math.random()*40}px;animation-delay:${Math.random()*100}ms`;
+    el.appendChild(d);setTimeout(()=>d.remove(),800);
+  }
+}
+</script>
+</body>
+</html>

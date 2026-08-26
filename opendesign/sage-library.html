@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:1120ms;--dur-slow:500ms;--sidebar-w:260px;--diagram-w:480px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);font-size:14px;line-height:1.5;color:var(--fg);background:var(--bg)}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover)}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:var(--fg)}
+input,select,textarea{font-family:inherit;font-size:inherit;color:var(--fg)}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:100svh}
+.topbar{display:flex;align-items:center;gap:var(--space-3);height:48px;padding:0 var(--space-4);background:transparent;border-bottom:none;flex-shrink:0;z-index:20}
+.icon-btn{display:grid;place-items:center;width:34px;height:34px;border-radius:var(--r);color:var(--muted);border:none;background:none;cursor:pointer;transition:all var(--dur) var(--ease)}
+.icon-btn:hover{background:var(--overlay);color:var(--fg)}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:500;color:var(--fg);letter-spacing:-0.02em;text-decoration:none}
+.logo span{color:var(--muted)}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column;transition:transform var(--dur-slow) var(--ease),opacity var(--dur-slow) var(--ease)}
+.sidebar__section{border-bottom:1px solid var(--border)}
+.sidebar__header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:var(--space-3) var(--space-4);font-size:12px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__header:hover{color:var(--muted)}
+.sidebar__chevron{transition:transform var(--dur) var(--ease)}
+.sidebar__section.open .sidebar__chevron{transform:rotate(180deg)}
+.sidebar__list{display:none;padding:0 var(--space-2) var(--space-2)}
+.sidebar__section.open .sidebar__list{display:block}
+.sidebar__item{display:flex;align-items:center;gap:var(--space-2);padding:7px var(--space-3);border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:all var(--dur) var(--ease)}
+.sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.sidebar__item.active{background:var(--overlay);color:var(--fg)}
+.sidebar__item-dot{width:6px;height:6px;border-radius:50%;background:var(--meta);flex-shrink:0}
+.sidebar__item-dot.ready{background:var(--foam)}
+.sidebar__item-dot.error{background:var(--love)}
+.sidebar__item-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar__item-meta{font-size:11px;color:var(--meta);flex-shrink:0}
+.sidebar__item-badge{font-size:10px;font-weight:500;letter-spacing:0.03em;padding:2px 7px;border-radius:var(--r);background:var(--overlay);color:var(--meta);flex-shrink:0}
+.sidebar__item-badge[data-phase="teach"]{color:var(--accent)}
+.sidebar__item-badge[data-phase="plan"]{color:var(--gold)}
+.sidebar__item-badge[data-phase="complete"]{color:var(--foam)}
+.sidebar__action{display:flex;align-items:center;gap:var(--space-2);width:100%;padding:var(--space-2) var(--space-4) var(--space-3);font-size:13px;color:var(--meta);border:none;background:none;cursor:pointer;font-family:var(--font-body);transition:color var(--dur) var(--ease)}
+.sidebar__action:hover{color:var(--accent)}
+.main{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:var(--bg)}
+.content_centered{max-width:900px;width:100%;margin:0 auto;padding:var(--space-8) var(--space-5)}
+.page_header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-6)}
+.page_title{font-family:var(--font-display);font-size:24px;font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;transition:background 150ms var(--ease),color 150ms var(--ease),border-color 150ms var(--ease)}
+.btn_primary{background:var(--accent);color:var(--bg)}
+.btn_primary:hover{background:var(--accent-hover)}
+.upload_zone{border:2px dashed var(--border);border-radius:var(--r);padding:var(--space-8) var(--space-5);text-align:center;margin-bottom:var(--space-6);transition:border-color 150ms var(--ease),background 150ms var(--ease);cursor:pointer}
+.upload_zone:hover{border-color:var(--accent);background:var(--accent-dim)}
+.upload_zone_title{font-size:15px;font-weight:500;margin-bottom:var(--space-1)}
+.upload_zone_hint{font-size:12px;color:var(--meta);font-family:var(--font-mono)}
+.file_table{width:100%;border-collapse:collapse;margin-bottom:var(--space-6)}
+.file_table th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--meta);padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border)}
+.file_table td{padding:var(--space-3);border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.file_table tr:last-child td{border-bottom:none}
+.file_name{font-weight:500}
+.file_meta{font-size:11px;color:var(--meta);font-family:var(--font-mono);margin-top:2px}
+.file_size{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.file_chunks{font-family:var(--font-mono);font-size:12px}
+.status_pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:4px;font-family:var(--font-mono)}
+.status_pill.ready{background:rgba(156,207,216,0.12);color:var(--foam)}
+.status_pill.error{background:rgba(235,111,146,0.12);color:var(--love)}
+.status_pill .dot{width:6px;height:6px;border-radius:50%}
+.status_pill.ready .dot{background:var(--foam)}
+.status_pill.error .dot{background:var(--love)}
+.file_error{font-size:12px;color:var(--love);margin-top:2px}
+.actions{display:flex;gap:var(--space-2)}
+.btn_small{font-size:11px;padding:3px 8px;border-radius:4px;background:var(--overlay);color:var(--muted);transition:background 150ms var(--ease),color 150ms var(--ease)}
+.btn_small:hover{background:var(--surface-raised);color:var(--fg)}
+.api_ref{background:var(--surface-sunken);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-4);font-family:var(--font-mono);font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ── Animations ──────────────────────────────── */
+.sidebar{transition:transform 500ms var(--ease),opacity 500ms var(--ease)}
+.sidebar.collapsed{position:absolute;left:0;top:0;bottom:0;width:0;max-width:0;min-width:0;transform:translateX(-100%);opacity:0;visibility:hidden;border-right:0;pointer-events:none;z-index:30}
+.sidebar:not(.collapsed){transform:translateX(0)}
+
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:29}
+.sidebar-backdrop.open{display:block}
+@media(max-width:1023px){.sidebar{position:absolute;left:0;top:0;bottom:0;z-index:30;width:var(--sidebar-w);max-width:var(--sidebar-w);min-width:var(--sidebar-w)}.file_table{display:block;overflow-x:auto}}
+@media(prefers-reduced-motion:reduce){
+*{transition-duration:0ms!important;animation-duration:0ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app" data-od-id="app">
+  <div class="topbar">
+    <button class="icon-btn" id="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <a href="sage-home.html" class="logo">S<span>a</span>ge</a>
+  </div>
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <a href="sage-home.html" class="sidebar__item">Home</a>
+      <a href="sage-workspace.html" class="sidebar__item">Workspace</a>
+      <a href="sage-library.html" class="sidebar__item">Library</a>
+      <a href="sage-sessions.html" class="sidebar__item">Sessions</a>
+      <a href="sage-settings.html" class="sidebar__item">Settings</a>
+      <a href="sage-health.html" class="sidebar__item">Health</a>
+    </div>
+  </div>
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Sessions</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="teach">teach</span><span class="sidebar__item-text">Rolle's Theorem</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="plan">plan</span><span class="sidebar__item-text">BFS & Dijkstra</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge" data-phase="complete">done</span><span class="sidebar__item-text">Continuity</span></div>
+    </div>
+  </div>
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Plan</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <div class="sidebar__item"><span class="sidebar__item-badge">1</span><span class="sidebar__item-text">Define Rolle's Theorem</span><span class="sidebar__item-meta" style="color:var(--foam)">done</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge">2</span><span class="sidebar__item-text">Gather prerequisites</span><span class="sidebar__item-meta" style="color:var(--foam)">done</span></div>
+      <div class="sidebar__item active"><span class="sidebar__item-badge" style="background:var(--accent);color:var(--bg)">3</span><span class="sidebar__item-text">Explain proof strategy</span><span class="sidebar__item-meta" style="color:var(--accent)">current</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge">4</span><span class="sidebar__item-text">Practice problems</span><span class="sidebar__item-meta">pending</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-badge">5</span><span class="sidebar__item-text">Assess understanding</span><span class="sidebar__item-meta">pending</span></div>
+    </div>
+  </div>
+  <div class="sidebar__section open">
+    <button class="sidebar__header"><span>Files · 4</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+    <div class="sidebar__list">
+      <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Graph Theory — Lecture 4.pdf</span><span class="sidebar__item-meta">42</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Real Analysis — defs & thms.tex</span><span class="sidebar__item-meta">31</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">Algorithms — notes.md</span><span class="sidebar__item-meta">18</span></div>
+      <div class="sidebar__item"><span class="sidebar__item-dot error"></span><span class="sidebar__item-text">Scanned — ch3.PDF</span><span class="sidebar__item-meta">—</span></div>
+    </div>
+    <button class="sidebar__action">+ Upload file</button>
+  </div>
+</aside>
+<main class="main" data-od-id="main">
+<div class="content_centered">
+<div class="page_header" data-od-id="page-header">
+<h1 class="page_title" data-od-id="page-title">Library</h1>
+<button class="btn btn_primary" data-od-id="upload-btn">Upload Files</button>
+</div>
+<div class="upload_zone" data-od-id="upload-zone">
+<div class="upload_zone_title">Drag and drop files here</div>
+<div class="upload_zone_hint">PDF, DOCX, PPTX, MD, TEX, TXT</div>
+</div>
+<table class="file_table" data-od-id="file-table">
+<thead>
+<tr>
+<th>Name</th>
+<th>Size</th>
+<th>Chunks</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr data-od-id="file-row-1">
+<td>
+<div class="file_name">Graph Theory — Lecture 4.pdf</div>
+<div class="file_meta">sha256 · paired with .tex · 1.4 MB</div>
+</td>
+<td class="file_size">1.4 MB</td>
+<td class="file_chunks">42</td>
+<td><span class="status_pill ready"><span class="dot"></span>ready</span></td>
+<td>
+<div class="actions">
+<button class="btn_small">excerpts</button>
+<button class="btn_small">delete</button>
+</div>
+</td>
+</tr>
+<tr data-od-id="file-row-2">
+<td>
+<div class="file_name">Real Analysis — defs & thms.tex</div>
+<div class="file_meta">environment: theorem / definition · label thm:rolle</div>
+</td>
+<td class="file_size">84 KB</td>
+<td class="file_chunks">31</td>
+<td><span class="status_pill ready"><span class="dot"></span>ready</span></td>
+<td>
+<div class="actions">
+<button class="btn_small">excerpts</button>
+</div>
+</td>
+</tr>
+<tr data-od-id="file-row-3">
+<td>
+<div class="file_name">Algorithms — notes.md</div>
+<div class="file_meta"></div>
+</td>
+<td class="file_size">22 KB</td>
+<td class="file_chunks">18</td>
+<td><span class="status_pill ready"><span class="dot"></span>ready</span></td>
+<td>
+<div class="actions">
+<button class="btn_small">excerpts</button>
+</div>
+</td>
+</tr>
+<tr data-od-id="file-row-4">
+<td>
+<div class="file_name">Scanned — ch3.PDF</div>
+<div class="file_error">extraction failed — no text layer</div>
+</td>
+<td class="file_size">2.1 MB</td>
+<td class="file_chunks">—</td>
+<td><span class="status_pill error"><span class="dot"></span>error</span></td>
+<td>
+<div class="actions">
+<button class="btn_small">retry</button>
+<button class="btn_small">delete</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="api_ref" data-od-id="api-ref">
+POST /api/library/upload — multipart/form-data<br>
+GET /api/library — list all files<br>
+GET /api/library/{id}/chunks — list chunks for a file<br>
+DELETE /api/library/{id} — remove a file
+</div>
+</div>
+</main>
+</div>
+</div>
+<script>
+(function(){
+var menu_btn=document.getElementById("menu-btn");
+var sidebar=document.getElementById("sidebar");
+var backdrop=document.getElementById("sidebar-backdrop");
+function toggleSidebar(){sidebar.classList.toggle("collapsed");backdrop.classList.toggle("open",!sidebar.classList.contains("collapsed"))}
+function close_sidebar(){sidebar.classList.add("collapsed");backdrop.classList.remove("open")}
+menu_btn.addEventListener("click",toggleSidebar);
+backdrop.addEventListener("click",close_sidebar);
+document.addEventListener("keydown",function(e){if(e.key==="Escape")close_sidebar()});
+document.querySelectorAll('.sidebar__header').forEach(function(b){b.addEventListener('click',function(){b.closest('.sidebar__section').classList.toggle('open')})});
+if(window.innerWidth<1024)sidebar.classList.add('collapsed');
+var upload_zone=document.getElementById("upload-zone");
+upload_zone.addEventListener("dragover",function(e){e.preventDefault();upload_zone.style.borderColor="var(--accent)";upload_zone.style.background="var(--accent-dim)"});
+upload_zone.addEventListener("dragleave",function(){upload_zone.style.borderColor="";upload_zone.style.background=""});
+upload_zone.addEventListener("drop",function(e){e.preventDefault();upload_zone.style.borderColor="";upload_zone.style.background=""});
+var delete_btns=document.querySelectorAll(".btn_small");
+delete_btns.forEach(function(btn){
+if(btn.textContent.trim()==="delete"){
+btn.addEventListener("click",function(){
+var row=btn.closest("tr");
+if(row){row.style.opacity="0.4";btn.textContent="deleted"}
+})
+}
+})
+})();
+</script>
+</body>
+</html>

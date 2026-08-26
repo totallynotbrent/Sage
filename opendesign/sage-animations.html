@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sage — Animation Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1a1a19;--surface:#2f2f2c;--surface-raised:#3a3a37;--surface-sunken:#141413;--surface-warm:#404039;--overlay:#383835;--border:#444440;--border-soft:#3a3a37;--fg:#f0efe8;--fg-2:#dbd9d0;--muted:#a8a69e;--meta:#7a7872;--accent:#c4a7e7;--accent-dim:rgba(196,167,231,0.12);--accent-hover:#d0b8f0;--foam:#9ccfd8;--love:#eb6f92;--gold:#f6c177;--pine:#31748f;--rose:#ebbcba;--font-display:'Newsreader',Georgia,serif;--font-body:'Inter',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--r:8px;--ease:cubic-bezier(0.33,1,0.68,1);--dur:1120ms}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);font-size:15px;line-height:1.6;color:var(--fg);background:var(--bg);min-height:100vh}
+
+/* ── Layout ──────────────────────────────────── */
+.page{max-width:960px;margin:0 auto;padding:var(--space-8) var(--space-5)}
+.page h1{font-family:var(--font-display);font-size:32px;font-weight:500;margin-bottom:var(--space-2);letter-spacing:-0.02em}
+.page .subtitle{color:var(--muted);font-size:15px;margin-bottom:var(--space-8)}
+.demo-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-6);margin-bottom:var(--space-6)}
+.demo-section h2{font-family:var(--font-display);font-size:20px;font-weight:500;margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2)}
+.demo-section h2 .num{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--accent);background:var(--accent-dim);padding:2px 8px;border-radius:var(--r);letter-spacing:0.04em}
+.demo-section p{color:var(--muted);font-size:13px;margin-bottom:var(--space-4)}
+.controls{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-4)}
+.btn{display:inline-flex;align-items:center;gap:var(--space-2);padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;border:1px solid var(--border);background:var(--overlay);color:var(--fg);cursor:pointer;transition:all 150ms var(--ease);font-family:var(--font-body)}
+.btn:hover{background:var(--surface-warm);border-color:var(--border-soft)}
+.btn.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.label{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:var(--space-2)}
+
+/* ═══════════════════════════════════════════════
+   1. SIDEBAR SLIDE
+   ═══════════════════════════════════════════════ */
+.demo-sidebar{position:relative;width:100%;height:360px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.demo-sidebar__panel{position:absolute;left:0;top:0;bottom:0;width:240px;background:var(--surface);border-right:1px solid var(--border);z-index:2;transition:transform var(--ease) var(--sidebar-dur,300ms)}
+.demo-sidebar__panel.closed{transform:translateX(-100%)}
+.demo-sidebar__item{padding:10px 16px;font-size:13px;color:var(--muted);cursor:pointer;transition:background 150ms var(--ease),color 150ms var(--ease)}
+.demo-sidebar__item:hover{background:var(--overlay);color:var(--fg)}
+.demo-sidebar__backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.4);z-index:1;opacity:0;pointer-events:none;transition:opacity var(--sidebar-dur,300ms) var(--ease)}
+.demo-sidebar__backdrop.visible{opacity:1;pointer-events:auto}
+.demo-sidebar__main{padding:var(--space-4);color:var(--muted);font-size:13px}
+
+/* ═══════════════════════════════════════════════
+   2. MESSAGE STAGGER
+   ═══════════════════════════════════════════════ */
+.demo-messages{display:flex;flex-direction:column;gap:var(--space-3);min-height:180px}
+.demo-msg{max-width:480px;padding:10px 14px;border-radius:var(--r);font-size:13px;line-height:1.5;opacity:0;transform:translateY(10px);animation:none}
+.demo-msg.visible{animation:msgCascade var(--msg-dur,400ms) var(--ease) forwards}
+.demo-msg--user{align-self:flex-end;background:var(--surface-raised);color:var(--fg)}
+.demo-msg--ai{align-self:flex-start;color:var(--fg)}
+@keyframes msgCascade{to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════════════════════════════════════
+   3. ARTIFACT CARD REVEAL
+   ═══════════════════════════════════════════════ */
+.demo-artifacts{display:flex;flex-direction:column;gap:var(--space-3)}
+.demo-artifact{position:relative;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-4);overflow:hidden;opacity:0;transform:translateY(8px);animation:none}
+.demo-artifact.visible{animation:artifactReveal var(--artifact-dur,500ms) var(--ease) forwards}
+.demo-artifact::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;transform:scaleY(0);transform-origin:top;animation:none}
+.demo-artifact.visible::before{animation:borderWipe var(--artifact-dur,500ms) var(--ease) forwards}
+.demo-artifact[data-kind="diagram"]::before{background:var(--foam)}
+.demo-artifact[data-kind="quiz"]::before{background:var(--gold)}
+.demo-artifact[data-kind="todo"]::before{background:var(--pine)}
+.demo-artifact__title{font-family:var(--font-display);font-style:italic;font-size:15px;font-weight:500;margin-bottom:var(--space-1)}
+.demo-artifact__meta{font-family:var(--font-mono);font-size:11px;color:var(--meta)}
+@keyframes artifactReveal{to{opacity:1;transform:translateY(0)}}
+@keyframes borderWipe{to{transform:scaleY(1)}}
+
+/* ═══════════════════════════════════════════════
+   4. HAMBURGER MORPH
+   ═══════════════════════════════════════════════ */
+.demo-hamburger{display:inline-flex;flex-direction:column;justify-content:center;gap:5px;width:34px;height:34px;cursor:pointer;padding:5px;border-radius:var(--r);transition:background 150ms var(--ease)}
+.demo-hamburger:hover{background:var(--overlay)}
+.demo-hamburger span{display:block;width:100%;height:2px;background:var(--fg);border-radius:2px;transition:transform var(--hamburger-dur,300ms) var(--ease),opacity var(--hamburger-dur,300ms) var(--ease);transform-origin:center}
+.demo-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.demo-hamburger.open span:nth-child(2){opacity:0}
+.demo-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.demo-hamburger-row{display:flex;align-items:center;gap:var(--space-4)}
+
+/* ═══════════════════════════════════════════════
+   5. TYPING INDICATOR
+   ═══════════════════════════════════════════════ */
+.demo-typing{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--surface);border-radius:var(--r);width:fit-content}
+.demo-typing__dots{display:flex;gap:5px}
+.demo-typing__dot{width:7px;height:7px;border-radius:50%;background:var(--meta);animation:typingBounce var(--typing-dur,1200ms) var(--ease) infinite}
+.demo-typing__dot:nth-child(2){animation-delay:0.15s}
+.demo-typing__dot:nth-child(3){animation-delay:0.3s}
+.demo-typing__label{font-size:12px;color:var(--meta);font-family:var(--font-mono)}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-6px);opacity:1}}
+
+/* ═══════════════════════════════════════════════
+   6. PAGE TRANSITION
+   ═══════════════════════════════════════════════ */
+.demo-page-transition{position:relative;width:100%;height:200px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--bg)}
+.demo-page{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;font-weight:500;transition:opacity var(--page-dur,300ms) var(--ease),transform var(--page-dur,300ms) var(--ease)}
+.demo-page.exit{opacity:0;transform:translateY(-8px)}
+.demo-page.enter{opacity:0;transform:translateY(8px)}
+.demo-page.active{opacity:1;transform:translateY(0)}
+.demo-page[data-page="1"]{color:var(--accent)}
+.demo-page[data-page="2"]{color:var(--foam)}
+.demo-page[data-page="3"]{color:var(--gold)}
+
+/* ═══════════════════════════════════════════════
+   7. HOVER MICRO-INTERACTIONS
+   ═══════════════════════════════════════════════ */
+.demo-hover-items{display:flex;flex-direction:column;gap:var(--space-2);margin-bottom:var(--space-4)}
+.demo-hover-item{display:flex;align-items:center;gap:var(--space-3);padding:10px 14px;border-radius:var(--r);font-size:13px;color:var(--muted);cursor:pointer;transition:background 150ms var(--ease),color 150ms var(--ease),transform 150ms var(--ease)}
+.demo-hover-item:hover{background:var(--overlay);color:var(--fg);transform:scale(1.01)}
+.demo-hover-item:active{transform:scale(0.98)}
+.demo-hover-btns{display:flex;gap:var(--space-2)}
+.demo-hover-btn{padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:transform 120ms var(--ease),background 150ms var(--ease),color 150ms var(--ease)}
+.demo-hover-btn:active{transform:scale(0.95)}
+.demo-hover-btn.primary{background:var(--accent);color:var(--bg);border:none}
+.demo-hover-btn.primary:hover{background:var(--accent-hover)}
+.demo-hover-btn.secondary{background:var(--overlay);color:var(--fg);border:1px solid var(--border)}
+.demo-hover-btn.secondary:hover{background:var(--surface-warm)}
+
+/* ── Utility ─────────────────────────────────── */
+.mono{font-family:var(--font-mono);font-size:12px;color:var(--meta)}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Animation Playground</h1>
+  <p class="subtitle">Preview and tune every animation before applying to Sage. Adjust timing, toggle states, and see results live.</p>
+
+  <!-- ─────────── 1. SIDEBAR SLIDE ─────────── -->
+  <div class="demo-section">
+    <h2><span class="num">01</span> Sidebar Slide</h2>
+    <p>Smooth translateX with backdrop fade. Replace the current snap-open with a slide.</p>
+    <div class="label">Speed</div>
+    <div class="controls" id="sidebar-speed">
+      <button class="btn btn-sm" data-val="150">Fast (150ms)</button>
+      <button class="btn btn-sm active" data-val="300">Normal (300ms)</button>
+      <button class="btn btn-sm" data-val="500">Slow (500ms)</button>
+    </div>
+    <div class="demo-sidebar">
+      <div class="demo-sidebar__backdrop" id="sb-backdrop"></div>
+      <div class="demo-sidebar__panel" id="sb-panel">
+        <div class="demo-sidebar__item">Home</div>
+        <div class="demo-sidebar__item">Workspace</div>
+        <div class="demo-sidebar__item">Library</div>
+        <div class="demo-sidebar__item">Sessions</div>
+        <div class="demo-sidebar__item">Settings</div>
+      </div>
+      <div class="demo-sidebar__main">
+        <button class="btn" id="sb-toggle">Toggle Sidebar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 2. MESSAGE STAGGER ─────────── -->
+  <div class="demo-section">
+    <h2><span class="num">02</span> Message Stagger</h2>
+    <p>Each message cascades in with a slight delay based on index — like a natural conversation flow.</p>
+    <div class="label">Delay per message</div>
+    <div class="controls" id="msg-delay">
+      <button class="btn btn-sm" data-val="50">Tight (50ms)</button>
+      <button class="btn btn-sm active" data-val="120">Normal (120ms)</button>
+      <button class="btn btn-sm" data-val="250">Relaxed (250ms)</button>
+    </div>
+    <div class="label">Duration</div>
+    <div class="controls" id="msg-duration">
+      <button class="btn btn-sm" data-val="250">Snappy (250ms)</button>
+      <button class="btn btn-sm active" data-val="400">Normal (400ms)</button>
+      <button class="btn btn-sm" data-val="700">Smooth (700ms)</button>
+    </div>
+    <div class="demo-messages" id="msg-container"></div>
+    <button class="btn" id="msg-replay" style="margin-top:var(--space-3)">Replay</button>
+  </div>
+
+  <!-- ─────────── 3. ARTIFACT REVEAL ─────────── -->
+  <div class="demo-section">
+    <h2><span class="num">03</span> Artifact Card Reveal</h2>
+    <p>Cards fade up while the colored left border wipes from top to bottom — a "scanning" entrance.</p>
+    <div class="label">Duration</div>
+    <div class="controls" id="artifact-speed">
+      <button class="btn btn-sm" data-val="300">Fast (300ms)</button>
+      <button class="btn btn-sm active" data-val="500">Normal (500ms)</button>
+      <button class="btn btn-sm" data-val="800">Slow (800ms)</button>
+    </div>
+    <div class="demo-artifacts" id="artifact-container">
+      <div class="demo-artifact" data-kind="diagram">
+        <div class="demo-artifact__title">BFS Layering — Queue Evolution</div>
+        <div class="demo-artifact__meta">artifact · 01 · diagram · validated</div>
+      </div>
+      <div class="demo-artifact" data-kind="quiz">
+        <div class="demo-artifact__title">Quick Quiz: Shortest Path</div>
+        <div class="demo-artifact__meta">artifact · 02 · quiz · rendered</div>
+      </div>
+      <div class="demo-artifact" data-kind="todo">
+        <div class="demo-artifact__title">Study Plan: Graph Theory</div>
+        <div class="demo-artifact__meta">artifact · 03 · todo · rendered</div>
+      </div>
+    </div>
+    <button class="btn" id="artifact-replay" style="margin-top:var(--space-3)">Replay</button>
+  </div>
+
+  <!-- ─────────── 4. HAMBURGER MORPH ─────────── -->
+  <div class="demo-section">
+    <h2><span class="num">04</span> Hamburger ↔ × Morph</h2>
+    <p>The three-line icon rotates into an × when the sidebar opens. Pure CSS, no JS required for the icon itself.</p>
+    <div class="label">Speed</div>
+    <div class="controls" id="hamburger-speed">
+      <button class="btn btn-sm" data-val="150">Fast (150ms)</button>
+      <button class="btn btn-sm active" data-val="300">Normal (300ms)</button>
+      <button class="btn btn-sm" data-val="500">Slow (500ms)</button>
+    </div>
+    <div class="demo-hamburger-row">
+      <div class="demo-hamburger" id="hamburger-icon">
+        <span></span><span></span><span></span>
+      </div>
+      <span class="mono">Click the icon</span>
+    </div>
+  </div>
+
+  <!-- ─────────── 5. TYPING INDICATOR ─────────── -->
+  <div class="demo-section">
+    <h2><span class="num">05</span> Typing Indicator</h2>
+    <p>Three dots that bounce while Sage is generating a response. Shows before the first token arrives.</p>
+    <div class="label">Speed</div>
+    <div class="controls" id="typing-speed">
+      <button class="btn btn-sm" data-val="800">Fast (800ms)</button>
+      <button class="btn btn-sm active" data-val="1200">Normal (1200ms)</button>
+      <button class="btn btn-sm" data-val="1800">Slow (1800ms)</button>
+    </div>
+    <div class="demo-typing">
+      <div class="demo-typing__dots">
+        <div class="demo-typing__dot"></div>
+        <div class="demo-typing__dot"></div>
+        <div class="demo-typing__dot"></div>
+      </div>
+      <span class="demo-typing__label">Sage is thinking…</span>
+    </div>
+  </div>
+
+  <!-- ─────────── 6. PAGE TRANSITION ─────────── -->
+  <div class="demo-section">
+    <h2><span class="num">06</span> Page Transition</h2>
+    <p>Content fades out with a slight upward shift, then the new page fades in from below. Used for page navigation.</p>
+    <div class="label">Duration</div>
+    <div class="controls" id="page-speed">
+      <button class="btn btn-sm" data-val="150">Fast (150ms)</button>
+      <button class="btn btn-sm active" data-val="300">Normal (300ms)</button>
+      <button class="btn btn-sm" data-val="500">Slow (500ms)</button>
+    </div>
+    <div class="demo-page-transition" id="page-demo">
+      <div class="demo-page active" data-page="1">Home</div>
+      <div class="demo-page" data-page="2">Workspace</div>
+      <div class="demo-page" data-page="3">Library</div>
+    </div>
+    <div class="controls" style="margin-top:var(--space-3)">
+      <button class="btn btn-sm" data-page="1">Home</button>
+      <button class="btn btn-sm" data-page="2">Workspace</button>
+      <button class="btn btn-sm" data-page="3">Library</button>
+    </div>
+  </div>
+
+  <!-- ─────────── 7. HOVER MICRO-INTERACTIONS ─────────── -->
+  <div class="demo-section">
+    <h2><span class="num">07</span> Hover Micro-Interactions</h2>
+    <p>Sidebar items scale slightly on hover; buttons squeeze on press. Subtle but makes the UI feel alive.</p>
+    <div class="label">Sidebar items (hover me)</div>
+    <div class="demo-hover-items">
+      <div class="demo-hover-item">Home</div>
+      <div class="demo-hover-item">Workspace</div>
+      <div class="demo-hover-item">Library</div>
+      <div class="demo-hover-item">Sessions</div>
+    </div>
+    <div class="label">Buttons (press me)</div>
+    <div class="demo-hover-btns">
+      <button class="demo-hover-btn primary">Primary</button>
+      <button class="demo-hover-btn secondary">Secondary</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── 1. Sidebar Slide ─────────────────────────── */
+(function(){
+  const panel=document.getElementById('sb-panel');
+  const bd=document.getElementById('sb-backdrop');
+  const toggle=document.getElementById('sb-toggle');
+  let open=false;
+  toggle.addEventListener('click',()=>{
+    open=!open;
+    panel.classList.toggle('closed',!open);
+    bd.classList.toggle('visible',open);
+    toggle.textContent=open?'Close Sidebar':'Open Sidebar';
+  });
+  bd.addEventListener('click',()=>{open=false;panel.classList.add('closed');bd.classList.remove('visible');toggle.textContent='Open Sidebar'});
+  bindControls('sidebar-speed',v=>{document.documentElement.style.setProperty('--sidebar-dur',v+'ms')});
+})();
+
+/* ── 2. Message Stagger ───────────────────────── */
+(function(){
+  const msgs=[
+    {role:'user',text:'Why does BFS guarantee shortest path?'},
+    {role:'ai',text:'BFS explores in layers — each frontier holds nodes at distance k. The first time we discover v, we used the fewest edges.'},
+    {role:'user',text:'What about weighted graphs?'},
+    {role:'ai',text:'For weighted graphs you need Dijkstra\'s algorithm — BFS assumes uniform edge weights.'},
+    {role:'user',text:'Can you show an example?'},
+  ];
+  const container=document.getElementById('msg-container');
+  let delay=120,dur=400;
+  function render(){
+    container.innerHTML='';
+    msgs.forEach((m,i)=>{
+      const d=document.createElement('div');
+      d.className='demo-msg demo-msg--'+m.role;
+      d.textContent=m.text;
+      d.style.animationDelay=(i*delay)+'ms';
+      d.style.animationDuration=dur+'ms';
+      container.appendChild(d);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('visible')));
+    });
+  }
+  render();
+  document.getElementById('msg-replay').addEventListener('click',render);
+  bindControls('msg-delay',v=>{delay=+v;render()});
+  bindControls('msg-duration',v=>{dur=+v;render()});
+})();
+
+/* ── 3. Artifact Card Reveal ──────────────────── */
+(function(){
+  const container=document.getElementById('artifact-container');
+  let dur=500;
+  function render(){
+    const cards=container.querySelectorAll('.demo-artifact');
+    cards.forEach((c,i)=>{
+      c.classList.remove('visible');
+      c.style.setProperty('--artifact-dur',dur+'ms');
+      c.style.animationDelay=(i*120)+'ms';
+      c.querySelector('.demo-artifact__title').style.setProperty('--artifact-dur',dur+'ms');
+    });
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      cards.forEach(c=>c.classList.add('visible'));
+    }));
+  }
+  render();
+  document.getElementById('artifact-replay').addEventListener('click',render);
+  bindControls('artifact-speed',v=>{dur=+v;render()});
+})();
+
+/* ── 4. Hamburger Morph ───────────────────────── */
+(function(){
+  const icon=document.getElementById('hamburger-icon');
+  icon.addEventListener('click',()=>icon.classList.toggle('open'));
+  bindControls('hamburger-speed',v=>{document.documentElement.style.setProperty('--hamburger-dur',v+'ms')});
+})();
+
+/* ── 5. Typing Indicator ──────────────────────── */
+(function(){
+  bindControls('typing-speed',v=>{document.documentElement.style.setProperty('--typing-dur',v+'ms')});
+})();
+
+/* ── 6. Page Transition ───────────────────────── */
+(function(){
+  const pages=document.querySelectorAll('#page-demo .demo-page');
+  const btns=document.querySelectorAll('[data-page]');
+  let current=1,dur=300,transitioning=false;
+  function goTo(n){
+    if(n===current||transitioning)return;
+    transitioning=true;
+    const old=[...pages].find(p=>p.dataset.page==current);
+    const next=[...pages].find(p=>p.dataset.page==n);
+    old.classList.add('exit');
+    old.classList.remove('active');
+    next.classList.add('enter');
+    setTimeout(()=>{
+      next.classList.remove('enter');
+      next.classList.add('active');
+      old.classList.remove('exit');
+      current=n;
+      transitioning=false;
+    },dur);
+  }
+  btns.forEach(b=>b.addEventListener('click',()=>goTo(+b.dataset.page)));
+  bindControls('page-speed',v=>{dur=+v;document.documentElement.style.setProperty('--page-dur',v+'ms')});
+})();
+
+/* ── Helper: bind button group to callback ────── */
+function bindControls(id,cb){
+  const group=document.getElementById(id);
+  if(!group)return;
+  group.querySelectorAll('.btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      group.querySelectorAll('.btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      cb(btn.dataset.val);
+    });
+  });
+}
+</script>
+</body>
+</html>

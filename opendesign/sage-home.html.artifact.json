@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "sage-home.html",
+  "entry": "sage-home.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-21T20:47:25.477Z",
+  "updatedAt": "2026-08-21T20:47:25.477Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}
