@@ -153,3 +153,22 @@ def summarize_mastery(conn: sqlite3.Connection) -> str:
 def reset_mastery(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM mastery_topics")
     conn.commit()
+
+
+def lowest_confidence_topics(
+    conn: sqlite3.Connection,
+    exclude: set[str] | None = None,
+    limit: int = 3,
+) -> list[dict]:
+    """Topics sorted by weakest Laplace confidence, for interleaved practice."""
+    exclude = exclude or set()
+    rows = rows_to_dicts(
+        conn.execute(
+            "SELECT topic, label, confidence, observed_count FROM mastery_topics "
+            "WHERE confidence > 0 AND topic NOT IN ("
+            + ",".join("?" for _ in exclude)
+            + ") ORDER BY confidence ASC, observed_count ASC LIMIT ?",
+            tuple(exclude) + (limit,),
+        )
+    )
+    return rows

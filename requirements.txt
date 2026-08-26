@@ -9,6 +9,7 @@ pymupdf
 python-docx
 python-pptx
 pylatexenc
+fsrs>=6.0
 
 # Development / test
 pytest

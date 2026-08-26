@@ -56,6 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         outputs,
         plans,
         preferences,
+        review,
         sessions,
         system,
         teach,
@@ -68,6 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(chat.router)
     app.include_router(outputs.router)
     app.include_router(learning.router)
+    app.include_router(review.router)
     app.include_router(plans.router)
     app.include_router(teach.router)
     app.include_router(preferences.router)
