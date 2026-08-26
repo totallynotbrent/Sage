@@ -1,0 +1,30 @@
+- generic [ref=f25e1] [box=0,0,1249,1277]:
+  - generic [ref=f25e7] [box=0,0,1249,1277]:
+    - complementary "Sidebar" [ref=f25e9] [box=0,0,288,1277]:
+      - separator "Resize sidebar" [ref=f25e10] [box=281,0,12,1277]
+      - generic [ref=f25e13] [box=0,0,287,44]:
+        - link "Home" [ref=f25e15] [cursor=pointer] [box=16,12,68,20]:
+          - /url: /new
+          - img "Claude" [ref=f25e16] [box=16,12,68,20]
+        - button "Collapse sidebar" [ref=f25e19] [cursor=pointer] [box=215,6,32,32]:
+          - generic [ref=f25e22] [box=223,14,16,16]: 
+        - button "Search" [ref=f25e25] [cursor=pointer] [box=247,6,32,32]:
+          - generic [ref=f25e28] [box=255,14,16,16]: 
+      - generic [ref=f25e30] [box=0,44,287,1233]:
+        - generic [ref=f25e31] [box=8,48,271,1131]:
+          - generic [ref=f25e33] [box=0,0,0,0]
+          - generic [ref=f25e65] [box=0,0,0,0]
+        - generic [ref=f25e164] [box=0,1179,287,97]:
+          - button "Design" [ref=f25e169] [cursor=pointer] [box=8,1185,271,32]
+          - generic [ref=f25e176] [box=0,1223,287,52]
+    - main [ref=f25e193] [box=0,0,1249,1277]:
+      - generic [ref=f25e195] [box=296,0,945,1277]:
+        - button "Use incognito" [ref=f25e201] [cursor=pointer] [box=1209,8,32,32]
+        - generic [ref=f25e215] [box=306,48,925,1229]:
+          - generic [ref=f25e283] [box=694,56,150,32]
+          - generic [ref=f25e216] [box=362,379,813,48]: Back at it, Brent
+          - generic [ref=f25e223] [box=433,463,672,100]
+  - generic [box=0,1277,1249,0]:
+    - generic [box=0,1277,1249,0]:
+      - generic [box=873,1261,360,0]:
+        - region "Notifications" [box=873,1261,360,0]

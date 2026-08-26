@@ -1,0 +1,74 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - button "Menu" [expanded] [ref=e4] [cursor=pointer]
+    - link "Sage" [ref=e7] [cursor=pointer]:
+      - /url: index.html
+  - generic [ref=e8]:
+    - complementary "Navigation and recent sessions" [ref=e9]:
+      - generic [ref=e10]:
+        - button "Navigate" [expanded] [ref=e11] [cursor=pointer]
+        - generic [ref=e15]:
+          - link "Home" [ref=e16] [cursor=pointer]:
+            - /url: index.html
+          - link "Workspace" [ref=e17] [cursor=pointer]:
+            - /url: sage-workspace.html
+          - link "Library" [ref=e18] [cursor=pointer]:
+            - /url: sage-library.html
+          - link "Sessions" [ref=e19] [cursor=pointer]:
+            - /url: sage-sessions.html
+          - link "Settings" [ref=e20] [cursor=pointer]:
+            - /url: sage-settings.html
+          - link "Health" [ref=e21] [cursor=pointer]:
+            - /url: sage-health.html
+      - generic [ref=e22]:
+        - button "Recent" [expanded] [ref=e23] [cursor=pointer]
+        - generic [ref=e27]:
+          - link "setup teach me about recursion" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: setup
+            - generic [ref=e30]: teach me about recursion
+          - link "setup teach me about recursion" [ref=e31] [cursor=pointer]:
+            - generic [ref=e32]: setup
+            - generic [ref=e33]: teach me about recursion
+          - link "setup teach me about recursion" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]: setup
+            - generic [ref=e36]: teach me about recursion
+          - link "setup teach me about recursion" [ref=e37] [cursor=pointer]:
+            - generic [ref=e38]: setup
+            - generic [ref=e39]: teach me about recursion
+          - link "setup Help me learn" [ref=e40] [cursor=pointer]:
+            - generic [ref=e41]: setup
+            - generic [ref=e42]: Help me learn
+          - link "setup teach me about recursion" [ref=e43] [cursor=pointer]:
+            - generic [ref=e44]: setup
+            - generic [ref=e45]: teach me about recursion
+          - link "setup Mastering the Fundamentals of Recursion" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: setup
+            - generic [ref=e48]: Mastering the Fundamentals of Recursion
+          - link "probe Learn recursion - Socratic" [ref=e49] [cursor=pointer]:
+            - generic [ref=e50]: probe
+            - generic [ref=e51]: Learn recursion - Socratic
+          - link "setup Learn recursion with file - Socratic" [ref=e52] [cursor=pointer]:
+            - generic [ref=e53]: setup
+            - generic [ref=e54]: Learn recursion with file - Socratic
+          - link "setup Introduction to Calculus Derivation" [ref=e55] [cursor=pointer]:
+            - generic [ref=e56]: setup
+            - generic [ref=e57]: Introduction to Calculus Derivation
+    - main [ref=e58]:
+      - generic [ref=e59]:
+        - log "Conversation" [ref=e60]:
+          - generic [ref=e61]:
+            - heading "What are you working on?" [level=1] [ref=e62]
+            - paragraph [ref=e63]: Upload study materials or just start asking questions.
+        - generic [ref=e64]: Sage artifacts
+        - generic [ref=e65]:
+          - toolbar "Artifact composer" [ref=e66]:
+            - button "Generate diagram from prompt" [ref=e67] [cursor=pointer]: Diagram
+            - button "Generate quiz from prompt" [ref=e74] [cursor=pointer]: Quiz
+            - button "Generate todo list from prompt" [ref=e78] [cursor=pointer]: Todo
+            - generic [ref=e82]: Ask Sage anything...
+          - generic [ref=e83]:
+            - textbox "Message" [ref=e84]:
+              - /placeholder: Ask Sage anything...
+            - generic [ref=e85]:
+              - button "Attach" [ref=e86] [cursor=pointer]
+              - button "Send" [ref=e89] [cursor=pointer]

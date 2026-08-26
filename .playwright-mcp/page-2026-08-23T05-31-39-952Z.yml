@@ -1,0 +1,101 @@
+- generic [ref=f6e2]:
+  - heading "Sage workspace" [level=1] [ref=f6e3]
+  - generic [ref=f6e4]:
+    - button "Menu" [expanded] [ref=f6e5] [cursor=pointer]
+    - link "Sage" [ref=f6e8] [cursor=pointer]:
+      - /url: index.html
+    - generic [ref=f6e9]: "- teach me recursion"
+    - generic [ref=f6e10]: setup
+  - generic [ref=f6e11]:
+    - complementary "Study plan" [ref=f6e12]:
+      - generic [ref=f6e13]:
+        - button "Navigate" [expanded] [ref=f6e14] [cursor=pointer]
+        - generic [ref=f6e18]:
+          - link "Home" [ref=f6e19] [cursor=pointer]:
+            - /url: index.html
+          - link "Workspace" [ref=f6e20] [cursor=pointer]:
+            - /url: sage-workspace.html?session=4781794fcf374b578e541b77e873f6eb
+          - link "Library" [ref=f6e21] [cursor=pointer]:
+            - /url: sage-library.html
+          - link "Sessions" [ref=f6e22] [cursor=pointer]:
+            - /url: sage-sessions.html
+          - link "Settings" [ref=f6e23] [cursor=pointer]:
+            - /url: sage-settings.html
+          - link "Health" [ref=f6e24] [cursor=pointer]:
+            - /url: sage-health.html
+      - generic [ref=f6e25]:
+        - button "Sessions" [expanded] [ref=f6e26] [cursor=pointer]
+        - generic [ref=f6e30]:
+          - link "setup teach me recursion" [ref=f6e31] [cursor=pointer]:
+            - generic [ref=f6e32]: setup
+            - generic [ref=f6e33]: teach me recursion
+          - link "teach learn recursion basics" [ref=f6e34] [cursor=pointer]:
+            - generic [ref=f6e35]: teach
+            - generic [ref=f6e36]: learn recursion basics
+          - link "remediate Mastering the Art of Recursion" [ref=f6e37] [cursor=pointer]:
+            - generic [ref=f6e38]: remediate
+            - generic [ref=f6e39]: Mastering the Art of Recursion
+          - link "probe learn recursion" [ref=f6e40] [cursor=pointer]:
+            - generic [ref=f6e41]: probe
+            - generic [ref=f6e42]: learn recursion
+          - link "teach learn recursion" [ref=f6e43] [cursor=pointer]:
+            - generic [ref=f6e44]: teach
+            - generic [ref=f6e45]: learn recursion
+          - link "teach learn recursion" [ref=f6e46] [cursor=pointer]:
+            - generic [ref=f6e47]: teach
+            - generic [ref=f6e48]: learn recursion
+          - link "teach learn recursion" [ref=f6e49] [cursor=pointer]:
+            - generic [ref=f6e50]: teach
+            - generic [ref=f6e51]: learn recursion
+          - link "probe learn recursion" [ref=f6e52] [cursor=pointer]:
+            - generic [ref=f6e53]: probe
+            - generic [ref=f6e54]: learn recursion
+          - link "setup teach me about recursion" [ref=f6e55] [cursor=pointer]:
+            - generic [ref=f6e56]: setup
+            - generic [ref=f6e57]: teach me about recursion
+          - link "setup teach me about recursion" [ref=f6e58] [cursor=pointer]:
+            - generic [ref=f6e59]: setup
+            - generic [ref=f6e60]: teach me about recursion
+          - link "setup teach me about recursion" [ref=f6e61] [cursor=pointer]:
+            - generic [ref=f6e62]: setup
+            - generic [ref=f6e63]: teach me about recursion
+          - link "setup overnight check" [ref=f6e64] [cursor=pointer]:
+            - generic [ref=f6e65]: setup
+            - generic [ref=f6e66]: overnight check
+          - link "setup t66 diagram toggle probe" [ref=f6e67] [cursor=pointer]:
+            - generic [ref=f6e68]: setup
+            - generic [ref=f6e69]: t66 diagram toggle probe
+          - link "setup Introduction to Artificial Intelligence Basics" [ref=f6e70] [cursor=pointer]:
+            - generic [ref=f6e71]: setup
+            - generic [ref=f6e72]: Introduction to Artificial Intelligence Basics
+          - link "setup Mastering the Art of Recursion" [ref=f6e73] [cursor=pointer]:
+            - generic [ref=f6e74]: setup
+            - generic [ref=f6e75]: Mastering the Art of Recursion
+          - link "setup teach me about recursion" [ref=f6e76] [cursor=pointer]:
+            - generic [ref=f6e77]: setup
+            - generic [ref=f6e78]: teach me about recursion
+      - generic [ref=f6e79]:
+        - button "Files" [expanded] [ref=f6e80] [cursor=pointer]
+        - button "Upload file" [ref=f6e85] [cursor=pointer]
+      - button "Plan" [expanded] [ref=f6e89] [cursor=pointer]
+    - main [ref=f6e94]:
+      - generic [ref=f6e95]:
+        - log "Conversation" [ref=f6e96]
+        - generic [ref=f6e97]:
+          - toolbar "Artifact composer" [ref=f6e98]:
+            - button "Generate diagram" [ref=f6e99] [cursor=pointer]: Diagram
+            - button "Generate quiz" [ref=f6e106] [cursor=pointer]: Quiz
+            - button "Generate todo list" [ref=f6e110] [cursor=pointer]: Todo
+          - generic [ref=f6e114]:
+            - textbox "Message" [ref=f6e115]:
+              - /placeholder: Reply to Sage...
+            - generic [ref=f6e116]:
+              - button "Attach" [ref=f6e117] [cursor=pointer]
+              - button "Send" [ref=f6e120] [cursor=pointer]
+    - complementary "Artifacts and support":
+      - generic:
+        - generic:
+          - generic: Artifacts
+          - generic: "0"
+        - button "Close artifacts"
+      - generic: No artifacts yet. Use the composer to generate one.

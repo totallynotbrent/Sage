@@ -1,0 +1,29 @@
+- generic [ref=f5e2]:
+  - banner [ref=f5e3]:
+    - generic [ref=f5e4]:
+      - button "Menu" [ref=f5e5] [cursor=pointer]
+      - heading "Sage home - Loading..." [level=1] [ref=f5e8]:
+        - link "Sage home" [ref=f5e9] [cursor=pointer]:
+          - /url: /
+          - text: Sage
+        - generic [ref=f5e10]: "- Loading..."
+      - generic [ref=f5e11]: setup
+  - generic [ref=f5e12]:
+    - complementary [ref=f5e13]:
+      - button "Sessions" [expanded] [ref=f5e15] [cursor=pointer]
+      - generic [ref=f5e20]:
+        - button "Files" [expanded] [ref=f5e21] [cursor=pointer]
+        - button "Upload file" [ref=f5e26] [cursor=pointer]
+      - button "Plan" [expanded] [ref=f5e30] [cursor=pointer]
+    - main [ref=f5e35]:
+      - generic [ref=f5e38]:
+        - toolbar "Artifact composer" [ref=f5e39]:
+          - button "Generate diagram" [ref=f5e40] [cursor=pointer]: Diagram
+          - button "Generate quiz" [ref=f5e47] [cursor=pointer]: Quiz
+          - button "Generate todo list" [ref=f5e51] [cursor=pointer]: Todo
+        - generic [ref=f5e55]:
+          - textbox "Message" [ref=f5e56]:
+            - /placeholder: Reply to Sage...
+          - generic [ref=f5e57]:
+            - button "Attach" [ref=f5e58] [cursor=pointer]
+            - button "Send" [ref=f5e61] [cursor=pointer]

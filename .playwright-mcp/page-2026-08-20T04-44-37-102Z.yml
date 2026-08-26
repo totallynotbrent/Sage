@@ -1,0 +1,19 @@
+- generic [ref=f1e2]:
+  - banner [ref=f1e3]:
+    - generic [ref=f1e4]:
+      - button "Menu" [ref=f1e5] [cursor=pointer]
+      - heading "Untitled" [level=1] [ref=f1e8]
+    - button "New chat" [ref=f1e11] [cursor=pointer]
+  - generic [ref=f1e14]:
+    - complementary [ref=f1e15]:
+      - button "Sessions" [ref=f1e17] [cursor=pointer]
+      - generic [ref=f1e22]:
+        - button "Files" [ref=f1e23] [cursor=pointer]
+        - button "Upload file" [ref=f1e28] [cursor=pointer]
+      - button "Plan" [ref=f1e32] [cursor=pointer]
+    - main [ref=f1e37]:
+      - generic [ref=f1e41]:
+        - textbox "Reply to Sage..." [ref=f1e42]
+        - generic [ref=f1e43]:
+          - button "Attach" [ref=f1e44] [cursor=pointer]
+          - button "Send" [ref=f1e47] [cursor=pointer]

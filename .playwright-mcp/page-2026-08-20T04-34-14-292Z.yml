@@ -1,0 +1,33 @@
+- generic [ref=f6e2]:
+  - banner [ref=f6e3]:
+    - generic [ref=f6e4]:
+      - button "Menu" [ref=f6e5] [cursor=pointer]
+      - heading "Sage" [level=1] [ref=f6e8]
+    - button "Upload Files" [ref=f6e10] [cursor=pointer]
+  - generic [ref=f6e11]:
+    - complementary [ref=f6e12]:
+      - generic [ref=f6e13]:
+        - button "Navigate" [ref=f6e14] [cursor=pointer]
+        - generic [ref=f6e18]:
+          - generic [ref=f6e19] [cursor=pointer]: Home
+          - generic [ref=f6e21] [cursor=pointer]: Library
+          - generic [ref=f6e23] [cursor=pointer]: Sessions
+          - generic [ref=f6e25] [cursor=pointer]: Settings
+          - generic [ref=f6e27] [cursor=pointer]: Health
+      - button "Files" [ref=f6e30] [cursor=pointer]
+    - main [ref=f6e35]:
+      - generic [ref=f6e36]:
+        - heading "Library" [level=2] [ref=f6e38]
+        - generic [ref=f6e39] [cursor=pointer]:
+          - generic [ref=f6e40]: 📄
+          - generic [ref=f6e41]: Drag and drop files here
+          - generic [ref=f6e42]: PDF, DOCX, PPTX, MD, TEX, TXT
+        - table [ref=f6e43]:
+          - rowgroup [ref=f6e44]:
+            - row [ref=f6e45]:
+              - columnheader "Name" [ref=f6e46]
+              - columnheader "Size" [ref=f6e47]
+              - columnheader "Chunks" [ref=f6e48]
+              - columnheader "Status" [ref=f6e49]
+              - columnheader "Actions" [ref=f6e50]
+          - rowgroup

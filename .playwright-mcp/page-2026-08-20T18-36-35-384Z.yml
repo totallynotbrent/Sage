@@ -1,0 +1,92 @@
+- generic [active] [ref=e1]:
+  - heading "Directory listing for /" [level=1] [ref=e2]
+  - separator [ref=e3]
+  - list [ref=e4]:
+    - listitem [ref=e5]:
+      - link ".agents/" [ref=e6] [cursor=pointer]:
+        - /url: .agents/
+    - listitem [ref=e7]:
+      - link ".env" [ref=e8] [cursor=pointer]:
+        - /url: .env
+    - listitem [ref=e9]:
+      - link ".env.example" [ref=e10] [cursor=pointer]:
+        - /url: .env.example
+    - listitem [ref=e11]:
+      - link ".git/" [ref=e12] [cursor=pointer]:
+        - /url: .git/
+    - listitem [ref=e13]:
+      - link ".gitattributes" [ref=e14] [cursor=pointer]:
+        - /url: .gitattributes
+    - listitem [ref=e15]:
+      - link ".gitignore" [ref=e16] [cursor=pointer]:
+        - /url: .gitignore
+    - listitem [ref=e17]:
+      - link ".mypy_cache/" [ref=e18] [cursor=pointer]:
+        - /url: .mypy_cache/
+    - listitem [ref=e19]:
+      - link ".playwright-mcp/" [ref=e20] [cursor=pointer]:
+        - /url: .playwright-mcp/
+    - listitem [ref=e21]:
+      - link ".pytest_cache/" [ref=e22] [cursor=pointer]:
+        - /url: .pytest_cache/
+    - listitem [ref=e23]:
+      - link ".ruff_cache/" [ref=e24] [cursor=pointer]:
+        - /url: .ruff_cache/
+    - listitem [ref=e25]:
+      - link ".venv/" [ref=e26] [cursor=pointer]:
+        - /url: .venv/
+    - listitem [ref=e27]:
+      - link "app/" [ref=e28] [cursor=pointer]:
+        - /url: app/
+    - listitem [ref=e29]:
+      - link "docs/" [ref=e30] [cursor=pointer]:
+        - /url: docs/
+    - listitem [ref=e31]:
+      - link "node_modules/" [ref=e32] [cursor=pointer]:
+        - /url: node_modules/
+    - listitem [ref=e33]:
+      - link "oc-issues.txt" [ref=e34] [cursor=pointer]:
+        - /url: oc-issues.txt
+    - listitem [ref=e35]:
+      - link "oc-wants.txt" [ref=e36] [cursor=pointer]:
+        - /url: oc-wants.txt
+    - listitem [ref=e37]:
+      - link "oc.bat" [ref=e38] [cursor=pointer]:
+        - /url: oc.bat
+    - listitem [ref=e39]:
+      - link "package-lock.json" [ref=e40] [cursor=pointer]:
+        - /url: package-lock.json
+    - listitem [ref=e41]:
+      - link "package.json" [ref=e42] [cursor=pointer]:
+        - /url: package.json
+    - listitem [ref=e43]:
+      - link "README.md" [ref=e44] [cursor=pointer]:
+        - /url: README.md
+    - listitem [ref=e45]:
+      - link "requirements.txt" [ref=e46] [cursor=pointer]:
+        - /url: requirements.txt
+    - listitem [ref=e47]:
+      - link "run.bat" [ref=e48] [cursor=pointer]:
+        - /url: run.bat
+    - listitem [ref=e49]:
+      - link "run.sh" [ref=e50] [cursor=pointer]:
+        - /url: run.sh
+    - listitem [ref=e51]:
+      - link "server-err.log" [ref=e52] [cursor=pointer]:
+        - /url: server-err.log
+    - listitem [ref=e53]:
+      - link "server-out.log" [ref=e54] [cursor=pointer]:
+        - /url: server-out.log
+    - listitem [ref=e55]:
+      - link "static/" [ref=e56] [cursor=pointer]:
+        - /url: static/
+    - listitem [ref=e57]:
+      - link "tests/" [ref=e58] [cursor=pointer]:
+        - /url: tests/
+    - listitem [ref=e59]:
+      - link "tools/" [ref=e60] [cursor=pointer]:
+        - /url: tools/
+    - listitem [ref=e61]:
+      - link "ui.txt" [ref=e62] [cursor=pointer]:
+        - /url: ui.txt
+  - separator [ref=e63]

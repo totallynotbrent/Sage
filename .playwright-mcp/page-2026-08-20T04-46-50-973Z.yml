@@ -1,0 +1,19 @@
+- generic [ref=f3e2]:
+  - banner [ref=f3e3]:
+    - generic [ref=f3e4]:
+      - button "Menu" [ref=f3e5] [cursor=pointer]
+      - heading "Sage" [level=1] [ref=f3e8]
+    - button "New Session" [ref=f3e10] [cursor=pointer]
+  - generic [ref=f3e13]:
+    - complementary [ref=f3e14]:
+      - button "Sessions" [ref=f3e16] [cursor=pointer]
+      - generic [ref=f3e21]:
+        - button "Files" [ref=f3e22] [cursor=pointer]
+        - generic [ref=f3e26]:
+          - generic [ref=f3e27] [cursor=pointer]: Library
+          - generic [ref=f3e29] [cursor=pointer]: Sessions
+          - generic [ref=f3e31] [cursor=pointer]: Settings
+    - main [ref=f3e33]:
+      - generic [ref=f3e35]:
+        - heading "Sessions" [level=2] [ref=f3e36]
+        - button "New Session" [active] [ref=f3e37] [cursor=pointer]

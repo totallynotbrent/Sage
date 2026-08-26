@@ -1,0 +1,115 @@
+- generic [ref=f29e1]:
+  - link "Skip to workspace" [ref=f29e2] [cursor=pointer]:
+    - /url: "#main_content"
+  - generic [ref=f29e3]:
+    - complementary "Conversations" [ref=f29e4]:
+      - generic [ref=f29e5]:
+        - link "Sage home" [ref=f29e6] [cursor=pointer]:
+          - /url: ./
+          - generic [ref=f29e11]: sage
+        - button "Close conversations" [ref=f29e12] [cursor=pointer]
+      - button "New study N" [ref=f29e158] [cursor=pointer]:
+        - generic [ref=f29e18]: New study
+        - generic [ref=f29e19]: "N"
+      - navigation "Recent conversations" [ref=f29e20]:
+        - generic [ref=f29e21]:
+          - generic [ref=f29e22]: Recent study
+          - generic [ref=f29e23]: "3"
+        - generic [ref=f29e24]:
+          - button "Understand graph algorithms Today · 3 messages" [ref=f29e25] [cursor=pointer]:
+            - generic [ref=f29e26]: Understand graph algorithms
+            - generic [ref=f29e27]: Today · 3 messages
+          - button "Read the spectral theorem Yesterday · 8 messages" [ref=f29e28] [cursor=pointer]:
+            - generic [ref=f29e29]: Read the spectral theorem
+            - generic [ref=f29e30]: Yesterday · 8 messages
+          - button "Bayes rule, without the fog Aug 16 · 5 messages" [ref=f29e31] [cursor=pointer]:
+            - generic [ref=f29e32]: Bayes rule, without the fog
+            - generic [ref=f29e33]: Aug 16 · 5 messages
+      - generic [ref=f29e34]:
+        - generic [ref=f29e35]:
+          - generic [ref=f29e37]:
+            - strong [ref=f29e38]: Local library
+            - generic [ref=f29e39]: 4 sources ready
+          - button "Open library" [ref=f29e40] [cursor=pointer]
+        - button "A Alex learner Study preferences" [ref=f29e159] [cursor=pointer]:
+          - generic [ref=f29e46]: A
+          - generic [ref=f29e47]:
+            - strong [ref=f29e48]: Alex learner
+            - generic [ref=f29e49]: Study preferences
+    - main [ref=f29e52]:
+      - generic [ref=f29e53]:
+        - generic [ref=f29e58]:
+          - paragraph [ref=f29e59]: Session / graph theory
+          - heading "Understand graph algorithms" [level=1] [ref=f29e60]
+        - generic [ref=f29e61]:
+          - generic [ref=f29e62]: Grounded
+          - button "Collapse conversations" [expanded] [active] [ref=f29e160] [cursor=pointer]
+          - button "More session actions" [ref=f29e152] [cursor=pointer]
+      - generic "Study progress" [ref=f29e64]:
+        - generic [ref=f29e65]:
+          - generic [ref=f29e66]: "02"
+          - generic [ref=f29e67]:
+            - strong [ref=f29e68]: Teaching
+            - generic [ref=f29e69]: of 04 · Shortest paths
+        - generic "Study progress 50 percent" [ref=f29e70]
+        - button "3 sources" [ref=f29e72] [cursor=pointer]
+      - region "Study conversation" [ref=f29e75]:
+        - log "Study conversation transcript" [ref=f29e76]:
+          - generic [ref=f29e77]: Today · 10:42 AM
+          - article "Message from you" [ref=f29e79]:
+            - generic [ref=f29e80]:
+              - generic [ref=f29e81]: A
+              - generic [ref=f29e82]: You
+              - time [ref=f29e83]: 10:42
+            - paragraph [ref=f29e85]: I know BFS explores a graph layer by layer, but I want to understand why it gives the shortest path in an unweighted graph.
+          - article "Message from Sage" [ref=f29e86]:
+            - generic [ref=f29e87]:
+              - generic [ref=f29e92]: Sage
+              - generic [ref=f29e93]: Tutor
+              - time [ref=f29e94]: 10:42
+            - generic [ref=f29e95]:
+              - paragraph [ref=f29e96]: Think of BFS as a wave moving outward from the start. It visits every node at distance d before it visits any node at distance d + 1.
+              - paragraph [ref=f29e97]: When a node is first discovered, the path that reached it has the fewest possible edges. Any later route would have to pass through a layer that BFS has already finished.
+              - generic [ref=f29e98]:
+                - generic [ref=f29e100]:
+                  - strong [ref=f29e101]: Algorithms / Shortest paths
+                  - generic [ref=f29e102]: notes.md · section 4.2
+                - button "Open source excerpt" [ref=f29e103] [cursor=pointer]: ↗
+            - generic [ref=f29e104]:
+              - button "Copy Sage response" [ref=f29e105] [cursor=pointer]: Copy
+              - button "Show response sources" [ref=f29e106] [cursor=pointer]:
+                - text: Sources
+                - generic [ref=f29e107]: "1"
+          - article "Message from you" [ref=f29e108]:
+            - generic [ref=f29e109]:
+              - generic [ref=f29e110]: A
+              - generic [ref=f29e111]: You
+              - time [ref=f29e112]: 10:43
+            - paragraph [ref=f29e114]: So the queue order is doing the proof work. What changes when edges have different weights?
+          - article "Message from Sage" [ref=f29e115]:
+            - generic [ref=f29e116]:
+              - generic [ref=f29e121]: Sage
+              - generic [ref=f29e122]: Tutor
+              - time [ref=f29e123]: now
+            - generic [ref=f29e124]:
+              - paragraph
+      - status [ref=f29e126]:
+        - generic [ref=f29e127]: Sage is ready when you are.
+      - alert [ref=f29e128]:
+        - strong [ref=f29e129]: Local preview paused.
+        - generic [ref=f29e130]: Try sending the question again.
+        - button "Dismiss" [ref=f29e131] [cursor=pointer]
+      - region "Ask Sage" [ref=f29e132]:
+        - generic [ref=f29e133]:
+          - generic [ref=f29e134]: Message Sage
+          - textbox "Message Sage" [ref=f29e135]:
+            - /placeholder: Ask about your study material...
+          - generic [ref=f29e136]:
+            - generic [ref=f29e137]: Enter to send · Shift + Enter for a new line
+            - generic [ref=f29e138]:
+              - button "Stop" [ref=f29e139] [cursor=pointer]
+              - button "Send message" [ref=f29e141] [cursor=pointer]:
+                - generic [ref=f29e157]: Send
+        - paragraph [ref=f29e144]:
+          - generic [ref=f29e145]: ⌁
+          - text: Local preview · Your files stay on your Sage server

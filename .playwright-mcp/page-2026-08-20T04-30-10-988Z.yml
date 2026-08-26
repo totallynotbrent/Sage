@@ -1,0 +1,20 @@
+- generic [ref=f3e2]:
+  - banner [ref=f3e3]:
+    - generic [ref=f3e4]:
+      - button "Menu" [ref=f3e5] [cursor=pointer]
+      - heading "Sage" [level=1] [ref=f3e8]
+    - button "New Session" [ref=f3e10] [cursor=pointer]
+  - generic [ref=f3e13]:
+    - complementary [ref=f3e14]:
+      - button "Sessions" [ref=f3e16] [cursor=pointer]
+      - generic [ref=f3e21]:
+        - button "Files" [ref=f3e22] [cursor=pointer]
+        - button "Upload file" [ref=f3e27] [cursor=pointer]
+    - main [ref=f3e30]:
+      - generic [ref=f3e31]:
+        - heading "What are you working on?" [level=1] [ref=f3e35]
+        - paragraph [ref=f3e36]: Upload study materials, create a session, and let Sage guide you through your learning journey.
+        - generic [ref=f3e37]:
+          - button "New Session" [ref=f3e38] [cursor=pointer]
+          - button "Upload Files" [ref=f3e39] [cursor=pointer]
+      - heading "Recent Sessions" [level=2] [ref=f3e41]

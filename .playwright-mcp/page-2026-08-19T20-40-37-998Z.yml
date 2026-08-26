@@ -1,0 +1,78 @@
+- generic [active] [ref=f22e1]:
+  - generic [ref=f22e7]:
+    - complementary "Sidebar" [ref=f22e9]:
+      - separator "Resize sidebar" [ref=f22e10]
+      - generic [ref=f22e13]:
+        - link "Home" [ref=f22e15] [cursor=pointer]:
+          - /url: /new
+          - img "Claude" [ref=f22e16]
+        - button "Collapse sidebar" [ref=f22e19] [cursor=pointer]:
+          - generic [ref=f22e22]: 
+        - button "Search" [ref=f22e25] [cursor=pointer]:
+          - generic [ref=f22e28]: 
+      - generic [ref=f22e30]:
+        - generic [ref=f22e31]:
+          - generic [ref=f22e33]:
+            - button "New" [ref=f22e34] [cursor=pointer]:
+              - generic [ref=f22e35]: 
+              - generic [ref=f22e39]: Ctrl+⇧+O
+            - button "Projects" [ref=f22e40] [cursor=pointer]:
+              - generic [ref=f22e41]: 
+            - button "Artifacts" [ref=f22e45] [cursor=pointer]:
+              - generic [ref=f22e46]: 
+            - button "Customize" [ref=f22e52] [cursor=pointer]:
+              - generic [ref=f22e53]: 
+          - generic [ref=f22e63]:
+            - generic [ref=f22e65]:
+              - button "Chats and tasks" [expanded] [ref=f22e66] [cursor=pointer]:
+                - generic [ref=f22e68]: 
+              - generic [ref=f22e69]:
+                - button "View all" [ref=f22e70] [cursor=pointer]:
+                  - generic [ref=f22e73]: 
+                - button "Filter and group recents" [ref=f22e75] [cursor=pointer]:
+                  - generic [ref=f22e78]: 
+            - generic [ref=f22e81]:
+              - generic [ref=f22e82]:
+                - status [ref=f22e84]:
+                  - generic [ref=f22e85]: Loading
+                - status [ref=f22e86]:
+                  - generic [ref=f22e87]: Loading
+              - generic [ref=f22e88]:
+                - status [ref=f22e90]:
+                  - generic [ref=f22e91]: Loading
+                - status [ref=f22e92]:
+                  - generic [ref=f22e93]: Loading
+              - generic [ref=f22e94]:
+                - status [ref=f22e96]:
+                  - generic [ref=f22e97]: Loading
+                - status [ref=f22e98]:
+                  - generic [ref=f22e99]: Loading
+              - generic [ref=f22e100]:
+                - status [ref=f22e102]:
+                  - generic [ref=f22e103]: Loading
+                - status [ref=f22e104]:
+                  - generic [ref=f22e105]: Loading
+              - generic [ref=f22e106]:
+                - status [ref=f22e108]:
+                  - generic [ref=f22e109]: Loading
+                - status [ref=f22e110]:
+                  - generic [ref=f22e111]: Loading
+              - generic [ref=f22e112]:
+                - status [ref=f22e114]:
+                  - generic [ref=f22e115]: Loading
+                - status [ref=f22e116]:
+                  - generic [ref=f22e117]: Loading
+              - generic [ref=f22e118]:
+                - status [ref=f22e120]:
+                  - generic [ref=f22e121]: Loading
+                - status [ref=f22e122]:
+                  - generic [ref=f22e123]: Loading
+        - button [ref=f22e127] [cursor=pointer]:
+          - img [ref=f22e129]: "?"
+          - generic [ref=f22e130]: 
+    - main [ref=f22e131]:
+      - status [ref=f22e137]
+  - generic:
+    - generic:
+      - generic:
+        - region "Notifications"

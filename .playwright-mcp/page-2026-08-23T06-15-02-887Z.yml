@@ -1,0 +1,273 @@
+- generic [ref=f6e2]:
+  - heading "Sage workspace" [level=1] [ref=f6e3]
+  - generic [ref=f6e4]:
+    - button "Menu" [ref=f6e5] [cursor=pointer]
+    - link "Sage" [ref=f6e8] [cursor=pointer]:
+      - /url: index.html
+    - generic [ref=f6e9]: "- teach me recursion"
+    - generic [ref=f6e10]: setup
+  - generic [ref=f6e11]:
+    - main [ref=f6e94]:
+      - generic [ref=f6e95]:
+        - log "Conversation" [ref=f6e96]:
+          - generic [ref=f6e123]:
+            - generic [ref=f6e124]: You
+            - generic [ref=f6e125]: teach me recursion
+          - generic [ref=f6e126]:
+            - article "Question 1":
+              - generic:
+                - generic: PROBE · 01
+                - heading "Question 1" [level=3]
+              - generic:
+                - generic:
+                  - generic: In recursion, what is the purpose of the 'base case'?
+                  - radiogroup "Question 1":
+                    - radio "A) To make the function run faster"
+                    - radio "B) To provide a condition that stops the recursion from continuing infinitely" [checked]
+                    - radio "C) To call the function itself again"
+                    - radio "D) To allocate more memory to the call stack"
+                    - radio "E) I don't know"
+            - article "Question 2":
+              - generic:
+                - generic: PROBE · 02
+                - heading "Question 2" [level=3]
+              - generic:
+                - generic:
+                  - generic: What happens to the call stack during the 'winding' phase of a recursive process?
+                  - radiogroup "Question 2":
+                    - radio "A) Frames are popped off the stack as the base case is reached"
+                    - radio "B) The stack is cleared to make room for new variables"
+                    - radio "C) New stack frames are pushed onto the stack for each recursive call"
+                    - radio "D) The function returns a final value to the original caller"
+                    - radio "E) I don't know" [checked]
+            - article "Question 3":
+              - generic:
+                - generic: PROBE · 03
+                - heading "Question 3" [level=3]
+              - generic:
+                - generic:
+                  - generic: Which of the following best describes a 'stack overflow' error in the context of recursion?
+                  - radiogroup "Question 3":
+                    - radio "A) The base case was reached too quickly"
+                    - radio "B) The function returned a value that was too large for the variable type"
+                    - radio "C) The program ran out of heap memory for object allocation"
+                    - radio "D) The call stack exceeded its allocated memory limit due to too many recursive calls"
+                    - radio "E) I don't know"
+            - button "Send answers" [disabled] [ref=f6e197]
+          - generic [ref=f6e198]:
+            - generic [ref=f6e199]: Sage
+            - generic [ref=f6e200]:
+              - paragraph [ref=f6e201]: Hello! I'm Sage, and I'll be your tutor for recursion. It's a powerful concept that can feel a bit like a puzzle at first, but we'll break it down step by step.
+              - paragraph [ref=f6e202]: To make sure we start at the right place, please pick the best answers for the questions above!
+          - generic [ref=f6e251]:
+            - generic [ref=f6e252]: You
+            - generic [ref=f6e253]: "1: B; 2: E"
+          - generic [ref=f6e254]:
+            - generic [ref=f6e255]: Sage
+            - generic [ref=f6e256]:
+              - paragraph [ref=f6e257]: I've graded those for you. You nailed the base case, but it looks like the "winding" phase is a bit fuzzy. No worries—we'll clear that up in a moment.
+              - paragraph [ref=f6e258]: "You still have one more question from the probe to answer:"
+              - paragraph [ref=f6e259]:
+                - strong [ref=f6e260]: Which of the following best describes a 'stack overflow' error in the context of recursion?
+          - generic [ref=f6e261]:
+            - generic [ref=f6e262]: You
+            - generic [ref=f6e263]: The call stack exceeds its allocated memory limit because too many recursive calls pile up without ever reaching the base case.
+          - generic [ref=f6e272]:
+            - generic [ref=f6e273]: Sage
+            - generic [ref=f6e274]:
+              - paragraph [ref=f6e275]: "That is a very strong explanation! You've correctly identified that the memory limit is exceeded because calls pile up without hitting the base case. (Note: The system marked this as \"incorrect\" likely because it was looking for a specific multiple-choice index, but your conceptual understanding is spot on)."
+              - paragraph [ref=f6e276]: Since we've finished the probe, let's map out our journey.
+              - paragraph [ref=f6e277]: I've put together a roadmap for us in the side rail. We'll start with the core concept, move through the mechanics of base cases and the call stack, and finish with common patterns.
+              - paragraph [ref=f6e278]: "To get us started: think of recursion like a set of Russian nesting dolls. To get to the tiny doll in the center, you have to open a larger doll, which contains a slightly smaller doll, which contains an even smaller one, and so on. In programming, recursion is simply a function that calls itself to solve a smaller version of the same problem."
+              - paragraph [ref=f6e279]: Does a function calling itself sound like it would run forever? (yes/no)
+            - button "Start Learning" [ref=f6e281] [cursor=pointer]
+          - generic [ref=f6e349]:
+            - generic [ref=f6e350]: You
+            - generic [ref=f6e351]: Great. Now lay out my lesson plan and move me into the first node.
+          - generic [ref=f6e358]:
+            - generic [ref=f6e359]: Sage
+            - generic [ref=f6e360]:
+              - paragraph [ref=f6e361]: I've mapped out our path in the side rail. We'll start with the core concept, move through the mechanics of base cases and the call stack, and finish with common patterns.
+              - paragraph [ref=f6e362]:
+                - text: As we start with
+                - strong [ref=f6e363]: The Core Concept of Recursion
+                - text: ", remember that recursion is essentially a method of solving a problem where the solution depends on solutions to smaller instances of the same problem (general model knowledge). In programming, this happens when a function calls itself."
+              - paragraph [ref=f6e364]: To keep this from running forever, every recursive function needs a way to stop.
+              - paragraph [ref=f6e365]: Does a recursive function call itself? (Yes/No)
+          - generic [ref=f6e424]:
+            - generic [ref=f6e425]: You
+            - generic [ref=f6e426]: "Let's dive into the first node: The Core Concept of Recursion."
+          - generic [ref=f6e427]:
+            - generic [ref=f6e428]: Sage
+            - generic [ref=f6e429]:
+              - paragraph [ref=f6e430]: Since we've already touched on the general idea (as with the dolls), let's get precise.
+              - paragraph [ref=f6e431]:
+                - text: At its core,
+                - strong [ref=f6e432]: recursion
+                - text: is a method of solving a problem where the solution depends on solutions to smaller instances of the same problem. In programming, this happens when a function calls itself within its own code.
+              - paragraph [ref=f6e433]: Based on general computer science knowledge, this creates a chain of calls. Each time the function calls itself, it isn't starting over from scratch; it is pausing the current execution to start a new, "smaller" version of the task.
+              - paragraph [ref=f6e434]: Does a recursive function call a different function to solve the smaller version of the problem, or does it call itself?
+          - generic [ref=f6e435]:
+            - generic [ref=f6e436]: You
+            - generic [ref=f6e437]: It calls itself to solve the smaller version of the problem.
+          - generic [ref=f6e443]:
+            - generic [ref=f6e444]: Sage
+            - generic [ref=f6e445]:
+              - paragraph [ref=f6e446]: Exactly. By breaking the problem down into smaller versions of itself, we move closer to a point where the problem becomes so simple it can be solved immediately.
+              - paragraph [ref=f6e447]:
+                - text: This brings us to the
+                - strong [ref=f6e448]: Base Case
+                - text: .
+              - paragraph [ref=f6e449]: Based on general computer science knowledge, the base case is the "stopping condition" for a recursive function. Without it, the function would keep calling itself forever (or until the computer runs out of memory), creating what is known as infinite recursion. The base case is the simplest possible instance of the problem that can be answered directly without any further recursive calls.
+              - paragraph [ref=f6e450]: If the recursive call is the "winding" process, the base case is the anchor that allows the process to start "unwinding."
+              - paragraph [ref=f6e451]: Does a recursive function always need a base case to prevent it from running forever? (Yes/No)
+          - generic [ref=f6e452]:
+            - generic [ref=f6e453]: You
+            - generic [ref=f6e454]: Yes, always needs a base case. I think I've got this node — check me on it now.
+          - generic [ref=f6e455]:
+            - article "Question 1":
+              - generic:
+                - generic: CHECK
+                - heading "Question 1" [level=3]
+              - generic:
+                - generic:
+                  - generic: In a recursive function, what is the primary purpose of the 'recursive step'?
+                  - radiogroup "Question 1":
+                    - radio "A) To stop the function from calling itself and prevent infinite loops" [checked]
+                    - radio "B) To call the function again with a modified argument that moves closer to the base case"
+                    - radio "C) To allocate new memory on the heap for every function call"
+                    - radio "D) To return the final result immediately without any further calculations"
+                    - radio "E) I don't know"
+            - button "Send answers" [disabled] [ref=f6e480]
+          - generic [ref=f6e492]:
+            - generic [ref=f6e493]: Sage
+            - generic [ref=f6e494]:
+              - paragraph [ref=f6e495]:
+                - text: "Since you've mastered the base case, let's move to the other half of the puzzle:"
+                - strong [ref=f6e496]: The Recursive Step
+                - text: .
+              - paragraph [ref=f6e497]:
+                - text: While the base case tells the function when to stop, the recursive step is where the actual "work" happens. In this step, the function calls itself, but—and this is the crucial part—it must do so with a
+                - strong [ref=f6e498]: modified argument
+                - text: . This modification ensures that each subsequent call brings the program one step closer to the base case. Without this progress, you'd end up in an infinite loop (or a stack overflow).
+              - paragraph [ref=f6e499]:
+                - text: Based on general computer science principles, if your base case is
+                - code [ref=f6e500]: n == 0
+                - text: ", your recursive step might call the function with"
+                - code [ref=f6e501]: n - 1
+                - text: .
+              - paragraph [ref=f6e502]: "Let's see if that clicks:"
+              - paragraph [ref=f6e503]: "Since I cannot process the answer until you select an option, please take a look at the question below:"
+              - paragraph [ref=f6e504]:
+                - strong [ref=f6e505]: In a recursive function, what is the primary purpose of the 'recursive step'?
+              - paragraph [ref=f6e506]: A) To stop the function from calling itself and prevent infinite loopsB) To call the function again with a modified argument that moves closer to the base caseC) To allocate new memory on the heap for every function callD) To return the final result immediately without any further calculationsE) I don't know
+          - generic [ref=f6e507]:
+            - generic [ref=f6e508]: You
+            - generic [ref=f6e509]: "1: A"
+          - generic [ref=f6e510]:
+            - generic [ref=f6e511]: Sage
+            - generic [ref=f6e512]:
+              - paragraph [ref=f6e513]: "That wasn't quite it. Let's look at it this way: if the base case is the \"exit door,\" the recursive step is the \"path\" that leads you toward that door."
+              - paragraph [ref=f6e514]:
+                - text: The primary purpose of the recursive step is to call the function again, but with a
+                - strong [ref=f6e515]: modified input
+                - text: that is slightly "smaller" or "simpler" than the current one. Without this change, the function would just call itself with the exact same data forever, creating an infinite loop.
+              - paragraph [ref=f6e516]: For example, if you are counting down from 10, the recursive step doesn't just say "count down from 10" again; it says "count down from 9."
+              - paragraph [ref=f6e517]: Does the recursive step need to change the input to eventually reach the base case? (Yes/No)
+          - generic [ref=f6e518]:
+            - generic [ref=f6e519]: You
+            - generic [ref=f6e520]: Got it — the recursive step calls itself again with a smaller input, moving toward the base case until it can stop.
+          - generic [ref=f6e521]:
+            - generic [ref=f6e522]: Sage
+            - generic [ref=f6e523]:
+              - paragraph [ref=f6e524]:
+                - text: Since you've mastered how the recursive step drives the process toward the base case, we need to look at
+                - emphasis [ref=f6e525]: where
+                - text: all those pending calls actually go while they wait.
+              - paragraph [ref=f6e526]:
+                - text: This brings us to the
+                - strong [ref=f6e527]: Call Stack
+                - text: . Based on general computer science knowledge, the call stack is a specialized memory structure that follows a "Last-In, First-Out" (LIFO) principle. Every time a function calls itself, the computer "pushes" a new frame onto the stack to keep track of that specific call's local variables and where it left off.
+              - paragraph [ref=f6e528]: "Think of it as a physical stack of trays: you can only add a new tray to the top, and you must remove the top tray before you can get to the ones underneath."
+              - paragraph [ref=f6e529]:
+                - text: If a recursive function calls itself too many times without hitting a base case, the stack grows until it runs out of memory, resulting in what is commonly known as a
+                - strong [ref=f6e530]: stack overflow
+                - text: .
+              - paragraph [ref=f6e531]:
+                - text: Does the "Last-In, First-Out" (LIFO) nature of the stack mean that the
+                - emphasis [ref=f6e532]: first
+                - text: function call made is the
+                - emphasis [ref=f6e533]: first
+                - text: one to finish and be removed from the stack? (Yes/No)
+          - generic [ref=f6e534]:
+            - generic [ref=f6e535]: You
+            - generic [ref=f6e536]: No — LIFO means the most recent call finishes first; the very first call is the last to finish. I've got the recursive step concept now — give me the retry check question so I can answer it.
+          - generic [ref=f6e537]:
+            - generic [ref=f6e538]: Sage
+            - generic [ref=f6e539]:
+              - paragraph [ref=f6e540]: You are absolutely correct—LIFO (Last-In, First-Out) means the most recent function call on the stack is the first one to be popped and completed, leaving the original call for the very end.
+              - paragraph [ref=f6e541]:
+                - text: "Since you've mastered the recursive step and the stack logic, let's move to the final phase of the process:"
+                - strong [ref=f6e542]: Unwinding
+                - text: .
+              - paragraph [ref=f6e543]:
+                - text: As we discussed with the dolls, winding is the process of diving deeper into recursive calls.
+                - strong [ref=f6e544]: Unwinding
+                - text: "is the opposite: it is the phase where the base case has been hit, and the computer begins returning values back up the call stack to the previous callers."
+              - paragraph [ref=f6e545]: In this phase, the "work" often happens as the functions finish. For example, if you are calculating a factorial, the unwinding phase is where the actual multiplications happen as the results are passed back up.
+              - paragraph [ref=f6e546]:
+                - text: Does the unwinding phase happen
+                - strong [ref=f6e547]: before
+                - text: or
+                - strong [ref=f6e548]: after
+                - text: the base case is reached?
+        - generic [ref=f6e97]:
+          - toolbar "Artifact composer" [ref=f6e98]:
+            - button "Generate diagram" [ref=f6e99] [cursor=pointer]: Diagram
+            - button "Generate quiz" [ref=f6e106] [cursor=pointer]: Quiz
+            - button "Generate todo list" [ref=f6e110] [cursor=pointer]: Todo
+          - generic [ref=f6e114]:
+            - textbox "Message" [ref=f6e115]:
+              - /placeholder: Reply to Sage...
+            - generic [ref=f6e116]:
+              - button "Attach" [ref=f6e117] [cursor=pointer]
+              - button "Send" [ref=f6e120] [cursor=pointer]
+    - complementary "Artifacts and support" [ref=f6e282]:
+      - generic [ref=f6e283]:
+        - generic [ref=f6e284]:
+          - generic [ref=f6e285]: Artifacts
+          - generic [ref=f6e286]: "2"
+        - button "Close artifacts" [ref=f6e287] [cursor=pointer]
+      - generic [ref=f6e290]:
+        - article "teach me recursion" [ref=f6e291]:
+          - generic [ref=f6e292]:
+            - generic [ref=f6e293]: PLAN · GRAPH
+            - heading "teach me recursion" [level=3] [ref=f6e294]
+            - generic [ref=f6e295]: validated
+          - generic [ref=f6e296]:
+            - generic [ref=f6e297]: flowchart-v2
+            - document [ref=f6e300]:
+              - generic [ref=f6e303]:
+                - paragraph [ref=f6e310]: The Core Concept of Recursion
+                - paragraph [ref=f6e317]: The Base Case
+                - paragraph [ref=f6e324]: The Recursive Step
+                - paragraph [ref=f6e331]: The Call Stack & Memory
+                - paragraph [ref=f6e338]: Winding and Unwinding
+                - paragraph [ref=f6e345]: Common Recursion Patterns
+          - button "View source" [ref=f6e346] [cursor=pointer]
+        - article "teach me recursion" [ref=f6e366]:
+          - generic [ref=f6e367]:
+            - generic [ref=f6e368]: PLAN · GRAPH
+            - heading "teach me recursion" [level=3] [ref=f6e369]
+            - generic [ref=f6e370]: validated
+          - generic [ref=f6e371]:
+            - generic [ref=f6e372]: flowchart-v2
+            - document [ref=f6e375]:
+              - generic [ref=f6e378]:
+                - paragraph [ref=f6e385]: The Core Concept of Recursion
+                - paragraph [ref=f6e392]: The Base Case
+                - paragraph [ref=f6e399]: The Recursive Step
+                - paragraph [ref=f6e406]: The Call Stack & Memory
+                - paragraph [ref=f6e413]: Winding and Unwinding
+                - paragraph [ref=f6e420]: Common Recursion Patterns
+          - button "View source" [ref=f6e421] [cursor=pointer]

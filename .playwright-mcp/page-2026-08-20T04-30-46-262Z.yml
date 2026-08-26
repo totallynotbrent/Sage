@@ -1,0 +1,86 @@
+- generic [ref=f4e2]:
+  - banner [ref=f4e3]:
+    - generic [ref=f4e4]:
+      - button "Menu" [ref=f4e5] [cursor=pointer]
+      - heading "Sage" [level=1] [ref=f4e8]
+    - button "New Session" [ref=f4e10] [cursor=pointer]
+  - generic [ref=f4e13]:
+    - complementary [ref=f4e14]:
+      - generic [ref=f4e15]:
+        - button "Sessions" [ref=f4e16] [cursor=pointer]
+        - generic [ref=f4e20]:
+          - generic [ref=f4e21] [cursor=pointer]:
+            - generic [ref=f4e22]: setup
+            - generic [ref=f4e23]: Physics
+          - generic [ref=f4e24] [cursor=pointer]:
+            - generic [ref=f4e25]: probe
+            - generic [ref=f4e26]: Understand graph algorithms for my CS exam
+          - generic [ref=f4e27] [cursor=pointer]:
+            - generic [ref=f4e28]: setup
+            - generic [ref=f4e29]: Start a new study
+          - generic [ref=f4e30] [cursor=pointer]:
+            - generic [ref=f4e31]: setup
+            - generic [ref=f4e32]: Start a new study
+          - generic [ref=f4e33] [cursor=pointer]:
+            - generic [ref=f4e34]: setup
+            - generic [ref=f4e35]: Start a new study
+      - generic [ref=f4e36]:
+        - button "Files" [ref=f4e37] [cursor=pointer]
+        - generic [ref=f4e41]:
+          - generic [ref=f4e42] [cursor=pointer]: Library
+          - generic [ref=f4e44] [cursor=pointer]: Sessions
+          - generic [ref=f4e46] [cursor=pointer]: Settings
+    - main [ref=f4e48]:
+      - generic [ref=f4e49]:
+        - generic [ref=f4e50]:
+          - heading "Sessions" [level=2] [ref=f4e51]
+          - button "New Session" [ref=f4e52] [cursor=pointer]
+        - generic [ref=f4e53]:
+          - generic [ref=f4e54] [cursor=pointer]:
+            - generic [ref=f4e55]:
+              - generic [ref=f4e56]: Physics
+              - generic [ref=f4e57]: setup
+            - generic [ref=f4e58]: Grounded — sources + general knowledge
+            - generic [ref=f4e59]:
+              - generic [ref=f4e60]: 0 files
+              - generic [ref=f4e61]: 33m ago
+          - generic [ref=f4e62] [cursor=pointer]:
+            - generic [ref=f4e63]:
+              - generic [ref=f4e64]: Understand graph algorithms for my CS exam
+              - generic [ref=f4e65]: probe
+            - generic [ref=f4e66]: Grounded — sources + general knowledge
+            - generic [ref=f4e67]:
+              - generic [ref=f4e68]: 1 files
+              - generic [ref=f4e69]: 2h ago
+          - generic [ref=f4e70] [cursor=pointer]:
+            - generic [ref=f4e71]:
+              - generic [ref=f4e72]: Start a new study
+              - generic [ref=f4e73]: setup
+            - generic [ref=f4e74]: Grounded — sources + general knowledge
+            - generic [ref=f4e75]:
+              - generic [ref=f4e76]: 0 files
+              - generic [ref=f4e77]: 6h ago
+          - generic [ref=f4e78] [cursor=pointer]:
+            - generic [ref=f4e79]:
+              - generic [ref=f4e80]: Start a new study
+              - generic [ref=f4e81]: setup
+            - generic [ref=f4e82]: Grounded — sources + general knowledge
+            - generic [ref=f4e83]:
+              - generic [ref=f4e84]: 0 files
+              - generic [ref=f4e85]: 6h ago
+          - generic [ref=f4e86] [cursor=pointer]:
+            - generic [ref=f4e87]:
+              - generic [ref=f4e88]: Start a new study
+              - generic [ref=f4e89]: setup
+            - generic [ref=f4e90]: Grounded — sources + general knowledge
+            - generic [ref=f4e91]:
+              - generic [ref=f4e92]: 0 files
+              - generic [ref=f4e93]: 6h ago
+          - generic [ref=f4e94] [cursor=pointer]:
+            - generic [ref=f4e95]:
+              - generic [ref=f4e96]: teach me about ai inferencing
+              - generic [ref=f4e97]: setup
+            - generic [ref=f4e98]: Grounded — sources + general knowledge
+            - generic [ref=f4e99]:
+              - generic [ref=f4e100]: 0 files
+              - generic [ref=f4e101]: 2d ago

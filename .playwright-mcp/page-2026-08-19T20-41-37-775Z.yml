@@ -1,0 +1,155 @@
+- generic [ref=f25e1]:
+  - generic [ref=f25e7]:
+    - complementary "Sidebar" [ref=f25e9]:
+      - separator "Resize sidebar" [ref=f25e10]
+      - generic [ref=f25e13]:
+        - link "Home" [ref=f25e15] [cursor=pointer]:
+          - /url: /new
+          - img "Claude" [ref=f25e16]
+        - button "Collapse sidebar" [ref=f25e19] [cursor=pointer]:
+          - generic [ref=f25e22]: 
+        - button "Search" [ref=f25e25] [cursor=pointer]:
+          - generic [ref=f25e28]: 
+      - generic [ref=f25e30]:
+        - generic [ref=f25e31]:
+          - generic [ref=f25e33]:
+            - button "New" [ref=f25e34] [cursor=pointer]:
+              - generic [ref=f25e35]: 
+              - generic [ref=f25e39]: Ctrl+⇧+O
+            - button "Projects" [ref=f25e40] [cursor=pointer]:
+              - generic [ref=f25e41]: 
+            - button "Artifacts" [ref=f25e45] [cursor=pointer]:
+              - generic [ref=f25e46]: 
+            - button "Code Upgrade" [ref=f25e50] [cursor=pointer]:
+              - generic [ref=f25e51]: 
+              - generic [ref=f25e53]:
+                - generic [ref=f25e54]: Code
+                - generic [ref=f25e55]: Upgrade
+            - button "Customize" [ref=f25e56] [cursor=pointer]:
+              - generic [ref=f25e57]: 
+          - generic [ref=f25e65]:
+            - generic:
+              - button "Pinned" [expanded] [ref=f25e68] [cursor=pointer]:
+                - generic [ref=f25e70]: 
+              - generic [ref=f25e71]:
+                - generic [ref=f25e72]: 
+                - generic [ref=f25e74]: Drag to pin
+            - generic [ref=f25e76]:
+              - generic [ref=f25e78]:
+                - button "Chats and tasks" [expanded] [ref=f25e79] [cursor=pointer]:
+                  - generic [ref=f25e81]: 
+                - generic [ref=f25e82]:
+                  - button "View all" [ref=f25e83] [cursor=pointer]:
+                    - generic [ref=f25e86]: 
+                  - button "Filter and group recents" [ref=f25e88] [cursor=pointer]:
+                    - generic [ref=f25e91]: 
+              - generic [ref=f25e93]:
+                - generic [ref=f25e96]:
+                  - link "Idle Socratic method for learning derivatives" [ref=f25e97] [cursor=pointer]:
+                    - /url: /chat/8191c0f1-073d-4b9e-b6ab-15e36a283b9c
+                    - img "Idle" [ref=f25e99]
+                    - generic [ref=f25e101]: Socratic method for learning derivatives
+                  - generic:
+                    - button "More options for Socratic method for learning derivatives":
+                      - generic: 
+                - generic [ref=f25e106]:
+                  - link "Idle Block diagram for equations" [ref=f25e107] [cursor=pointer]:
+                    - /url: /chat/7799b78a-af2e-4024-b2cb-3176e5e5bfc9
+                    - img "Idle" [ref=f25e109]
+                    - generic [ref=f25e111]: Block diagram for equations
+                  - generic:
+                    - button "More options for Block diagram for equations":
+                      - generic: 
+                - generic [ref=f25e116]:
+                  - link "Idle Aluminum stopping power and range for protons" [ref=f25e117] [cursor=pointer]:
+                    - /url: /chat/116ac77a-ef22-4631-973c-ea674500158d
+                    - img "Idle" [ref=f25e119]
+                    - generic [ref=f25e121]: Aluminum stopping power and range for protons
+                  - generic:
+                    - button "More options for Aluminum stopping power and range for protons":
+                      - generic: 
+                - generic [ref=f25e126]:
+                  - link "Idle Differential equations to state-space conversion" [ref=f25e127] [cursor=pointer]:
+                    - /url: /chat/38597664-028c-4d78-a35a-146cb3b4cbf0
+                    - img "Idle" [ref=f25e129]
+                    - generic [ref=f25e131]: Differential equations to state-space conversion
+                  - generic:
+                    - button "More options for Differential equations to state-space conversion":
+                      - generic: 
+                - generic [ref=f25e136]:
+                  - link "Idle Step-by-Step Circuit Analysis with Critical Damping" [ref=f25e137] [cursor=pointer]:
+                    - /url: /chat/3125e09d-5472-43b5-b461-a69dd16e712d
+                    - img "Idle" [ref=f25e139]
+                    - generic [ref=f25e141]: Step-by-Step Circuit Analysis with Critical Damping
+                  - generic:
+                    - button "More options for Step-by-Step Circuit Analysis with Critical Damping":
+                      - generic: 
+                - generic [ref=f25e146]:
+                  - link "Idle Limitations of AI Knowledge About Individuals" [ref=f25e147] [cursor=pointer]:
+                    - /url: /chat/bea887cf-636c-4caf-bce7-f9f118ef1eeb
+                    - img "Idle" [ref=f25e149]
+                    - generic [ref=f25e151]: Limitations of AI Knowledge About Individuals
+                  - generic:
+                    - button "More options for Limitations of AI Knowledge About Individuals":
+                      - generic: 
+                - generic [ref=f25e156]:
+                  - link "Idle Pitot Probe Precision in Wind Tunnel" [ref=f25e157] [cursor=pointer]:
+                    - /url: /chat/81952107-264e-437c-89a1-4a01928fd9d6
+                    - img "Idle" [ref=f25e159]
+                    - generic [ref=f25e161]: Pitot Probe Precision in Wind Tunnel
+                  - generic:
+                    - button "More options for Pitot Probe Precision in Wind Tunnel":
+                      - generic: 
+        - generic [ref=f25e164]:
+          - button "Design" [ref=f25e169] [cursor=pointer]:
+            - generic [ref=f25e170]: 
+            - generic [ref=f25e174]: 
+          - generic [ref=f25e176]:
+            - button "Brent Brent Free" [ref=f25e178] [cursor=pointer]:
+              - img "Brent" [ref=f25e180]: B
+              - generic [ref=f25e181]:
+                - generic [ref=f25e182]: Brent
+                - generic [ref=f25e183]: ·
+                - generic [ref=f25e184]: Free
+              - generic [ref=f25e185]: 
+            - button "Get apps and extensions" [ref=f25e188] [cursor=pointer]:
+              - generic [ref=f25e191]: 
+    - main [ref=f25e193]:
+      - generic [ref=f25e195]:
+        - button "Use incognito" [ref=f25e201] [cursor=pointer]
+        - generic [ref=f25e215]:
+          - generic [ref=f25e216]: Back at it, Brent
+          - generic [ref=f25e223]:
+            - generic:
+              - generic:
+                - status
+              - status
+            - group [ref=f25e226]:
+              - status
+              - generic [ref=f25e229]:
+                - generic [ref=f25e230]:
+                  - generic [ref=f25e231]:
+                    - textbox "Write your prompt to Claude" [active] [ref=f25e232]:
+                      - paragraph [ref=f25e233]
+                    - status [ref=f25e234]
+                  - generic: How can I help you today?
+                - generic [ref=f25e235]:
+                  - generic [ref=f25e236]:
+                    - button "Add files, connectors, and more" [ref=f25e238] [cursor=pointer]:
+                      - generic [ref=f25e241]: 
+                    - radiogroup "Surface" [ref=f25e244]:
+                      - radio "Chat" [checked] [ref=f25e245] [cursor=pointer]
+                      - radio [checked] [ref=f25e247]
+                      - radio "Cowork" [ref=f25e248] [cursor=pointer]
+                      - radio [ref=f25e250]
+                  - 'button "Model: Haiku 4.5 Extended" [ref=f25e254] [cursor=pointer]':
+                    - generic [ref=f25e257]:
+                      - generic [ref=f25e258]: Haiku 4.5 Extended
+                      - generic [ref=f25e260]: 
+                  - button "Press and hold to record" [ref=f25e264] [cursor=pointer]:
+                    - generic [ref=f25e265]: 
+                  - button "Use voice mode" [ref=f25e272] [cursor=pointer]
+  - generic:
+    - generic:
+      - generic:
+        - region "Notifications"

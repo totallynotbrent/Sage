@@ -1,0 +1,19 @@
+- generic [ref=f4e2]:
+  - banner [ref=f4e3]:
+    - generic [ref=f4e4]:
+      - button "Menu" [ref=f4e5] [cursor=pointer]
+      - heading "Sage" [level=1] [ref=f4e8]
+    - button "Refresh" [ref=f4e10] [cursor=pointer]
+  - generic [ref=f4e14]:
+    - complementary [ref=f4e15]:
+      - generic [ref=f4e16]:
+        - button "Navigate" [ref=f4e17] [cursor=pointer]
+        - generic [ref=f4e21]:
+          - generic [ref=f4e22] [cursor=pointer]: Library
+          - generic [ref=f4e24] [cursor=pointer]: Sessions
+          - generic [ref=f4e26] [cursor=pointer]: Settings
+          - generic [ref=f4e28] [cursor=pointer]: Health
+    - main [ref=f4e30]:
+      - generic [ref=f4e31]:
+        - heading "System Health" [level=2] [ref=f4e32]
+        - generic [ref=f4e33]: Loading...

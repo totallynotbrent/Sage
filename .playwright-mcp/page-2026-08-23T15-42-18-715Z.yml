@@ -1,0 +1,387 @@
+- generic [ref=f1e2]:
+  - heading "Sage workspace" [level=1] [ref=f1e3]
+  - generic [ref=f1e4]:
+    - button "Menu" [expanded] [ref=f1e5] [cursor=pointer]
+    - link "Sage" [ref=f1e8] [cursor=pointer]:
+      - /url: index.html
+    - generic [ref=f1e9]: "- Introduction to Vietnam's History and Culture"
+    - generic [ref=f1e10]: plan
+  - generic [ref=f1e11]:
+    - complementary "Study plan" [ref=f1e12]:
+      - generic [ref=f1e13]:
+        - button "Navigate" [expanded] [ref=f1e14] [cursor=pointer]
+        - generic [ref=f1e18]:
+          - link "Home" [ref=f1e19] [cursor=pointer]:
+            - /url: index.html
+          - link "Workspace" [ref=f1e20] [cursor=pointer]:
+            - /url: sage-workspace.html?session=c767ee4dd972452c80b355a1f9d76410
+          - link "Library" [ref=f1e21] [cursor=pointer]:
+            - /url: sage-library.html
+          - link "Sessions" [ref=f1e22] [cursor=pointer]:
+            - /url: sage-sessions.html
+          - link "Settings" [ref=f1e23] [cursor=pointer]:
+            - /url: sage-settings.html
+          - link "Health" [ref=f1e24] [cursor=pointer]:
+            - /url: sage-health.html
+      - generic [ref=f1e25]:
+        - button "Sessions" [expanded] [ref=f1e26] [cursor=pointer]
+        - link "plan Introduction to Vietnam's History and Culture" [ref=f1e224] [cursor=pointer]:
+          - generic [ref=f1e225]: plan
+          - generic [ref=f1e226]: Introduction to Vietnam's History and Culture
+      - generic [ref=f1e31]:
+        - button "Files" [expanded] [ref=f1e32] [cursor=pointer]
+        - button "Upload file" [ref=f1e37] [cursor=pointer]
+      - generic [ref=f1e40]:
+        - button "Plan" [expanded] [ref=f1e41] [cursor=pointer]
+        - generic [ref=f1e45]:
+          - generic [ref=f1e46] [cursor=pointer]:
+            - generic [ref=f1e47]: ○
+            - generic [ref=f1e48]: Geography and Climate
+          - generic [ref=f1e49] [cursor=pointer]:
+            - generic [ref=f1e50]: ○
+            - generic [ref=f1e51]: Early History and Dynasties
+          - generic [ref=f1e52] [cursor=pointer]:
+            - generic [ref=f1e53]: ○
+            - generic [ref=f1e54]: French Colonialism
+          - generic [ref=f1e55] [cursor=pointer]:
+            - generic [ref=f1e56]: ○
+            - generic [ref=f1e57]: The Vietnam War
+          - generic [ref=f1e58] [cursor=pointer]:
+            - generic [ref=f1e59]: ○
+            - generic [ref=f1e60]: Contemporary Vietnam
+          - generic [ref=f1e61] [cursor=pointer]:
+            - generic [ref=f1e62]: ○
+            - generic [ref=f1e63]: Culture and Traditions
+    - main [ref=f1e64]:
+      - generic [ref=f1e65]:
+        - log "Conversation" [ref=f1e66]:
+          - generic [ref=f1e67]:
+            - generic [ref=f1e68]: You
+            - generic [ref=f1e69]: teach me about vietnam
+          - generic [ref=f1e70]:
+            - generic [ref=f1e71]: Sage
+            - paragraph [ref=f1e73]:
+              - generic [ref=f1e74]: Hello.
+              - generic [ref=f1e75]: Please
+              - generic [ref=f1e76]: select
+              - generic [ref=f1e77]: the
+              - generic [ref=f1e78]: answers
+              - generic [ref=f1e79]: to
+              - generic [ref=f1e80]: the
+              - generic [ref=f1e81]: questions
+              - generic [ref=f1e82]: provided.
+          - generic [ref=f1e83]:
+            - generic [ref=f1e84]: You
+            - generic [ref=f1e85]: "1: E; 2: A; 3: C"
+          - generic [ref=f1e86]:
+            - generic [ref=f1e87]: Sage
+            - generic [ref=f1e88]:
+              - paragraph [ref=f1e89]:
+                - generic [ref=f1e90]: Based
+                - generic [ref=f1e91]: "on"
+                - generic [ref=f1e92]: the
+                - generic [ref=f1e93]: results,
+                - generic [ref=f1e94]: you
+                - generic [ref=f1e95]: have
+                - generic [ref=f1e96]: limited
+                - generic [ref=f1e97]: prior
+                - generic [ref=f1e98]: knowledge
+                - generic [ref=f1e99]: of
+                - generic [ref=f1e100]: Vietnam's
+                - generic [ref=f1e101]: geography,
+                - generic [ref=f1e102]: political
+                - generic [ref=f1e103]: structure,
+                - generic [ref=f1e104]: and
+                - generic [ref=f1e105]: economic
+                - generic [ref=f1e106]: history.
+              - paragraph [ref=f1e107]:
+                - generic [ref=f1e108]: The
+                - generic [ref=f1e109]: lesson
+                - generic [ref=f1e110]: will
+                - generic [ref=f1e111]: follow
+                - generic [ref=f1e112]: this
+                - generic [ref=f1e113]: "sequence:"
+                - generic [ref=f1e114]: Geography
+                - generic [ref=f1e115]: and
+                - generic [ref=f1e116]: Climate,
+                - generic [ref=f1e117]: Early
+                - generic [ref=f1e118]: History,
+                - generic [ref=f1e119]: French
+                - generic [ref=f1e120]: Colonialism,
+                - generic [ref=f1e121]: the
+                - generic [ref=f1e122]: Vietnam
+                - generic [ref=f1e123]: War,
+                - generic [ref=f1e124]: Contemporary
+                - generic [ref=f1e125]: Vietnam,
+                - generic [ref=f1e126]: and
+                - generic [ref=f1e127]: Culture
+                - generic [ref=f1e128]: and
+                - generic [ref=f1e129]: Traditions.
+              - paragraph [ref=f1e130]:
+                - generic [ref=f1e131]: We
+                - generic [ref=f1e132]: will
+                - generic [ref=f1e133]: begin
+                - generic [ref=f1e134]: with
+                - generic [ref=f1e135]: Geography
+                - generic [ref=f1e136]: and
+                - generic [ref=f1e137]: Climate.
+              - paragraph [ref=f1e138]:
+                - generic [ref=f1e139]: Vietnam
+                - generic [ref=f1e140]: is
+                - generic [ref=f1e141]: located
+                - generic [ref=f1e142]: in
+                - generic [ref=f1e143]: Southeast
+                - generic [ref=f1e144]: Asia
+                - generic [ref=f1e145]: and
+                - generic [ref=f1e146]: is
+                - generic [ref=f1e147]: characterized
+                - generic [ref=f1e148]: by
+                - generic [ref=f1e149]: a
+                - generic [ref=f1e150]: long,
+                - generic [ref=f1e151]: narrow
+                - generic [ref=f1e152]: shape
+                - generic [ref=f1e153]: that
+                - generic [ref=f1e154]: resembles
+                - generic [ref=f1e155]: the
+                - generic [ref=f1e156]: letter
+                - generic [ref=f1e157]: "\"S\""
+                - generic [ref=f1e158]: (general
+                - generic [ref=f1e159]: model
+                - generic [ref=f1e160]: knowledge).
+                - generic [ref=f1e161]: It
+                - generic [ref=f1e162]: shares
+                - generic [ref=f1e163]: land
+                - generic [ref=f1e164]: borders
+                - generic [ref=f1e165]: with
+                - generic [ref=f1e166]: China
+                - generic [ref=f1e167]: to
+                - generic [ref=f1e168]: the
+                - generic [ref=f1e169]: north,
+                - generic [ref=f1e170]: and
+                - generic [ref=f1e171]: Laos
+                - generic [ref=f1e172]: and
+                - generic [ref=f1e173]: Cambodia
+                - generic [ref=f1e174]: to
+                - generic [ref=f1e175]: the
+                - generic [ref=f1e176]: west,
+                - generic [ref=f1e177]: while
+                - generic [ref=f1e178]: its
+                - generic [ref=f1e179]: eastern
+                - generic [ref=f1e180]: coast
+                - generic [ref=f1e181]: borders
+                - generic [ref=f1e182]: the
+                - generic [ref=f1e183]: South
+                - generic [ref=f1e184]: China
+                - generic [ref=f1e185]: Sea
+                - generic [ref=f1e186]: (general
+                - generic [ref=f1e187]: model
+                - generic [ref=f1e188]: knowledge).
+              - paragraph [ref=f1e189]:
+                - generic [ref=f1e190]: Is
+                - generic [ref=f1e191]: Vietnam's
+                - generic [ref=f1e192]: coastline
+                - generic [ref=f1e193]: shaped
+                - generic [ref=f1e194]: like
+                - generic [ref=f1e195]: the
+                - generic [ref=f1e196]: letter
+                - generic [ref=f1e197]: "\"S\"?"
+          - generic [ref=f1e227]:
+            - generic [ref=f1e228]: You
+            - generic [ref=f1e229]: teach me recursion
+          - generic [ref=f1e238]:
+            - article "Question 1" [ref=f1e239]:
+              - generic [ref=f1e240]:
+                - generic [ref=f1e241]: PROBE · 01
+                - heading "Question 1" [level=3] [ref=f1e242]
+              - generic [ref=f1e244]:
+                - generic [ref=f1e245]:
+                  - generic [ref=f1e246]: Which
+                  - generic [ref=f1e247]: of
+                  - generic [ref=f1e248]: the
+                  - generic [ref=f1e249]: following
+                  - generic [ref=f1e250]: best
+                  - generic [ref=f1e251]: describes
+                  - generic [ref=f1e252]: the
+                  - generic [ref=f1e253]: geographic
+                  - generic [ref=f1e254]: shape
+                  - generic [ref=f1e255]: of
+                  - generic [ref=f1e256]: Vietnam?
+                - radiogroup "Question 1" [ref=f1e257]:
+                  - radio "A) Circular" [ref=f1e258] [cursor=pointer]:
+                    - generic [ref=f1e260]:
+                      - generic [ref=f1e261]: A)
+                      - generic [ref=f1e262]: Circular
+                  - radio "B) S-shaped" [ref=f1e263] [cursor=pointer]:
+                    - generic [ref=f1e265]:
+                      - generic [ref=f1e266]: B)
+                      - generic [ref=f1e267]: S-shaped
+                  - radio "C) Square" [ref=f1e268] [cursor=pointer]:
+                    - generic [ref=f1e270]:
+                      - generic [ref=f1e271]: C)
+                      - generic [ref=f1e272]: Square
+                  - radio "D) L-shaped" [ref=f1e273] [cursor=pointer]:
+                    - generic [ref=f1e275]:
+                      - generic [ref=f1e276]: D)
+                      - generic [ref=f1e277]: L-shaped
+                  - radio "E) I don't know" [ref=f1e278] [cursor=pointer]:
+                    - generic [ref=f1e280]:
+                      - generic [ref=f1e281]: E)
+                      - generic [ref=f1e282]: I
+                      - generic [ref=f1e283]: don't
+                      - generic [ref=f1e284]: know
+            - article "Question 2" [ref=f1e285]:
+              - generic [ref=f1e286]:
+                - generic [ref=f1e287]: PROBE · 02
+                - heading "Question 2" [level=3] [ref=f1e288]
+              - generic [ref=f1e290]:
+                - generic [ref=f1e291]:
+                  - generic [ref=f1e292]: Which
+                  - generic [ref=f1e293]: city
+                  - generic [ref=f1e294]: serves
+                  - generic [ref=f1e295]: as
+                  - generic [ref=f1e296]: the
+                  - generic [ref=f1e297]: political
+                  - generic [ref=f1e298]: capital
+                  - generic [ref=f1e299]: of
+                  - generic [ref=f1e300]: Vietnam?
+                - radiogroup "Question 2" [ref=f1e301]:
+                  - radio "A) Ho Chi Minh City" [ref=f1e302] [cursor=pointer]:
+                    - generic [ref=f1e304]:
+                      - generic [ref=f1e305]: A)
+                      - generic [ref=f1e306]: Ho
+                      - generic [ref=f1e307]: Chi
+                      - generic [ref=f1e308]: Minh
+                      - generic [ref=f1e309]: City
+                  - radio "B) Da Nang" [ref=f1e310] [cursor=pointer]:
+                    - generic [ref=f1e312]:
+                      - generic [ref=f1e313]: B)
+                      - generic [ref=f1e314]: Da
+                      - generic [ref=f1e315]: Nang
+                  - radio "C) Hanoi" [ref=f1e316] [cursor=pointer]:
+                    - generic [ref=f1e318]:
+                      - generic [ref=f1e319]: C)
+                      - generic [ref=f1e320]: Hanoi
+                  - radio "D) Hue" [ref=f1e321] [cursor=pointer]:
+                    - generic [ref=f1e323]:
+                      - generic [ref=f1e324]: D)
+                      - generic [ref=f1e325]: Hue
+                  - radio "E) I don't know" [ref=f1e326] [cursor=pointer]:
+                    - generic [ref=f1e328]:
+                      - generic [ref=f1e329]: E)
+                      - generic [ref=f1e330]: I
+                      - generic [ref=f1e331]: don't
+                      - generic [ref=f1e332]: know
+            - article "Question 3" [ref=f1e333]:
+              - generic [ref=f1e334]:
+                - generic [ref=f1e335]: PROBE · 03
+                - heading "Question 3" [level=3] [ref=f1e336]
+              - generic [ref=f1e338]:
+                - generic [ref=f1e339]:
+                  - generic [ref=f1e340]: The
+                  - generic [ref=f1e341]: "'Doi"
+                  - generic [ref=f1e342]: Moi'
+                  - generic [ref=f1e343]: reforms
+                  - generic [ref=f1e344]: initiated
+                  - generic [ref=f1e345]: in
+                  - generic [ref=f1e346]: "1986"
+                  - generic [ref=f1e347]: were
+                  - generic [ref=f1e348]: primarily
+                  - generic [ref=f1e349]: intended
+                  - generic [ref=f1e350]: to
+                  - generic [ref=f1e351]: transition
+                  - generic [ref=f1e352]: Vietnam
+                  - generic [ref=f1e353]: toward
+                  - generic [ref=f1e354]: which
+                  - generic [ref=f1e355]: economic
+                  - generic [ref=f1e356]: model?
+                - radiogroup "Question 3" [ref=f1e357]:
+                  - radio "A) A strictly agrarian economy" [ref=f1e358] [cursor=pointer]:
+                    - generic [ref=f1e360]:
+                      - generic [ref=f1e361]: A)
+                      - generic [ref=f1e362]: A
+                      - generic [ref=f1e363]: strictly
+                      - generic [ref=f1e364]: agrarian
+                      - generic [ref=f1e365]: economy
+                  - radio "B) A closed command economy" [ref=f1e366] [cursor=pointer]:
+                    - generic [ref=f1e368]:
+                      - generic [ref=f1e369]: B)
+                      - generic [ref=f1e370]: A
+                      - generic [ref=f1e371]: closed
+                      - generic [ref=f1e372]: command
+                      - generic [ref=f1e373]: economy
+                  - radio "C) A socialist-oriented market economy" [ref=f1e374] [cursor=pointer]:
+                    - generic [ref=f1e376]:
+                      - generic [ref=f1e377]: C)
+                      - generic [ref=f1e378]: A
+                      - generic [ref=f1e379]: socialist-oriented
+                      - generic [ref=f1e380]: market
+                      - generic [ref=f1e381]: economy
+                  - radio "D) A fully decentralized capitalist system" [ref=f1e382] [cursor=pointer]:
+                    - generic [ref=f1e384]:
+                      - generic [ref=f1e385]: D)
+                      - generic [ref=f1e386]: A
+                      - generic [ref=f1e387]: fully
+                      - generic [ref=f1e388]: decentralized
+                      - generic [ref=f1e389]: capitalist
+                      - generic [ref=f1e390]: system
+                  - radio "E) I don't know" [ref=f1e391] [cursor=pointer]:
+                    - generic [ref=f1e393]:
+                      - generic [ref=f1e394]: E)
+                      - generic [ref=f1e395]: I
+                      - generic [ref=f1e396]: don't
+                      - generic [ref=f1e397]: know
+            - button "Send answers" [disabled] [ref=f1e399]
+          - generic [ref=f1e400]:
+            - generic [ref=f1e401]: Sage
+            - paragraph [ref=f1e403]:
+              - generic [ref=f1e404]: The
+              - generic [ref=f1e405]: previous
+              - generic [ref=f1e406]: goal
+              - generic [ref=f1e407]: was
+              - generic [ref=f1e408]: Vietnam,
+              - generic [ref=f1e409]: but
+              - generic [ref=f1e410]: you
+              - generic [ref=f1e411]: have
+              - generic [ref=f1e412]: requested
+              - generic [ref=f1e413]: to
+              - generic [ref=f1e414]: learn
+              - generic [ref=f1e415]: about
+              - generic [ref=f1e416]: recursion.
+              - generic [ref=f1e417]: I
+              - generic [ref=f1e418]: will
+              - generic [ref=f1e419]: pivot
+              - generic [ref=f1e420]: the
+              - generic [ref=f1e421]: lesson
+              - generic [ref=f1e422]: to
+              - generic [ref=f1e423]: this
+              - generic [ref=f1e424]: new
+              - generic [ref=f1e425]: topic.
+              - generic [ref=f1e426]: To
+              - generic [ref=f1e427]: determine
+              - generic [ref=f1e428]: where
+              - generic [ref=f1e429]: to
+              - generic [ref=f1e430]: start,
+              - generic [ref=f1e431]: please
+              - generic [ref=f1e432]: answer
+              - generic [ref=f1e433]: the
+              - generic [ref=f1e434]: following
+              - generic [ref=f1e435]: diagnostic
+              - generic [ref=f1e436]: questions.
+        - generic [ref=f1e198]:
+          - toolbar "Artifact composer" [ref=f1e199]:
+            - button "Generate diagram" [ref=f1e200] [cursor=pointer]: Diagram
+            - button "Generate quiz" [ref=f1e207] [cursor=pointer]: Quiz
+            - button "Generate todo list" [ref=f1e211] [cursor=pointer]: Todo
+          - generic [ref=f1e215]:
+            - textbox "Message" [active] [ref=f1e216]:
+              - /placeholder: Reply to Sage...
+            - generic [ref=f1e217]:
+              - button "Attach" [ref=f1e218] [cursor=pointer]
+              - button "Send" [ref=f1e221] [cursor=pointer]
+    - complementary "Artifacts and support":
+      - generic:
+        - generic:
+          - generic: Artifacts
+          - generic: "0"
+        - button "Close artifacts"
+      - generic: No artifacts yet. Use the composer to generate one.

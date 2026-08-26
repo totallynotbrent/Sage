@@ -1,0 +1,55 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - button "Menu" [active] [ref=e5] [cursor=pointer]
+      - heading "Sage" [level=1] [ref=e8]
+    - button "New Session" [ref=e10] [cursor=pointer]
+  - generic [ref=e13]:
+    - complementary:
+      - generic:
+        - button "Sessions"
+        - generic:
+          - generic:
+            - generic: setup
+            - generic: Physics
+          - generic:
+            - generic: probe
+            - generic: Understand graph algorithms for my CS exam
+          - generic:
+            - generic: setup
+            - generic: Start a new study
+          - generic:
+            - generic: setup
+            - generic: Start a new study
+          - generic:
+            - generic: setup
+            - generic: Start a new study
+          - generic:
+            - generic: setup
+            - generic: teach me about ai inferencing
+      - generic:
+        - button "Files"
+        - generic: graph_algorithms.md
+        - button "Upload file"
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - heading "What are you working on?" [level=1] [ref=e55]
+        - paragraph [ref=e56]: Upload study materials, create a session, and let Sage guide you through your learning journey.
+        - generic [ref=e57]:
+          - button "New Session" [ref=e58] [cursor=pointer]
+          - button "Upload Files" [ref=e59] [cursor=pointer]
+      - generic [ref=e60]:
+        - heading "Recent Sessions" [level=2] [ref=e61]
+        - generic [ref=e62]:
+          - generic [ref=e63] [cursor=pointer]:
+            - generic [ref=e64]: Physics
+            - generic [ref=e65]: setup · 0 files
+          - generic [ref=e66] [cursor=pointer]:
+            - generic [ref=e67]: Understand graph algorithms for my CS exam
+            - generic [ref=e68]: probe · 1 files
+          - generic [ref=e69] [cursor=pointer]:
+            - generic [ref=e70]: Start a new study
+            - generic [ref=e71]: setup · 0 files
+          - generic [ref=e72] [cursor=pointer]:
+            - generic [ref=e73]: Start a new study
+            - generic [ref=e74]: setup · 0 files

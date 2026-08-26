@@ -1,0 +1,162 @@
+- generic [ref=f6e2]:
+  - heading "Sage workspace" [level=1] [ref=f6e3]
+  - generic [ref=f6e4]:
+    - button "Menu" [expanded] [ref=f6e5] [cursor=pointer]
+    - link "Sage" [ref=f6e8] [cursor=pointer]:
+      - /url: index.html
+    - generic [ref=f6e9]: "- teach me recursion"
+    - generic [ref=f6e10]: setup
+  - generic [ref=f6e11]:
+    - complementary "Study plan" [ref=f6e12]:
+      - generic [ref=f6e13]:
+        - button "Navigate" [expanded] [ref=f6e14] [cursor=pointer]
+        - generic [ref=f6e18]:
+          - link "Home" [ref=f6e19] [cursor=pointer]:
+            - /url: index.html
+          - link "Workspace" [ref=f6e20] [cursor=pointer]:
+            - /url: sage-workspace.html?session=4781794fcf374b578e541b77e873f6eb
+          - link "Library" [ref=f6e21] [cursor=pointer]:
+            - /url: sage-library.html
+          - link "Sessions" [ref=f6e22] [cursor=pointer]:
+            - /url: sage-sessions.html
+          - link "Settings" [ref=f6e23] [cursor=pointer]:
+            - /url: sage-settings.html
+          - link "Health" [ref=f6e24] [cursor=pointer]:
+            - /url: sage-health.html
+      - generic [ref=f6e25]:
+        - button "Sessions" [expanded] [ref=f6e26] [cursor=pointer]
+        - generic [ref=f6e30]:
+          - link "probe Mastering the Art of Recursion" [ref=f6e203] [cursor=pointer]:
+            - generic [ref=f6e204]: probe
+            - generic [ref=f6e205]: Mastering the Art of Recursion
+          - link "teach learn recursion basics" [ref=f6e206] [cursor=pointer]:
+            - generic [ref=f6e207]: teach
+            - generic [ref=f6e208]: learn recursion basics
+          - link "remediate Mastering the Art of Recursion" [ref=f6e209] [cursor=pointer]:
+            - generic [ref=f6e210]: remediate
+            - generic [ref=f6e211]: Mastering the Art of Recursion
+          - link "probe learn recursion" [ref=f6e212] [cursor=pointer]:
+            - generic [ref=f6e213]: probe
+            - generic [ref=f6e214]: learn recursion
+          - link "teach learn recursion" [ref=f6e215] [cursor=pointer]:
+            - generic [ref=f6e216]: teach
+            - generic [ref=f6e217]: learn recursion
+          - link "teach learn recursion" [ref=f6e218] [cursor=pointer]:
+            - generic [ref=f6e219]: teach
+            - generic [ref=f6e220]: learn recursion
+          - link "teach learn recursion" [ref=f6e221] [cursor=pointer]:
+            - generic [ref=f6e222]: teach
+            - generic [ref=f6e223]: learn recursion
+          - link "probe learn recursion" [ref=f6e224] [cursor=pointer]:
+            - generic [ref=f6e225]: probe
+            - generic [ref=f6e226]: learn recursion
+          - link "setup teach me about recursion" [ref=f6e227] [cursor=pointer]:
+            - generic [ref=f6e228]: setup
+            - generic [ref=f6e229]: teach me about recursion
+          - link "setup teach me about recursion" [ref=f6e230] [cursor=pointer]:
+            - generic [ref=f6e231]: setup
+            - generic [ref=f6e232]: teach me about recursion
+          - link "setup teach me about recursion" [ref=f6e233] [cursor=pointer]:
+            - generic [ref=f6e234]: setup
+            - generic [ref=f6e235]: teach me about recursion
+          - link "setup overnight check" [ref=f6e236] [cursor=pointer]:
+            - generic [ref=f6e237]: setup
+            - generic [ref=f6e238]: overnight check
+          - link "setup t66 diagram toggle probe" [ref=f6e239] [cursor=pointer]:
+            - generic [ref=f6e240]: setup
+            - generic [ref=f6e241]: t66 diagram toggle probe
+          - link "setup Introduction to Artificial Intelligence Basics" [ref=f6e242] [cursor=pointer]:
+            - generic [ref=f6e243]: setup
+            - generic [ref=f6e244]: Introduction to Artificial Intelligence Basics
+          - link "setup Mastering the Art of Recursion" [ref=f6e245] [cursor=pointer]:
+            - generic [ref=f6e246]: setup
+            - generic [ref=f6e247]: Mastering the Art of Recursion
+          - link "setup teach me about recursion" [ref=f6e248] [cursor=pointer]:
+            - generic [ref=f6e249]: setup
+            - generic [ref=f6e250]: teach me about recursion
+      - generic [ref=f6e79]:
+        - button "Files" [expanded] [ref=f6e80] [cursor=pointer]
+        - button "Upload file" [ref=f6e85] [cursor=pointer]
+      - button "Plan" [expanded] [ref=f6e89] [cursor=pointer]
+    - main [ref=f6e94]:
+      - generic [ref=f6e95]:
+        - log "Conversation" [ref=f6e96]:
+          - generic [ref=f6e123]:
+            - generic [ref=f6e124]: You
+            - generic [ref=f6e125]: teach me recursion
+          - generic [ref=f6e126]:
+            - article "Question 1":
+              - generic:
+                - generic: PROBE · 01
+                - heading "Question 1" [level=3]
+              - generic:
+                - generic:
+                  - generic: In recursion, what is the purpose of the 'base case'?
+                  - radiogroup "Question 1":
+                    - radio "A) To make the function run faster"
+                    - radio "B) To provide a condition that stops the recursion from continuing infinitely" [checked]
+                    - radio "C) To call the function itself again"
+                    - radio "D) To allocate more memory to the call stack"
+                    - radio "E) I don't know"
+            - article "Question 2":
+              - generic:
+                - generic: PROBE · 02
+                - heading "Question 2" [level=3]
+              - generic:
+                - generic:
+                  - generic: What happens to the call stack during the 'winding' phase of a recursive process?
+                  - radiogroup "Question 2":
+                    - radio "A) Frames are popped off the stack as the base case is reached"
+                    - radio "B) The stack is cleared to make room for new variables"
+                    - radio "C) New stack frames are pushed onto the stack for each recursive call"
+                    - radio "D) The function returns a final value to the original caller"
+                    - radio "E) I don't know" [checked]
+            - article "Question 3":
+              - generic:
+                - generic: PROBE · 03
+                - heading "Question 3" [level=3]
+              - generic:
+                - generic:
+                  - generic: Which of the following best describes a 'stack overflow' error in the context of recursion?
+                  - radiogroup "Question 3":
+                    - radio "A) The base case was reached too quickly"
+                    - radio "B) The function returned a value that was too large for the variable type"
+                    - radio "C) The program ran out of heap memory for object allocation"
+                    - radio "D) The call stack exceeded its allocated memory limit due to too many recursive calls"
+                    - radio "E) I don't know"
+            - button "Send answers" [disabled] [ref=f6e197]
+          - generic [ref=f6e198]:
+            - generic [ref=f6e199]: Sage
+            - generic [ref=f6e200]:
+              - paragraph [ref=f6e201]: Hello! I'm Sage, and I'll be your tutor for recursion. It's a powerful concept that can feel a bit like a puzzle at first, but we'll break it down step by step.
+              - paragraph [ref=f6e202]: To make sure we start at the right place, please pick the best answers for the questions above!
+          - generic [ref=f6e251]:
+            - generic [ref=f6e252]: You
+            - generic [ref=f6e253]: "1: B; 2: E"
+          - generic [ref=f6e254]:
+            - generic [ref=f6e255]: Sage
+            - generic [ref=f6e256]:
+              - paragraph [ref=f6e257]: I've graded those for you. You nailed the base case, but it looks like the "winding" phase is a bit fuzzy. No worries—we'll clear that up in a moment.
+              - paragraph [ref=f6e258]: "You still have one more question from the probe to answer:"
+              - paragraph [ref=f6e259]:
+                - strong [ref=f6e260]: Which of the following best describes a 'stack overflow' error in the context of recursion?
+          - generic [ref=f6e261]:
+            - generic [ref=f6e262]: You
+            - generic [ref=f6e263]: The call stack exceeds its allocated memory limit because too many recursive calls pile up without ever reaching the base case.
+          - generic [ref=f6e264]: Sage
+        - generic [ref=f6e97]:
+          - toolbar "Artifact composer" [ref=f6e98]:
+            - button "Generate diagram" [ref=f6e99] [cursor=pointer]: Diagram
+            - button "Generate quiz" [ref=f6e106] [cursor=pointer]: Quiz
+            - button "Generate todo list" [ref=f6e110] [cursor=pointer]: Todo
+          - generic [ref=f6e114]:
+            - textbox "Message" [ref=f6e115]:
+              - /placeholder: Reply to Sage...
+            - button "Stop generating" [ref=f6e269] [cursor=pointer]
+    - complementary "Artifacts and support":
+      - generic:
+        - generic:
+          - generic: Artifacts
+          - generic: "0"
+        - button "Close artifacts"
+      - generic: No artifacts yet. Use the composer to generate one.

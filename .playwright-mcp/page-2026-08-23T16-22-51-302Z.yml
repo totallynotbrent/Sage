@@ -1,0 +1,46 @@
+- generic [ref=f1e2]:
+  - generic [ref=f1e3]:
+    - button "Menu" [ref=f1e4] [cursor=pointer]
+    - link "Sage" [ref=f1e7] [cursor=pointer]:
+      - /url: index.html
+  - generic [ref=f1e8]:
+    - complementary [ref=f1e9]:
+      - generic [ref=f1e10]:
+        - button "Navigate" [ref=f1e11] [cursor=pointer]
+        - generic [ref=f1e15]:
+          - link "Home" [ref=f1e16] [cursor=pointer]:
+            - /url: index.html
+          - link "Workspace" [ref=f1e17] [cursor=pointer]:
+            - /url: sage-workspace.html
+          - link "Library" [ref=f1e18] [cursor=pointer]:
+            - /url: sage-library.html
+          - link "Sessions" [ref=f1e19] [cursor=pointer]:
+            - /url: sage-sessions.html
+          - link "Settings" [ref=f1e20] [cursor=pointer]:
+            - /url: sage-settings.html
+          - link "Health" [ref=f1e21] [cursor=pointer]:
+            - /url: sage-health.html
+    - main [ref=f1e22]:
+      - generic [ref=f1e23]:
+        - generic [ref=f1e24]:
+          - heading "Sessions" [level=1] [ref=f1e25]
+          - button "New Session" [ref=f1e26] [cursor=pointer]
+        - generic [ref=f1e27]:
+          - generic [ref=f1e50] [cursor=pointer]:
+            - generic [ref=f1e51]:
+              - generic [ref=f1e52]: Quantum Moss specimen QM-7 field notes
+              - generic [ref=f1e53]: setup
+            - generic [ref=f1e54]: Grounded — sources + general knowledge
+            - generic [ref=f1e55]:
+              - generic [ref=f1e56]: 0 files
+              - generic [ref=f1e57]: updated just now
+            - button "Delete" [ref=f1e58]
+          - generic [ref=f1e59] [cursor=pointer]:
+            - generic [ref=f1e60]:
+              - generic [ref=f1e61]: Introduction to Vietnam's History and Culture
+              - generic [ref=f1e62]: probe
+            - generic [ref=f1e63]: Grounded — sources + general knowledge
+            - generic [ref=f1e64]:
+              - generic [ref=f1e65]: 0 files
+              - generic [ref=f1e66]: updated 41m ago
+            - button "Delete" [ref=f1e67]

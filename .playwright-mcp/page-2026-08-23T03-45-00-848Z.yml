@@ -1,0 +1,213 @@
+- generic [ref=f2e2]:
+  - heading "Sage workspace" [level=1] [ref=f2e3]
+  - generic [ref=f2e4]:
+    - button "Menu" [expanded] [ref=f2e5] [cursor=pointer]
+    - link "Sage" [ref=f2e8] [cursor=pointer]:
+      - /url: index.html
+    - generic [ref=f2e9]: "- teach me recursion"
+    - generic [ref=f2e10]: setup
+  - generic [ref=f2e11]:
+    - complementary "Study plan" [ref=f2e12]:
+      - generic [ref=f2e13]:
+        - button "Navigate" [expanded] [ref=f2e14] [cursor=pointer]
+        - generic [ref=f2e18]:
+          - link "Home" [ref=f2e19] [cursor=pointer]:
+            - /url: index.html
+          - link "Workspace" [ref=f2e20] [cursor=pointer]:
+            - /url: sage-workspace.html?session=2283720ff6cd4c88abec834efb87b285
+          - link "Library" [ref=f2e21] [cursor=pointer]:
+            - /url: sage-library.html
+          - link "Sessions" [ref=f2e22] [cursor=pointer]:
+            - /url: sage-sessions.html
+          - link "Settings" [ref=f2e23] [cursor=pointer]:
+            - /url: sage-settings.html
+          - link "Health" [ref=f2e24] [cursor=pointer]:
+            - /url: sage-health.html
+      - generic [ref=f2e25]:
+        - button "Sessions" [expanded] [ref=f2e26] [cursor=pointer]
+        - generic [ref=f2e30]:
+          - link "probe Mastering the Art of Recursion" [ref=f2e197] [cursor=pointer]:
+            - generic [ref=f2e198]: probe
+            - generic [ref=f2e199]: Mastering the Art of Recursion
+          - link "probe learn recursion" [ref=f2e200] [cursor=pointer]:
+            - generic [ref=f2e201]: probe
+            - generic [ref=f2e202]: learn recursion
+          - link "teach learn recursion" [ref=f2e203] [cursor=pointer]:
+            - generic [ref=f2e204]: teach
+            - generic [ref=f2e205]: learn recursion
+          - link "teach learn recursion" [ref=f2e206] [cursor=pointer]:
+            - generic [ref=f2e207]: teach
+            - generic [ref=f2e208]: learn recursion
+          - link "teach learn recursion" [ref=f2e209] [cursor=pointer]:
+            - generic [ref=f2e210]: teach
+            - generic [ref=f2e211]: learn recursion
+          - link "probe learn recursion" [ref=f2e212] [cursor=pointer]:
+            - generic [ref=f2e213]: probe
+            - generic [ref=f2e214]: learn recursion
+          - link "setup teach me about recursion" [ref=f2e215] [cursor=pointer]:
+            - generic [ref=f2e216]: setup
+            - generic [ref=f2e217]: teach me about recursion
+          - link "setup teach me about recursion" [ref=f2e218] [cursor=pointer]:
+            - generic [ref=f2e219]: setup
+            - generic [ref=f2e220]: teach me about recursion
+          - link "setup teach me about recursion" [ref=f2e221] [cursor=pointer]:
+            - generic [ref=f2e222]: setup
+            - generic [ref=f2e223]: teach me about recursion
+          - link "setup overnight check" [ref=f2e224] [cursor=pointer]:
+            - generic [ref=f2e225]: setup
+            - generic [ref=f2e226]: overnight check
+          - link "setup t66 diagram toggle probe" [ref=f2e227] [cursor=pointer]:
+            - generic [ref=f2e228]: setup
+            - generic [ref=f2e229]: t66 diagram toggle probe
+          - link "setup Introduction to Artificial Intelligence Basics" [ref=f2e230] [cursor=pointer]:
+            - generic [ref=f2e231]: setup
+            - generic [ref=f2e232]: Introduction to Artificial Intelligence Basics
+          - link "setup Mastering the Art of Recursion" [ref=f2e233] [cursor=pointer]:
+            - generic [ref=f2e234]: setup
+            - generic [ref=f2e235]: Mastering the Art of Recursion
+          - link "setup teach me about recursion" [ref=f2e236] [cursor=pointer]:
+            - generic [ref=f2e237]: setup
+            - generic [ref=f2e238]: teach me about recursion
+      - generic [ref=f2e73]:
+        - button "Files" [expanded] [ref=f2e74] [cursor=pointer]
+        - button "Upload file" [ref=f2e79] [cursor=pointer]
+      - button "Plan" [expanded] [ref=f2e83] [cursor=pointer]
+    - main [ref=f2e88]:
+      - generic [ref=f2e89]:
+        - log "Conversation" [ref=f2e90]:
+          - generic [ref=f2e117]:
+            - generic [ref=f2e118]: You
+            - generic [ref=f2e119]: teach me recursion
+          - generic [ref=f2e120]:
+            - article "Question 1":
+              - generic:
+                - generic: PROBE · 01
+                - heading "Question 1" [level=3]
+              - generic:
+                - generic:
+                  - generic: In the context of recursion, what is the purpose of a 'base case'?
+                  - radiogroup "Question 1":
+                    - radio "A) To make the function run faster"
+                    - radio "B) To provide a condition that stops the recursion from continuing infinitely" [checked]
+                    - radio "C) To call the function itself again"
+                    - radio "D) To allocate more memory to the call stack"
+                    - radio "E) I don't know"
+            - article "Question 2":
+              - generic:
+                - generic: PROBE · 02
+                - heading "Question 2" [level=3]
+              - generic:
+                - generic:
+                  - generic: What happens to the call stack when a recursive function calls itself?
+                  - radiogroup "Question 2":
+                    - radio "A) The current function state is popped off the stack"
+                    - radio "B) The stack is cleared to make room for the new call"
+                    - radio "C) A new stack frame is pushed onto the stack to store the current state and local variables"
+                    - radio "D) The function bypasses the stack and goes directly to the heap"
+                    - radio "E) I don't know" [checked]
+            - article "Question 3":
+              - generic:
+                - generic: PROBE · 03
+                - heading "Question 3" [level=3]
+              - generic:
+                - generic:
+                  - generic: Which of the following best describes 'Tail Recursion'?
+                  - radiogroup "Question 3":
+                    - radio "A) A recursive call that occurs at the very beginning of the function"
+                    - radio "B) A recursive function that calls two other recursive functions"
+                    - radio "C) A recursive call that is the final action performed by the function"
+                    - radio "D) A recursion that only works with tail-end data structures like linked lists"
+                    - radio "E) I don't know"
+            - button "Send answers" [disabled] [ref=f2e191]
+          - generic [ref=f2e192]:
+            - generic [ref=f2e193]: Sage
+            - generic [ref=f2e194]:
+              - paragraph [ref=f2e195]: Hello! I'm Sage, and I'll be your tutor for recursion. Before we dive in, I'd like to see where you're starting from so I can tailor the lesson to your needs.
+              - paragraph [ref=f2e196]: Please pick the best answer for the questions above!
+          - generic [ref=f2e239]:
+            - generic [ref=f2e240]: You
+            - generic [ref=f2e241]: "1: B; 2: E"
+          - generic [ref=f2e242]:
+            - generic [ref=f2e243]: Sage
+            - generic [ref=f2e244]:
+              - paragraph [ref=f2e245]: You got the first one right! The base case is indeed the "stop sign" that prevents the function from running forever.
+              - paragraph [ref=f2e246]: "For the second one, it looks like you're unsure. Here is the breakdown: whenever a function is called, the computer creates a \"stack frame\" (a little block of memory) to store that specific call's variables. In recursion, because the function calls itself before the first call ever finishes, these frames pile up on top of each other—like a stack of plates."
+              - paragraph [ref=f2e247]: Does that make sense?
+              - paragraph [ref=f2e248]:
+                - strong [ref=f2e249]: "Check:"
+                - text: When a recursive function calls itself, does the call stack grow larger or smaller?
+          - generic [ref=f2e250]:
+            - generic [ref=f2e251]: You
+            - generic [ref=f2e252]: The call stack grows larger with each recursive call. Ready to continue when you are.
+          - generic [ref=f2e265]:
+            - generic [ref=f2e266]: Sage
+            - generic [ref=f2e267]:
+              - paragraph [ref=f2e268]: Since we're still on the probe phase, let's clear up that last point before we map out our full plan.
+              - paragraph [ref=f2e269]:
+                - text: You mentioned the call stack grows with each call, which is generally true. However, there is a special case called
+                - strong [ref=f2e270]: Tail Recursion
+                - text: . This happens when the recursive call is the very last thing the function does—meaning there is no more work to do after the call returns.
+              - paragraph [ref=f2e271]: Because there's no remaining work, some smart compilers can perform "Tail Call Optimization" (TCO). Instead of adding a new frame to the stack, the compiler simply replaces the current frame with the new one. This prevents the stack from growing and avoids a stack overflow.
+              - paragraph [ref=f2e272]: "(Note: This explanation is based on general computer science knowledge as no specific document was provided for this detail.)"
+              - paragraph [ref=f2e273]: "To make sure this clicks: If a function makes a recursive call and then adds 1 to the result of that call, is that considered tail recursion?"
+          - generic [ref=f2e274]:
+            - generic [ref=f2e275]: You
+            - generic [ref=f2e276]: Yes, that is tail recursion - the recursive call is the final action with no remaining work after it returns. I'm ready for the full lesson plan now.
+          - generic [ref=f2e283]:
+            - generic [ref=f2e284]: Sage
+            - generic [ref=f2e285]:
+              - paragraph [ref=f2e286]: Since you've already touched on tail recursion, we'll use this plan to solidify the foundations first and then circle back to the advanced optimizations. As with the dolls, we'll start with the biggest picture and work our way in.
+              - paragraph [ref=f2e287]:
+                - strong [ref=f2e288]: The Anatomy of Recursion
+              - paragraph [ref=f2e289]: "At its simplest, every recursive function must have two essential components to avoid running forever:"
+              - list [ref=f2e290]:
+                - listitem [ref=f2e291]:
+                  - strong [ref=f2e292]: "The Base Case:"
+                  - text: This is the "stopping condition." It is a simple case that can be solved immediately without any further recursion.
+                - listitem [ref=f2e293]:
+                  - strong [ref=f2e294]: "The Recursive Step:"
+                  - text: This is where the function calls itself, but with a
+                  - strong [ref=f2e295]: modified input
+                  - text: that moves the state closer to the base case.
+              - paragraph [ref=f2e296]: If the recursive step doesn't move the input closer to the base case, you end up with infinite recursion (which leads to a stack overflow).
+              - paragraph [ref=f2e297]:
+                - emphasis [ref=f2e298]: "Synthesis: This structure ensures that the problem is broken down into smaller versions of itself until it reaches a size that is trivial to solve."
+              - paragraph [ref=f2e299]: "To make sure we're on the same page: If a recursive function is missing its base case, will it eventually stop? (Yes/No)"
+          - generic [ref=f2e300]:
+            - generic [ref=f2e301]: You
+            - generic [ref=f2e302]: No - without a base case the recursion would never stop and would overflow the stack.
+          - generic [ref=f2e310]:
+            - generic [ref=f2e311]: Sage
+            - generic [ref=f2e312]:
+              - paragraph [ref=f2e313]: You're exactly right. Without that base case, the function would keep calling itself indefinitely until the computer runs out of memory for those calls.
+              - paragraph [ref=f2e314]:
+                - text: Since you mentioned it, let's look at how that actually happens. When a function is called, the computer doesn't just jump to the new code; it creates a
+                - strong [ref=f2e315]: Stack Frame
+                - text: . This is a small block of memory that stores the function's local variables and the "return address" (where the computer should go back to once the function finishes).
+              - paragraph [ref=f2e316]:
+                - text: As with the dolls, each recursive call pushes a new frame onto the top of the
+                - strong [ref=f2e317]: Call Stack
+                - text: . These frames stay there, waiting, until the base case is finally hit. Only then can the computer start "popping" them off the stack one by one to resolve the final answer.
+              - paragraph [ref=f2e318]: "(Note: This explanation is based on general computer science knowledge regarding memory management)."
+              - paragraph [ref=f2e319]: If a program keeps adding frames to the stack without ever removing them, does the stack grow larger or smaller?
+          - generic [ref=f2e320]:
+            - generic [ref=f2e321]: You
+            - generic [ref=f2e322]: I understand base cases and the call stack now. Can you lay out my lesson plan and move me into the first node?
+          - generic [ref=f2e323]: Sage
+        - generic [ref=f2e91]:
+          - toolbar "Artifact composer" [ref=f2e92]:
+            - button "Generate diagram" [ref=f2e93] [cursor=pointer]: Diagram
+            - button "Generate quiz" [ref=f2e100] [cursor=pointer]: Quiz
+            - button "Generate todo list" [ref=f2e104] [cursor=pointer]: Todo
+            - generic [ref=f2e282]: Visualizing your learning path...
+          - generic [ref=f2e108]:
+            - textbox "Message" [ref=f2e109]:
+              - /placeholder: Reply to Sage...
+            - button "Stop generating" [ref=f2e262] [cursor=pointer]
+    - complementary "Artifacts and support":
+      - generic:
+        - generic:
+          - generic: Artifacts
+          - generic: "0"
+        - button "Close artifacts"
+      - generic: No artifacts yet. Use the composer to generate one.
