@@ -118,7 +118,7 @@
 .artifact-card__badge{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--accent-dim);color:var(--accent);flex-shrink:0;display:inline-flex;align-items:center;gap:4px}
 .artifact-card__badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--foam)}
 .artifact-card__type{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em;text-transform:lowercase}
-.artifact-card__diagram{display:flex;align-items:center;justify-content:center;background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);min-height:120px}
+.artifact-card__diagram{display:flex;align-items:center;justify-content:center;background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);min-height:240px}
 .artifact-card__diagram-error{color:var(--love);font-size:13px;text-align:center;padding:var(--space-4)}
 .artifact-card__source-toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--meta);cursor:pointer;background:none;border:none;padding:6px 0;letter-spacing:0.04em}
 .artifact-card__source-toggle:hover{color:var(--fg)}
@@ -172,6 +172,7 @@
 .artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(3){animation-delay:500ms}
 .artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg line:nth-child(4){animation-delay:650ms}
 .artifact-card[data-kind="mermaid"] .artifact-card__diagram svg circle,.artifact-card[data-kind="mermaid"] .artifact-card__diagram svg text{opacity:0}
+.artifact-card[data-kind="mermaid"] .artifact-card__diagram svg{max-width:100%;width:100%;height:auto;display:block}
 .artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg circle,.artifact-card[data-kind="mermaid"].visible .artifact-card__diagram svg text{animation:artFadeIn 400ms var(--ease) forwards}
 @keyframes artDrawLine{to{stroke-dashoffset:0}}
 @keyframes artFadeIn{to{opacity:1}}
@@ -251,6 +252,11 @@
         <div class="plan-artifacts" id="plan-artifacts" aria-label="Generated quizzes and todo lists"></div>
       </div>
 
+      <section class="mastery-panel" id="mastery-panel" hidden>
+        <div class="mastery-panel__title">Mastery</div>
+        <div class="mastery-panel__body" id="masteryBody"></div>
+      </section>
+
       <div class="sidebar__section open">
         <button class="sidebar__header" aria-expanded="true" aria-controls="nav-list"><span>Navigate</span><svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
         <div class="sidebar__list" id="nav-list">
@@ -312,10 +318,6 @@
         <button class="icon-btn" id="closeDiagram" aria-label="Close artifacts" style="width:28px;height:28px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
       <div class="rail-probe" id="rail-probe"></div>
-      <section class="mastery-panel" id="mastery-panel" hidden>
-        <div class="mastery-panel__title">Mastery</div>
-        <div class="mastery-panel__body" id="masteryBody"></div>
-      </section>
       <div class="diagram-panel__body" id="diagramBody">
         <div class="diagram-panel__empty">Diagrams, quizzes, and checklists Sage generates will appear here.</div>
       </div>
@@ -977,14 +979,13 @@ function appendArtifact(envelope) {
   }
   artifact.element = element;
   artifacts.push(artifact);
-  const isPlanArtifact = kind === ARTIFACT_KIND.QUIZ || kind === ARTIFACT_KIND.TODO;
-  const target = isPlanArtifact ? document.getElementById('plan-artifacts') : diagramBody;
-  if (target.querySelector('.diagram-panel__empty')) target.innerHTML = '';
-  target.appendChild(element);
+  // All artifact kinds (diagrams, quizzes, checklists) render in the right
+  // "Artifacts" rail at the same card width as the flowcharts.
+  if (diagramBody.querySelector('.diagram-panel__empty')) diagramBody.innerHTML = '';
+  diagramBody.appendChild(element);
   show_card(element);
   updateArtifactsCount();
-  if (isPlanArtifact) focusPlanArtifact(element);
-  else openArtifactsRail();
+  openArtifactsRail();
   return artifact;
 }
 
@@ -2028,6 +2029,8 @@ async function loadSession(id) {
     box.innerHTML = '';
     artifacts.length = 0;
     document.getElementById('plan-artifacts')?.querySelectorAll('.artifact-card').forEach(el => el.remove());
+    diagramBody.querySelectorAll('.artifact-card').forEach(el => el.remove());
+    updateArtifactsCount();
     if (data.messages) data.messages.forEach(m => addMessage(m.role, m.content));
     if (data.selected_files) document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
     if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
