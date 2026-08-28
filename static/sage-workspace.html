@@ -1408,6 +1408,48 @@ function append_yes_no_buttons(message_el, text) {
 
 let activeTyper = null, activeTyperDone = null; // (kept: reserved for future streaming tweaks)
 
+// Card render queue: check/probe questions arrive on tool_result events, whose
+// stream order precedes the reply prose. We buffer them here and render the
+// interactive card AFTER the assistant response so the artifact follows the
+// narration instead of jumping ahead of it.
+let pendingCards = [];
+
+// Remove a check question (stem + lettered options) from reply prose. The model
+// restates the question inside its narration AND returns it as a structured
+// check_question; since the interactive card below now shows it once, strip the
+// duplicate so it doesn't render twice. Defensive: any failure returns the
+// original text untouched.
+function stripCheckQuestion(text, check_question) {
+  try {
+    if (!check_question || typeof text !== 'string' || !text) return text;
+    const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    let out = text;
+    const stem = check_question.question || '';
+    const opts = Array.isArray(check_question.options) ? check_question.options : [];
+    // Remove lettered option lines: "A) opt", "A. opt", "(A) opt", "- A) opt".
+    opts.forEach((opt, i) => {
+      const letter = String.fromCharCode(65 + i);
+      if (!opt) return;
+      const re = new RegExp('(?:^|\\n)[ \\t]*(?:[\\-\\*•]\\s*)?\\(?' + letter + '\\)?[ .]?[ \\t]*' + esc(opt) + '(?=\\n|$)', 'g');
+      out = out.replace(re, '');
+    });
+    // Remove the question stem line.
+    if (stem) out = out.replace(new RegExp('(?:^|\\n)[ \\t]*' + esc(stem) + '\\s*(?:\\n|$)', 'g'), '\n');
+    // Collapse leftover blank runs caused by the removals.
+    out = out.replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '');
+    return out;
+  } catch (_) { return text; }
+}
+function dedupeCheckQuestion(text) {
+  if (!pendingCards.length) return text;
+  for (const p of pendingCards) {
+    if (p.kind === 'check' && p.items && p.items[0]) {
+      return stripCheckQuestion(text, p.items[0]);
+    }
+  }
+  return text;
+}
+
 async function sendMessage() {
   const text = input.value.trim();
   if (!text || streaming) return;
@@ -1445,6 +1487,7 @@ async function sendMessage() {
   let done_web_sources = [];
   let meta_chunks = [];
   let citation_ids = [];
+  pendingCards = [];           // fresh render queue per turn
   streaming = true;
   sendBtn.style.display = 'none';
   if (stopBtn) stopBtn.style.display = 'grid';
@@ -1495,9 +1538,9 @@ async function sendMessage() {
           const sl = bubble && bubble.querySelector('.tool-status-line');
           if (sl) sl.remove();
           if (ev.name === 'run_probe' && Array.isArray(ev.questions) && ev.questions.length) {
-            start_probe_batch(ev.questions, 'probe');
+            pendingCards.push({ items: ev.questions, kind: 'probe' });
           } else if (ev.name === 'advance_lesson' && ev.check_question && ev.check_question.question) {
-            start_probe_batch([ev.check_question], 'check');
+            pendingCards.push({ items: [ev.check_question], kind: 'check' });
           } else if (ev.name === 'build_plan' && ev.plan_diagram && ev.plan_diagram.source) {
             appendPlanDiagramCard(ev.plan_diagram);
             // Refresh sidebar plan list immediately (don't wait for page reload)
@@ -1535,7 +1578,7 @@ async function sendMessage() {
           const text = String(ev.text || '');
           if (text) {
             if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
-            fullText = text;   // mark text present for persistence
+            fullText = dedupeCheckQuestion(text);   // drop the check question restated in prose
             bubble.innerHTML = sanitize_html(renderMd(fullText));
             render_math(false);
             box.scrollTop = box.scrollHeight;
@@ -1604,6 +1647,14 @@ async function sendMessage() {
       setQuickChips(chipsFromActions(done_actions));
     }
     render_math(true);
+  }
+  // Render queued quiz/check cards AFTER the response so the interactive
+  // artifact follows the narration (and the question restated in prose above was
+  // deduped away). This also fixes the "card appears before the reply" ordering.
+  if (pendingCards.length) {
+    const to_render = pendingCards;
+    pendingCards = [];
+    to_render.forEach(({ items, kind }) => start_probe_batch(items, kind));
   }
   if (pending_probe_reply) {
     const reply = pending_probe_reply;
