@@ -13,6 +13,58 @@ from app.services.sessions.rows import question_dict
 router = APIRouter()
 
 
+# ---- Cross-session daily review (aggregates every session's due cards) ----
+
+@router.post("/api/review/status")
+async def daily_review_status(
+    settings: Settings = Depends(get_app_settings),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> dict:
+    return review_service.review_status_all(conn)
+
+
+@router.post("/api/review/due")
+async def daily_review_due(
+    settings: Settings = Depends(get_app_settings),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> dict:
+    cards = review_service.due_cards_all(conn)
+    out = []
+    for card in cards:
+        item: dict = dict(card)
+        if card.get("question_id"):
+            q = row_to_dict(
+                conn.execute(
+                    "SELECT * FROM quiz_questions WHERE id = ?",
+                    (card["question_id"],),
+                ).fetchone()
+            )
+            if q:
+                item["question"] = question_dict(q)
+        out.append(item)
+    return {"cards": out, "due_count": len(out)}
+
+
+@router.post("/api/review/{card_id}/grade")
+async def daily_review_grade(
+    card_id: str,
+    body: dict,
+    settings: Settings = Depends(get_app_settings),
+    conn: sqlite3.Connection = Depends(get_conn),
+) -> dict:
+    outcome = (body or {}).get("outcome")
+    if outcome not in ("correct", "incorrect", "idk"):
+        raise HTTPException(
+            status_code=400,
+            detail="outcome must be one of: correct, incorrect, idk",
+        )
+    updated = review_service.grade_card_any(conn, card_id, outcome)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="review card not found")
+    status = review_service.review_status_all(conn)
+    return {"card": updated, "status": status}
+
+
 @router.post("/api/sessions/{session_id}/mastery")
 async def mastery_panel(
     session_id: str,
