@@ -296,6 +296,7 @@
         <div class="completion-cta" id="completion-cta">
           <h3>Lesson complete</h3>
           <button class="btn-hub" id="cta-review">Review summary</button>
+          <button class="btn-hub" id="cta-continue" style="background:var(--surface-raised);color:var(--fg);border:1px solid var(--muted)">Continue chat</button>
           <button class="btn-hub" id="cta-new" style="background:var(--surface-raised);color:var(--fg);border:1px solid var(--muted)">Start a new lesson</button>
         </div>
         <div class="input-bar">
@@ -1928,12 +1929,13 @@ function refreshChipsForPhase() {
 }
 
 /* Completion state: swap composer for a call-to-action hub */
+let completionDismissed = false;
 function updateCompletionState() {
   const phase = (document.getElementById('phase-badge')?.textContent || '').toLowerCase();
   const cta = document.getElementById('completion-cta');
   const inputBar = document.querySelector('.input-bar');
   if (!cta) return;
-  if (phase === 'complete') {
+  if (phase === 'complete' && !completionDismissed) {
     cta.classList.add('visible');
     if (inputBar) inputBar.style.display = 'none';
     buildLessonSummary();
@@ -1941,6 +1943,21 @@ function updateCompletionState() {
     cta.classList.remove('visible');
     if (inputBar) inputBar.style.display = '';
   }
+}
+function continueChatAfterLesson() {
+  completionDismissed = true;
+  updateCompletionState();
+  const input = document.getElementById('message-input');
+  if (input) input.focus();
+}
+function reviewLessonSummary() {
+  openArtifactsRail();
+  buildLessonSummary();
+  const card = document.getElementById('diagramBody').querySelector('.summary-card');
+  if (card) { document.getElementById('diagramBody').scrollTop = 0; card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+}
+function startNewLesson() {
+  location.href = '/sage-workspace.html';
 }
 async function buildLessonSummary() {
   // Only build once
@@ -1985,6 +2002,11 @@ if (document.readyState === 'loading') {
   maybeShowReviewChip();
   renderMasteryPanel();
 }
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cta-continue')?.addEventListener('click', continueChatAfterLesson);
+  document.getElementById('cta-review')?.addEventListener('click', reviewLessonSummary);
+  document.getElementById('cta-new')?.addEventListener('click', startNewLesson);
+});
 
 // Handoff from home: auto-send the first message once the session is loaded
 (function(){
@@ -2011,6 +2033,7 @@ input?.addEventListener('input', () => { input.style.height = 'auto'; input.styl
 
 async function loadSession(id) {
   try {
+    completionDismissed = false;
     const res = await fetch(`${API}/sessions/${id}`);
     const data = await res.json();
     const sess = data.session || data;
