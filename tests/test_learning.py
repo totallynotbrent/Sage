@@ -533,3 +533,87 @@ def test_answer_notes_question_records_mastery_no_phase_change(
     evidence = json.loads(row[0])
     assert evidence[0]["source"] == "notes"
     assert evidence[0]["question_id"] == question["id"]
+
+
+def _answer_outcome(conn, session_id, kind, outcome):
+    from app.util import new_id, utc_now
+    now = utc_now()
+    conn.execute(
+        "INSERT INTO quiz_questions (id, session_id, kind, topic, difficulty, question, options_json, correct_index, status, user_choice, outcome, created_at, answered_at) "
+        "VALUES (?, ?, ?, 'topic', 2, 'Q?', '[\"a\",\"b\"]', 0, 'answered', 0, ?, ?, ?)",
+        (new_id(), session_id, kind, outcome, now, now),
+    )
+    conn.commit()
+
+
+def test_adaptive_check_count_stalls_on_miss(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    _answer_outcome(conn, session.id, "check", "incorrect")
+    service = LearningService(conn, settings)
+    assert service._adaptive_question_count(session.id, "learn algebra") == 3
+
+
+def test_adaptive_check_count_aces_short(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    from app.services import mastery
+    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    _answer_outcome(conn, session.id, "check", "correct")
+    _answer_outcome(conn, session.id, "check", "correct")
+    service = LearningService(conn, settings)
+    assert service._adaptive_question_count(session.id, "learn algebra") == 1
+
+
+def test_adaptive_check_count_defaults_two(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    service = LearningService(conn, settings)
+    assert service._adaptive_question_count(session.id, "learn algebra") == 2
+
+
+def test_generate_check_adaptively_requests_multiple(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    _answer_outcome(conn, session.id, "check", "idk")
+    fake_llm.complete_json_responses = [
+        json.dumps(
+            [
+                {
+                    "question": f"Check {i}?",
+                    "options": ["x", "y"],
+                    "correct_index": 0,
+                    "explanation": "e",
+                    "topic": "model-topic",
+                    "difficulty": 3,
+                }
+                for i in range(3)
+            ]
+        )
+    ]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_check(session.id, fake_llm))
+    assert len(result["questions"]) == 3
+    for q in result["questions"]:
+        assert q["kind"] == "check"
+        assert q["topic"] == "learn algebra"
+
+
+def test_answer_quiz_stores_confidence(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = [json.dumps(_good_questions())]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_probe(session.id, fake_llm))
+    qid = result["questions"][0]["id"]
+    service.answer_quiz(session.id, qid, 1, confidence="confident")
+    row = conn.execute(
+        "SELECT confidence FROM quiz_questions WHERE id = ?", (qid,)
+    ).fetchone()
+    assert row["confidence"] == "confident"
+
+
+def test_answer_quiz_rejects_bad_confidence(conn, settings, fake_llm):
+    session = _create_session(conn, settings)
+    fake_llm.complete_json_responses = [json.dumps(_good_questions())]
+    service = LearningService(conn, settings)
+    result = asyncio.run(service.generate_probe(session.id, fake_llm))
+    qid = result["questions"][0]["id"]
+    with pytest.raises(ValueError):
+        service.answer_quiz(session.id, qid, 1, confidence="certain")

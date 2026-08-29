@@ -6,7 +6,7 @@ from typing import Iterator
 
 from fastapi import Request
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # fmt: off
 _DDL = """
@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
     status         TEXT NOT NULL DEFAULT 'pending',
     user_choice    INTEGER,
     outcome        TEXT,
+    confidence     TEXT,
     created_at     TEXT NOT NULL,
     answered_at    TEXT
 );
@@ -127,6 +128,8 @@ CREATE TABLE IF NOT EXISTS mastery_topics (
     observed_count   INTEGER NOT NULL DEFAULT 0,
     correct_count    INTEGER NOT NULL DEFAULT 0,
     idk_count        INTEGER NOT NULL DEFAULT 0,
+    overconfident_count INTEGER NOT NULL DEFAULT 0,
+    underconfident_count INTEGER NOT NULL DEFAULT 0,
     last_assessed_at TEXT,
     evidence_json    TEXT NOT NULL DEFAULT '[]',
     notes            TEXT
@@ -177,7 +180,8 @@ CREATE TABLE IF NOT EXISTS schema_version (
 """
 # fmt: on
 
-_V2_COLUMNS = (
+# Columns added after the original DDL via idempotent ALTER TABLE.
+_MIGRATED_COLUMNS = (
     ("files", "paired_file_id", "paired_file_id TEXT"),
     ("files", "subject", "subject TEXT"),
     ("files", "source_path", "source_path TEXT"),
@@ -185,6 +189,9 @@ _V2_COLUMNS = (
     ("chunks", "environment", "environment TEXT"),
     ("chunks", "label", "label TEXT"),
     ("quiz_questions", "source_ref", "source_ref TEXT"),
+    ("quiz_questions", "confidence", "confidence TEXT"),
+    ("mastery_topics", "overconfident_count", "overconfident_count INTEGER NOT NULL DEFAULT 0"),
+    ("mastery_topics", "underconfident_count", "underconfident_count INTEGER NOT NULL DEFAULT 0"),
 )
 
 
@@ -205,7 +212,7 @@ def init_db(db_path: Path) -> None:
             conn.execute(
                 "ALTER TABLE sessions ADD COLUMN nodes_since_check INTEGER NOT NULL DEFAULT 0"
             )
-        for table, name, ddl in _V2_COLUMNS:
+        for table, name, ddl in _MIGRATED_COLUMNS:
             _ensure_column(conn, table, name, ddl)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_files_subject ON files (subject)")
         conn.execute(

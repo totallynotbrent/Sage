@@ -98,6 +98,11 @@ TOOL_SCHEMAS = [
             "question_id": _STR,
             "choice_index": {"type": "integer"},
             "idk": {"type": "boolean", "default": False},
+            "confidence": {
+                "type": "string",
+                "enum": ["guess", "confident", "know"],
+                "description": "Optional learner self-rating of confidence before answering.",
+            },
         },
         ["question_id"],
     ),
