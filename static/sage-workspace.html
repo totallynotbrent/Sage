@@ -109,6 +109,19 @@
 .diagram-panel__title{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--fg);display:flex;align-items:baseline;gap:var(--space-2);flex:1;min-width:0}
 .diagram-panel__count{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em}
 .diagram-panel__body{flex:1;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)}
+.rail-tabs{display:flex;gap:var(--space-1);padding:var(--space-2) var(--space-4) 0;border-bottom:1px solid var(--border);flex-shrink:0}
+.rail-tab{font-family:var(--font-display);font-size:13px;font-weight:500;color:var(--meta);padding:var(--space-2) var(--space-3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;border-radius:var(--r) var(--r) 0 0}
+.rail-tab:hover{color:var(--fg)}
+.rail-tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.file-viewer{flex:1;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
+.file-viewer__empty{color:var(--meta);font-size:13px;text-align:center;padding:var(--space-8) var(--space-4)}
+.file-viewer__item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:none;color:inherit;font-family:inherit;font-size:13px;text-align:left}
+.file-viewer__item:hover{border-color:var(--accent)}
+.file-viewer__item.active{border-color:var(--accent);background:var(--accent-dim)}
+.file-viewer__item-name{flex:1;min-width:0;word-wrap:break-word}
+.file-viewer__chips{font-family:var(--font-mono);font-size:10px;color:var(--meta);letter-spacing:0.04em;text-transform:lowercase}
+.file-viewer__doc{background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);font-family:var(--font-mono);font-size:12px;color:var(--muted);line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:100%;overflow:auto}
+.file-viewer__doc:empty{color:var(--meta);font-style:italic}
 .diagram-panel__empty{color:var(--meta);font-size:13px;text-align:center;padding:var(--space-8) var(--space-4)}
 .artifact-card{position:relative;background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
 .artifact-card[data-kind="mermaid"]{border-left-color:var(--foam)}
@@ -311,9 +324,16 @@
         </div>
         <button class="icon-btn" id="closeDiagram" aria-label="Close artifacts" style="width:28px;height:28px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
+      <div class="rail-tabs" role="tablist" aria-label="Right rail">
+        <button class="rail-tab" role="tab" aria-selected="true" data-rail-tab="artifacts" type="button">Artifacts</button>
+        <button class="rail-tab" role="tab" aria-selected="false" data-rail-tab="file" type="button">File</button>
+      </div>
       <div class="rail-probe" id="rail-probe"></div>
       <div class="diagram-panel__body" id="diagramBody">
         <div class="diagram-panel__empty">Diagrams, quizzes, and checklists Sage generates will appear here.</div>
+      </div>
+      <div class="file-viewer" id="fileViewer" hidden>
+        <div class="file-viewer__empty">No files in this session. Upload a file and Sage will teach from it here.</div>
       </div>
     </aside>
   </div>
@@ -348,6 +368,7 @@ const ARTIFACT_LOCAL_PREFIX = 'sage_artifact_';
 const TOOL_STATUS = { web_search: 'searching the web…', generate_mermaid: 'generating mermaid…', generate_quiz: 'generating quiz…', generate_todo: 'generating todo list…', generate_study_plan: 'generating study plan…', record_step_actions: 'recording next steps…' };
 let sessionId = new URLSearchParams(window.location.search).get('session');
 let sessionGoal = '';
+let currentSessionFiles = [];
 let streaming = false;
 let streamCtrl = null;
 let artifacts = [];
@@ -647,6 +668,58 @@ function addStreamingMessage() {
 
 function openArtifactsRail() { if (mobile_query.matches) close_sidebar(); diagramPanel.classList.remove('closed'); }
 function closeArtifactsRail() { diagramPanel.classList.add('closed'); }
+
+/* Right-rail chrome tabs: Artifacts (existing diagram body) vs File (viewer). */
+const fileViewerEl = document.getElementById('fileViewer');
+let selectedFileId = null;
+function railTab(name) {
+  const tabs = document.querySelectorAll('.rail-tab');
+  tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.railTab === name)));
+  const showArtifacts = name === 'artifacts';
+  diagramBody.style.display = showArtifacts ? '' : 'none';
+  fileViewerEl.hidden = showArtifacts;
+  if (!showArtifacts) { openArtifactsRail(); renderFileTab(); }
+}
+document.querySelectorAll('.rail-tab').forEach(t => {
+  t.addEventListener('click', () => railTab(t.dataset.railTab));
+});
+
+/* File viewer: list the session's files; click one to load its text content. */
+function renderFileTab() {
+  fileViewerEl.innerHTML = '';
+  const files = (currentSessionFiles || []).filter(f => f && f.id);
+  if (!files.length) {
+    fileViewerEl.innerHTML = '<div class="file-viewer__empty">No files in this session. Upload a file and Sage will teach from it here.</div>';
+    return;
+  }
+  files.forEach(f => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'file-viewer__item' + (f.id === selectedFileId ? ' active' : '');
+    row.innerHTML = `<span class="file-viewer__item-name">${esc(f.display_name || 'Untitled')}</span><span class="file-viewer__chips">${f.num_chunks || 0} chunk${f.num_chunks === 1 ? '' : 's'}</span>`;
+    row.onclick = () => { selectedFileId = f.id; renderFileTab(); loadFileContent(f); };
+    fileViewerEl.appendChild(row);
+  });
+  fileViewerEl.appendChild(document.createElement('div')) /* spacing */;
+}
+
+async function loadFileContent(file) {
+  const doc = document.createElement('div');
+  doc.className = 'file-viewer__doc';
+  doc.textContent = 'Loading…';
+  const prior = fileViewerEl.querySelector('.file-viewer__doc');
+  if (prior) prior.remove();
+  fileViewerEl.appendChild(doc);
+  try {
+    const res = await fetch(`${API}/files/${file.id}/content`);
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+    doc.textContent = (data.text || '').trim() || '(no extractable text)';
+  } catch (e) {
+    doc.textContent = 'Could not load the file content.';
+  }
+}
+
 function openPlanSection() {
   const section = document.getElementById('plan-section');
   const toggle = document.getElementById('plan-toggle');
@@ -1323,25 +1396,24 @@ function artifactContext() {
   return 'the current learning topic';
 }
 
-/* Yes/No quick-answer buttons: when Sage ends with a yes/no check question,
-   render two tappable buttons instead of making the user type. */
-function append_yes_no_buttons(message_el, text) {
-  if (!message_el || !text) return;
-  const tail = text.slice(-160).toLowerCase();
-  // Show buttons when the message ends with any question — covers "(yes/no)",
-  // "Yes/No", bare questions ending in "?", etc.
-  if (!/\?\s*$/.test(tail.trim())) return;
-  const row = document.createElement('div');
-  row.className = 'yesno-row';
-  [['Yes', 'yes'], ['No', 'no']].forEach(([label, val]) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'quick-chip';
-    b.textContent = label;
-    b.onclick = () => { if (!streaming) { input.value = val; sendMessage(); } };
-    row.appendChild(b);
-  });
-  message_el.appendChild(row);
+/* Turn a trailing yes/no question Sage writes in prose into a check-style card
+   (A) Yes / B) No), so it renders like the structured check cards instead of
+   inline buttons that can vanish. Only matches genuine yes/no questions
+   (explicit "yes/no" markers or a leading auxiliary verb); open-ended "What/How"
+   questions are left as prose. Returns {question, stripped} or null. */
+function extractYesNoQuestion(text) {
+  if (typeof text !== 'string' || !text) return null;
+  const trimmed = text.trimEnd();
+  if (!/\?\s*$/.test(trimmed)) return null;
+  const qIdx = trimmed.lastIndexOf('?');
+  let start = qIdx;
+  while (start > 0 && !/[\n.!?]/.test(trimmed[start - 1])) start--;
+  const question = trimmed.slice(start, qIdx + 1).trim();
+  const lower = question.toLowerCase();
+  const yesnoMarker = /yes\s*\/\s*no|yes or no|true or false|\(yes\/no\)|\by\/n\b/.test(lower);
+  const auxStart = /^(is|are|was|were|does|do|did|can|could|should|would|will|has|have|had)\b/.test(lower);
+  if (!yesnoMarker && !auxStart) return null;
+  return { question, stripped: trimmed.slice(0, start).trimEnd() };
 }
 
 let activeTyper = null, activeTyperDone = null; // (kept: reserved for future streaming tweaks)
@@ -1572,6 +1644,17 @@ async function sendMessage() {
     // below renders it once. Also covers the streaming path (where deltas are
     // appended raw), not just buffered_text.
     fullText = dedupeCheckQuestion(fullText);
+    // Unify questions: a structured check_question card wins over any prose
+    // yes/no; otherwise turn a trailing yes/no into a check-style card so it
+    // never shows as raw inline buttons (or vanishes) and never doubles up.
+    const hasStructuredCheck = pendingCards.some(p => p.kind === 'check');
+    const yesno = extractYesNoQuestion(fullText);
+    if (yesno) {
+      fullText = yesno.stripped;
+      if (!hasStructuredCheck) {
+        pendingCards.push({ items: [{ question: yesno.question, options: ['Yes', 'No'] }], kind: 'check' });
+      }
+    }
     assistant_msg = addMessage('assistant', fullText);
   } else if (was_aborted) {
   } else if (done_error_message) {
@@ -1580,7 +1663,6 @@ async function sendMessage() {
     assistant_msg = addMessage('assistant', 'Sage could not produce a response. Please try again.');
   }
   if (assistant_msg) {
-    append_yes_no_buttons(assistant_msg, fullText);
     append_citation_chips(assistant_msg, citation_ids, meta_chunks);
     append_web_source_chips(assistant_msg, done_web_sources);
     append_action_chips(assistant_msg, done_actions);
@@ -1946,7 +2028,10 @@ async function loadSession(id) {
     diagramBody.querySelectorAll('.artifact-card').forEach(el => el.remove());
     updateArtifactsCount();
     if (data.messages) data.messages.forEach(m => addMessage(m.role, m.content));
-    if (data.selected_files) document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
+    if (data.selected_files) {
+      currentSessionFiles = data.selected_files;
+      document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
+    } else { currentSessionFiles = []; }
     if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
     loadSessionsList();
   } catch (e) { console.error('Failed to load session:', e); }

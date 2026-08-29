@@ -273,6 +273,27 @@ class FileService:
             raise NotFoundError("file", file_id)
         return self._to_record(record)
 
+    def get_content(self, file_id: str) -> dict:
+        """The extracted (chunked) text of an ingested file, in chunk order.
+
+        This is the same text Sage retrieves from to teach — good for a
+        source-viewer tab. Raises NotFoundError if the file is unknown.
+        """
+        record = self.get(file_id)
+        rows = self.conn.execute(
+            "SELECT text FROM chunks WHERE file_id = ? ORDER BY chunk_index",
+            (file_id,),
+        ).fetchall()
+        text = "\n\n".join(r["text"] for r in rows if r["text"]).strip()
+        return {
+            "id": record.id,
+            "display_name": record.display_name,
+            "mime_type": record.mime_type,
+            "size_bytes": record.size_bytes,
+            "num_chunks": record.num_chunks,
+            "text": text,
+        }
+
     def delete(self, file_id: str) -> None:
         row = self.conn.execute(
             "SELECT storage_name, paired_file_id FROM files WHERE id = ?",

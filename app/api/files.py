@@ -57,6 +57,15 @@ async def get_file(
     return FileService(conn, settings).get(file_id)
 
 
+@router.get("/api/files/{file_id}/content")
+async def get_file_content(
+    file_id: str,
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+) -> dict:
+    return FileService(conn, settings).get_content(file_id)
+
+
 @router.get("/api/files/{file_id}/excerpts")
 async def get_excerpts(
     file_id: str,
