@@ -219,6 +219,7 @@ class TurnMixin:
                 # repeats the same tool call with the same arguments).
                 recent_calls: list[tuple[str, str]] = []
 
+                ran_tool = False
                 for _ in range(_MAX_TOOL_ITERATIONS):
                     had_tool_call = False
                     echoed = False
@@ -243,6 +244,7 @@ class TurnMixin:
                             continue
                         if event_type == "tool_call":
                             had_tool_call = True
+                            ran_tool = True
                             name = str(item.get("name") or "")
                             raw_arguments = item.get("arguments")
                             arguments = (
@@ -378,6 +380,16 @@ class TurnMixin:
                 full_text = _re.sub(r"<call:\w+\b[^>]*>?", "", full_text)
                 full_text = _re.sub(r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t.:;,!?)(\\\"'-]))\[?call:\w+\b/?\]?(?:\s*status\s*=\s*[\"'][^\"']*[\"'])?(?:\s*\([^)\"']*\))?", "", full_text)
                 full_text = _re.sub(r"<call:\w+\b[^<]*$", "", full_text)
+                # If the model ran tools but never produced a closing reply (a
+                # tool-only turn — gemma sometimes stops right after the last
+                # tool_result), force one no-tools completion so the learner
+                # always gets a prose response instead of a dead end.
+                if ran_tool and not full_text.strip():
+                    fallback = await self._fallback_prose_message(messages, llm)
+                    if fallback:
+                        full_text = fallback
+                        if not getattr(getattr(self, "settings", None), "streaming", False):
+                            yield {"type": "buffered_text", "text": full_text}
                 # Buffered mode (SAGE_STREAMING=false): emit the full sanitized reply
                 # as a single simulated-typing event the UI animates word-by-word.
                 if not getattr(self.settings, "streaming", False) and full_text:
@@ -423,6 +435,27 @@ class TurnMixin:
                 llm.end_inflight(session_id)
         finally:
             self.conn.close()
+
+    async def _fallback_prose_message(self, messages: list[dict], llm) -> str:
+        """Force one no-tools completion when a tool-only turn left no text.
+
+        gemma sometimes stops right after the final tool_result instead of
+        writing the closing reply. Retry without tools so the learner never sees
+        a dead-end blank bubble. Returns empty string if the model still yields
+        nothing.
+        """
+        try:
+            prompt = (
+                "Write a brief, warm closing reply to the learner now. Summarize "
+                "what just happened (the tool steps ran) in 1-3 plain sentences. "
+                "Do not call any tools."
+            )
+            text, error_text = await llm.complete_json([*messages, {"role": "user", "content": prompt}])
+            if isinstance(text, str) and text.strip():
+                return text.strip()
+        except Exception:
+            return ""
+        return ""
 
     async def _emit_sufficiency_notice(
         self,
