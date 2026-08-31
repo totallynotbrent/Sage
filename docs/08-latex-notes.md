@@ -1,4 +1,12 @@
-%% LaTeX-notes integration — 1. folder watch
+---
+title: LaTeX Notes
+description: "LaTeX-notes integration: folder watch, same-stem pairing, notes quiz."
+---
+# LaTeX Notes
+
+LaTeX-notes integration: folder watch, same-stem pairing, notes quiz.
+
+```mermaid
 flowchart LR
     NOTES["Notes folders (SAGE_WATCH_DIRS)<br/>subject/ subfolders · .tex + .pdf"]
     W["app/services/watcher.py<br/>watcher_loop (lifespan, every SAGE_WATCH_SCAN_SECONDS)<br/>scan_once · sync_watch_sources"]
@@ -14,15 +22,17 @@ flowchart LR
     W --> FILES
     NOTES -->|"new / changed / missing"| W
     W -->|"last_scan_at · last_error"| FILES
+```
 
-%% LaTeX-notes integration — 2. same-stem pairing (.tex source + .pdf pages)
+```mermaid
 flowchart LR
     A["calc.tex ingested"] --> P{"same-stem candidate?<br/>stem equal · suffix differs"}
     P -->|"yes"| B["paired_file_id set both ways<br/>expand_pairings pulls the pair's chunks<br/>pair=calc.pdf on DOC blocks"]
     P -->|"no"| C["paired_file_id = NULL"]
     D["delete one file"] --> E["survivor's paired_file_id nulled"]
+```
 
-%% LaTeX-notes integration — 3. notes quiz (grounded MCQ)
+```mermaid
 sequenceDiagram
     autonumber
     participant C as Client
@@ -54,3 +64,8 @@ sequenceDiagram
     L->>DB: mastery evidence source "notes"
     Note over L: notes answers never change session phase
     L-->>C: {result, session} — phase unchanged
+```
+
+## See also
+- [[02-learning-loop]]
+- [[06-data-model-er]]
