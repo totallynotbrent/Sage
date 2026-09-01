@@ -131,5 +131,5 @@ erDiagram
 ```
 
 ## See also
-- [[01-system-architecture]]
-- [[02-learning-loop]]
+- [[01-system-architecture|System Architecture]]
+- [[02-learning-loop|Learning Loop]]

@@ -30,6 +30,6 @@ flowchart LR
 ```
 
 ## See also
-- [[01-system-architecture]]
-- [[03-session-state-machine]]
-- [[08-latex-notes]]
+- [[01-system-architecture|System Architecture]]
+- [[03-session-state-machine|Session State Machine]]
+- [[08-latex-notes|LaTeX Notes]]

@@ -33,5 +33,5 @@ flowchart TB
 ```
 
 ## See also
-- [[04-complete-ui-flow-sequence]]
-- [[03-session-state-machine]]
+- [[04-complete-ui-flow-sequence|Complete UI Flow (sequence)]]
+- [[03-session-state-machine|Session State Machine]]

@@ -89,5 +89,5 @@ sequenceDiagram
 ```
 
 ## See also
-- [[07-ui-screens]]
-- [[05-streaming-chat-sse]]
+- [[07-ui-screens|UI Screens]]
+- [[05-streaming-chat-sse|Streaming Chat & SSE]]

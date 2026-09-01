@@ -93,7 +93,8 @@ def _sections(code: str) -> list[str]:
 def wrap(title: str, desc: str, code: str, see_also: list[str]) -> str:
     sections = _sections(code) if len(_sections(code)) > 1 else [code.strip()]
     mermaid = "\n\n".join(f"```mermaid\n{section}\n```" for section in sections)
-    links = "\n".join(f"- [[{s}]]" for s in see_also)
+    by_slug = {d["slug"]: d["title"] for d in DIAGRAMS}
+    links = "\n".join(f"- [[{s}|{by_slug[s]}]]" for s in see_also)
     return (
         f"---\ntitle: {title}\ndescription: \"{desc}\"\n---\n"
         f"# {title}\n\n{desc}\n\n{mermaid}\n\n"

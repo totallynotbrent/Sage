@@ -45,5 +45,5 @@ stateDiagram-v2
 ```
 
 ## See also
-- [[02-learning-loop]]
-- [[07-ui-screens]]
+- [[02-learning-loop|Learning Loop]]
+- [[07-ui-screens|UI Screens]]
