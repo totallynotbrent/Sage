@@ -29,3 +29,4 @@ rules for the frontend) are kept out of the diagrams; see `ui.txt` for those.
 | [security.md](security.md) | Trusted-network-only warning |
 | [environment.md](environment.md) | Environment variable reference (API_URL / API_KEY / MODEL / SEARXNG_URL / HOST / PORT / limits) |
 | [testing.md](testing.md) | pytest suite, wheel preflight, live endpoint smoke test |
+| [CODING_RULES.md](CODING_RULES.md) | Coding conventions: file size/modularity, snake_case, no code comments, keep docs updated, plan first |
