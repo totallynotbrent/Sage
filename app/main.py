@@ -21,7 +21,7 @@ logger = logging.getLogger("app")
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
-    setup_logging(settings.brot_api_key, data_dir=settings.data_dir)
+    setup_logging(settings.api_key, data_dir=settings.data_dir)
     reset_llm_client()
 
     @asynccontextmanager
@@ -44,10 +44,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     for problem in validation_problems(settings):
         logger.warning("Configuration problem: %s", problem)
     logger.info(
-        "Sage ready: data_dir=%s model=%s", settings.data_dir, settings.brot_model
+        "Sage ready: data_dir=%s model=%s", settings.data_dir, settings.model
     )
 
-    register_exception_handlers(app, secret=settings.brot_api_key)
+    register_exception_handlers(app, secret=settings.api_key)
 
     from app.api import (
         chat,

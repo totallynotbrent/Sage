@@ -17,9 +17,9 @@ from tests.fakes.fake_llm import FakeLLM
 def settings(tmp_path) -> Settings:
     return Settings(
         data_dir=tmp_path / "data",
-        brot_api_key="test-key",
-        brot_base_url="http://127.0.0.1:9/v1",
-        brot_model="test-model",
+        api_key="test-key",
+        api_url="http://127.0.0.1:9/v1",
+        model="test-model",
         streaming=True,
         max_upload_mb=30,
         max_total_mb=500,

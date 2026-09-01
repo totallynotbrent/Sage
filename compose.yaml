@@ -1,0 +1,19 @@
+# Sage — Docker Compose (single service)
+# https://totallynotbrent.github.io/sage/
+services:
+  sage:
+    build: .
+    image: sage:latest
+    container_name: sage
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      # SQLite DB, uploads, and watch state live on the host in ./data.
+      - ./data:/data
+    env_file:
+      - .env
+    environment:
+      # Container path always wins for DATA_DIR; everything else comes from .env.
+      DATA_DIR: /data
+      HOST: 0.0.0.0

@@ -1,4 +1,4 @@
-"""Bread-parity OllamaClientConfig plus Sage BROT_* -> settings mapping."""
+"""Bread-parity OllamaClientConfig plus the Sage settings -> config mapping."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -33,17 +33,16 @@ class OllamaClientConfig:
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "OllamaClientConfig":
-        # Sage uses BROT_* keys but the semantics are identical to bread's OLLAMA_*
-        host = (getattr(settings, "brot_base_url", "") or "").strip().rstrip("/")
+        host = (getattr(settings, "api_url", "") or "").strip().rstrip("/")
         if host.endswith("/v1"):
             host = host[: -len("/v1")]
         return cls(
             host=host or "https://ollama.com",
             hosts=[],
-            api_key=(getattr(settings, "brot_api_key", "") or "").strip(),
+            api_key=(getattr(settings, "api_key", "") or "").strip(),
             api_keys=[],
             backends=[],
-            model=(getattr(settings, "brot_model", "") or "").strip(),
+            model=(getattr(settings, "model", "") or "").strip(),
             num_ctx=int(getattr(settings, "ollama_num_ctx", 32768) or 32768),
             num_threads=5,
             temperature=0.67,

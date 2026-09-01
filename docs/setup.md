@@ -18,7 +18,7 @@ cp .env.example .env
 run.bat
 ```
 
-Set BROT_BASE_URL=https://ollama.com/v1 (or https://ollama.com — auto-corrected), BROT_API_KEY from https://ollama.com/settings/keys, BROT_MODEL=gemma4:31b-cloud. Optionally set SEARXNG_URL=http://192.168.1.57:8080/ for web search grounding.
+Set API_URL=https://ollama.com/v1 (or https://ollama.com — auto-corrected), API_KEY from https://ollama.com/settings/keys, MODEL=gemma4:31b-cloud. Optionally set SEARXNG_URL=http://192.168.1.57:8080/ for web search grounding.
 
 `run.sh` creates `.venv` when absent (preferring `python3.11`, falling back to
 `python3`), installs `requirements.txt`, then serves:

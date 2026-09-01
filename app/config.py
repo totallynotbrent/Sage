@@ -19,11 +19,9 @@ class Settings(BaseSettings):
         populate_by_name=True,
     )
 
-    brot_base_url: str = Field(
-        default="https://ollama.com/v1", validation_alias="BROT_BASE_URL"
-    )
-    brot_api_key: str = Field(default="", validation_alias="BROT_API_KEY")
-    brot_model: str = Field(default="gemma4:31b-cloud", validation_alias="BROT_MODEL")
+    api_url: str = Field(default="https://ollama.com/v1", validation_alias="API_URL")
+    api_key: str = Field(default="", validation_alias="API_KEY")
+    model: str = Field(default="gemma4:31b-cloud", validation_alias="MODEL")
     searxng_url: str = Field(default="", validation_alias="SEARXNG_URL")
     ollama_num_ctx: int = Field(default=131072, validation_alias="OLLAMA_NUM_CTX")
     ollama_keep_alive: int = Field(default=-1, validation_alias="OLLAMA_KEEP_ALIVE")
@@ -38,7 +36,6 @@ class Settings(BaseSettings):
             "caught cleanly before any text reaches the UI."
         ),
     )
-
 
     host: str = "0.0.0.0"
     port: int = 8000
@@ -60,7 +57,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _normalize_urls(self):
-        raw = (self.brot_base_url or "").strip()
+        raw = (self.api_url or "").strip()
         if raw:
             parsed = urlparse(raw)
             host = (parsed.hostname or "").lower()
@@ -69,16 +66,16 @@ class Settings(BaseSettings):
             if host == "ollama.com" and stripped == "":
                 base = raw.rstrip("/")
                 if not base.lower().endswith("/v1"):
-                    self.brot_base_url = base + "/v1"
+                    self.api_url = base + "/v1"
                 else:
-                    self.brot_base_url = base
+                    self.api_url = base
             else:
                 if raw.endswith("/") and not raw.rstrip("/").lower().endswith("/v1"):
-                    self.brot_base_url = raw.rstrip("/")
+                    self.api_url = raw.rstrip("/")
                 elif raw.endswith("/") and raw.rstrip("/").lower().endswith("/v1"):
-                    self.brot_base_url = raw.rstrip("/")
+                    self.api_url = raw.rstrip("/")
                 else:
-                    self.brot_base_url = raw
+                    self.api_url = raw
         if self.searxng_url:
             self.searxng_url = self.searxng_url.strip().rstrip("/")
         return self
@@ -104,24 +101,24 @@ def get_app_settings(request: Request) -> Settings:
 def validation_problems(settings: Settings) -> list[str]:
     problems: list[str] = []
 
-    key = (settings.brot_api_key or "").strip()
+    key = (settings.api_key or "").strip()
     if not key:
-        msg = "BROT_API_KEY / OLLAMA_API_KEY is not set. Copy .env.example to .env and fill it in."
-        parsed = urlparse(settings.brot_base_url.strip())
+        msg = "API_KEY is not set. Copy .env.example to .env and fill it in."
+        parsed = urlparse(settings.api_url.strip())
         if (parsed.hostname or "").lower() == "ollama.com":
             msg += " Get a key at https://ollama.com/settings/keys."
         problems.append(msg)
     elif key == PLACEHOLDER_KEY:
         problems.append(
-            "BROT_API_KEY / OLLAMA_API_KEY still has the placeholder value; replace it with "
-            "your Ollama key from https://ollama.com/settings/keys."
+            "API_KEY still has the placeholder value; replace it with "
+            "your key from https://ollama.com/settings/keys."
         )
 
-    url = settings.brot_base_url.strip()
+    url = settings.api_url.strip()
     parsed = urlparse(url)
     if not url:
-        problems.append("BROT_BASE_URL is empty.")
+        problems.append("API_URL is empty.")
     elif parsed.scheme not in ("http", "https") or not parsed.netloc:
-        problems.append(f"BROT_BASE_URL is not a valid http(s) URL: {url!r}")
+        problems.append(f"API_URL is not a valid http(s) URL: {url!r}")
 
     return problems

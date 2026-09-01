@@ -22,8 +22,8 @@ flowchart TB
         BLOBS["Uploaded blobs<br/>never served directly"]
     end
 
-    subgraph Model["Model — OpenAI-compatible endpoint (BROT_BASE_URL)"]
-        LLM["LLM<br/>BROT_API_KEY stays server-side only"]
+    subgraph Model["Model — OpenAI-compatible endpoint (API_URL)"]
+        LLM["LLM<br/>API_KEY stays server-side only"]
     end
 
     UI -->|"JSON (REST)"| API

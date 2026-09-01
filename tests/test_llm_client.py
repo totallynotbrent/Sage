@@ -26,7 +26,7 @@ class fake_ollama_client:
 def test_stream_chat_treats_provider_eof_as_normal_completion():
     client = LLMClient.__new__(LLMClient)
     object.__setattr__(client, "_client", fake_ollama_client())
-    object.__setattr__(client, "_settings", Settings(brot_api_key="test-key"))
+    object.__setattr__(client, "_settings", Settings(api_key="test-key"))
     object.__setattr__(client, "_probe_cache", None)
     object.__setattr__(client, "_inflight", {})
 

@@ -723,7 +723,7 @@ def test_stream_chat_falls_back_without_tools_on_400(caplog):
     client = LLMClient.__new__(LLMClient)
     object.__setattr__(client, "_client", stub)
     object.__setattr__(
-        client, "_settings", Settings(brot_api_key="test-key", brot_model="test-model")
+        client, "_settings", Settings(api_key="test-key", model="test-model")
     )
 
     tools = [{"type": "function", "function": {"name": "web_search"}}]
@@ -750,7 +750,7 @@ def test_stream_chat_plain_path_stays_strings():
     client = LLMClient.__new__(LLMClient)
     object.__setattr__(client, "_client", stub)
     object.__setattr__(
-        client, "_settings", Settings(brot_api_key="test-key", brot_model="test-model")
+        client, "_settings", Settings(api_key="test-key", model="test-model")
     )
 
     chunks = asyncio.run(
