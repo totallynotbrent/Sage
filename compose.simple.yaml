@@ -1,0 +1,44 @@
+# Sage — self-bootstrapping single-service compose (drop into CasaOS / ZimaOS).
+# Pulls the latest code from GitHub, installs deps, and serves the tutor UI.
+# Serves on port 8000 (host) -> 8000 (container). Data persists in ./data.
+name: sage
+services:
+  sage:
+    image: python:3.13-slim
+    container_name: sage
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    environment:
+      API_URL: http://ollama:11434
+      API_KEY: local
+      MODEL: ""
+      HOST: 0.0.0.0
+      PORT: "8000"
+      DATA_DIR: /data
+    volumes:
+      - type: bind
+        source: ./data
+        target: /data
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        apt-get update -qq && apt-get install -y -qq git nodejs npm curl >/dev/null 2>&1
+        if [ ! -f /app/requirements.txt ]; then
+          git clone --depth 1 https://github.com/totallynotbrent/sage.git /app
+        fi
+        cd /app
+        python -m venv /app/.venv
+        /app/.venv/bin/pip install -q -r /app/requirements.txt
+        /app/.venv/bin/python -m pip install -q uvicorn
+        if [ ! -d /app/node_modules ]; then npm ci --silent --ignore-scripts --no-audit --no-fund; fi
+        exec /app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+    networks:
+      - ollama-nvidia_default
+
+networks:
+  ollama-nvidia_default:
+    external: true
