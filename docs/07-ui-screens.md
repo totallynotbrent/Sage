@@ -32,6 +32,20 @@ flowchart TB
     START --> HEALTH["9. Health indicator (always visible)<br/>poll GET /api/health<br/>degraded → warning · error → disable model actions"]
 ```
 
+## Question flow & review
+
+- **Reading → Continue → question:** when Sage narrates then issues probe/check
+  questions, the questions render behind a **Continue** button. The learner reads
+  first, presses Continue to reveal the questions, then answers — so per-question
+  latency is measured from reveal, not from when the narration started.
+- **Review is model-triggered only (issue #3):** there is no learner-facing
+  "Review N due" button/chip. Spaced-repetition cards are surfaced when the model
+  calls the `start_review` tool mid-conversation, which returns the due cards to
+  render inline. Grading still posts per-card to `/review/{card_id}/grade`.
+- **Questions persist across a reload (issue #7):** re-opening a session re-renders
+  any unanswered (pending) probe/check questions from the server instead of
+  regenerating them.
+
 ## See also
 - [[04-complete-ui-flow-sequence|Complete UI Flow (sequence)]]
 - [[03-session-state-machine|Session State Machine]]

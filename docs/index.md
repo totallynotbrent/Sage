@@ -24,5 +24,5 @@ Start with [[01-system-architecture|System Architecture]], then the [[02-learnin
 - [[setup|Setup & deployment]] — Python/uvicorn/systemd, LAN & Tailscale access
 - [[ui|Web UI]] — Streaming chat, artifacts, check cards, confidence, file viewer
 - [[security|Security]] — Trusted-network-only deployment
-- [[environment|Environment variables]] — API_URL / API_KEY / MODEL / SEARXNG_URL / HOST / PORT / limits
+- [[environment|Environment variables]] — API_URL / API_KEY / MODEL, SEARXNG_URL, HOST, PORT, limits
 - [[testing|Testing]] — pytest suite, wheel preflight, live smoke test

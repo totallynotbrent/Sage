@@ -677,8 +677,8 @@ def test_adaptive_check_count_stalls_on_miss(conn, settings, fake_llm):
 def test_adaptive_check_count_aces_short(conn, settings, fake_llm):
     session = _create_session(conn, settings)
     from app.services import mastery
-    mastery.record_evidence(conn, "learn algebra", "check", "correct")
-    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, session.id, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, session.id, "learn algebra", "check", "correct")
     _answer_outcome(conn, session.id, "check", "correct")
     _answer_outcome(conn, session.id, "check", "correct")
     service = LearningService(conn, settings)
@@ -696,8 +696,8 @@ def test_adaptive_check_count_slow_corrects_downgrade_acing(conn, settings, fake
     from app.services import mastery
     from app.util import new_id, utc_now
 
-    mastery.record_evidence(conn, "learn algebra", "check", "correct")
-    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, session.id, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, session.id, "learn algebra", "check", "correct")
     now = utc_now()
     for _ in range(2):
         conn.execute(
@@ -717,8 +717,8 @@ def test_adaptive_check_count_fast_corrects_still_ace(conn, settings, fake_llm):
     from app.services import mastery
     from app.util import new_id, utc_now
 
-    mastery.record_evidence(conn, "learn algebra", "check", "correct")
-    mastery.record_evidence(conn, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, session.id, "learn algebra", "check", "correct")
+    mastery.record_evidence(conn, session.id, "learn algebra", "check", "correct")
     now = utc_now()
     for _ in range(2):
         conn.execute(

@@ -57,7 +57,7 @@ class LearningService:
             (session_id,),
         ).fetchall()
         outcomes = [r["outcome"] for r in recent]
-        confidence = mastery.topic_confidence(self.conn, topic)
+        confidence = mastery.topic_confidence(self.conn, session_id, topic)
         miss = any(o in ("incorrect", "idk") for o in outcomes)
         acing = (
             len(outcomes) == 2
@@ -87,10 +87,11 @@ class LearningService:
             llm,
             session=session.model_dump(),
             chunks=chunks,
-            mastery_summary=self.sessions._mastery_summary(),
+            mastery_summary=self.sessions._mastery_summary(session_id),
             mode=session.grounding_mode,
             count=count,
             focus=session.goal,
+            avoid=self._recent_question_stems(session_id),
         )
         if not questions:
             error = ModelOutputError("The model returned no usable probe questions.")
@@ -111,40 +112,24 @@ class LearningService:
             return {"session": session.model_dump(), "questions": existing}
         self._delete_pending_questions(session_id, "check")
         topic = self._current_node_title(session) or session.goal
-        # Interleaved practice: roughly every 3rd check, pull a prior weak topic
-        # instead of the current node so retrieval is mixed (beats blocking).
-        interleaved = None
-        prior_checks = self.conn.execute(
-            "SELECT COUNT(*) AS n FROM quiz_questions "
-            "WHERE session_id = ? AND kind = 'check' AND status = 'answered'",
-            (session_id,),
-        ).fetchone()["n"]
-        if prior_checks > 0 and prior_checks % 3 == 0:
-            weak = mastery.lowest_confidence_topics(
-                self.conn, exclude={mastery.normalize_topic(topic)}, limit=1
-            )
-            if weak:
-                interleaved = weak[0]["label"]
-        focus_topic = interleaved or topic
         chunks = self.sessions._select_chunks(session, "check question")
-        count = self._adaptive_question_count(session_id, focus_topic)
+        count = self._adaptive_question_count(session_id, topic)
         questions = await request_questions(
             llm,
             session=session.model_dump(),
             chunks=chunks,
-            mastery_summary=self.sessions._mastery_summary(),
+            mastery_summary=self.sessions._mastery_summary(session_id),
             mode=session.grounding_mode,
             count=count,
-            focus=focus_topic,
+            focus=topic,
+            avoid=self._recent_question_stems(session_id),
         )
         if not questions:
             error = ModelOutputError("The model returned no usable check question.")
             error.retryable = True
             raise error
-        # Keep the established contract: check questions are tracked under the
-        # (possibly interleaved) focus topic, not whatever the model echoed back.
         for question in questions:
-            question.topic = interleaved or topic
+            question.topic = topic
             self._insert_question(session_id, "check", question)
         self.sessions.set_phase(session_id, "check")
         return {
@@ -170,7 +155,7 @@ class LearningService:
             llm,
             session=session.model_dump(),
             chunks=chunks,
-            mastery_summary=self.sessions._mastery_summary(),
+            mastery_summary=self.sessions._mastery_summary(session_id),
             mode=session.grounding_mode,
             count=1,
             focus=topic,
@@ -206,7 +191,7 @@ class LearningService:
             llm,
             session=session.model_dump(),
             chunks=chunks,
-            mastery_summary=self.sessions._mastery_summary(),
+            mastery_summary=self.sessions._mastery_summary(session_id),
             mode=session.grounding_mode,
             questions=questions,
             topic=topic,
@@ -372,6 +357,7 @@ class LearningService:
         )
         mastery.record_evidence(
             self.conn,
+            session_id,
             question["topic"],
             source,
             outcome,
@@ -453,6 +439,15 @@ class LearningService:
             )
         )
         return [question_dict(row) for row in rows]
+
+    def _recent_question_stems(self, session_id: str, limit: int = 6) -> list[str]:
+        rows = self.conn.execute(
+            "SELECT TRIM(question) AS question FROM quiz_questions "
+            "WHERE session_id = ? AND question IS NOT NULL AND TRIM(question) != '' "
+            "ORDER BY created_at DESC, rowid DESC LIMIT ?",
+            (session_id, limit),
+        ).fetchall()
+        return [r["question"] for r in rows if r["question"]]
 
     def _delete_pending_questions(self, session_id: str, kind: str) -> None:
         self.conn.execute(

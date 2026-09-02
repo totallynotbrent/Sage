@@ -11,6 +11,7 @@ from app.llm.tools.actions import (
     _run_generate,
     _run_grade_answer,
     _run_probe,
+    _run_start_review,
     _run_web_search,
 )
 
@@ -22,6 +23,10 @@ def _summarize(name: str, result: dict) -> str:
         return f"graded {result.get('outcome')}"
     if name == "build_plan":
         return f"plan ready: {len(result.get('nodes') or [])} nodes"
+    if name == "start_review":
+        return (
+            f"review ready: {result.get('due_count') or 0} due cards"
+        )
     if name == "advance_lesson":
         if result.get("lesson_complete"):
             return "lesson complete"
@@ -62,6 +67,8 @@ async def _dispatch_tool(name: str, arguments: dict, ctx) -> dict:
             return await _run_probe(arguments, ctx)
         if name == "grade_answer":
             return await _run_grade_answer(arguments, ctx)
+        if name == "start_review":
+            return await _run_start_review(arguments, ctx)
         if name == "build_plan":
             return await _run_build_plan(arguments, ctx)
         if name == "advance_lesson":

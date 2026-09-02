@@ -33,10 +33,12 @@ def _laplace_confidence(correct_count: int, observed_count: int) -> float:
     return (correct_count + 1) / (observed_count + 2)
 
 
-def topic_confidence(conn: sqlite3.Connection, topic: str | None) -> float | None:
+def topic_confidence(
+    conn: sqlite3.Connection, session_id: str, topic: str | None
+) -> float | None:
     row = conn.execute(
-        "SELECT confidence FROM mastery_topics WHERE topic = ?",
-        (normalize_topic(topic),),
+        "SELECT confidence FROM mastery_topics WHERE session_id = ? AND topic = ?",
+        (session_id, normalize_topic(topic)),
     ).fetchone()
     return float(row["confidence"]) if row else None
 
@@ -109,6 +111,7 @@ def _confidence_penalty(confidence: str | None, outcome: str) -> int:
 
 def _record_evidence_insert(
     conn: sqlite3.Connection,
+    session_id: str,
     topic: str,
     label: str,
     correct: int,
@@ -125,7 +128,7 @@ def _record_evidence_insert(
         conn.execute(
             "UPDATE mastery_topics SET observed_count = ?, correct_count = ?, idk_count = ?, "
             "overconfident_count = ?, underconfident_count = ?, confidence = ?, "
-            "last_assessed_at = ?, evidence_json = ?, notes = ? WHERE topic = ?",
+            "last_assessed_at = ?, evidence_json = ?, notes = ? WHERE session_id = ? AND topic = ?",
             (
                 observed,
                 correct,
@@ -136,6 +139,7 @@ def _record_evidence_insert(
                 now,
                 json.dumps(evidence),
                 note_entry,
+                session_id,
                 topic,
             ),
         )
@@ -143,7 +147,7 @@ def _record_evidence_insert(
         conn.execute(
             "UPDATE mastery_topics SET observed_count = ?, correct_count = ?, idk_count = ?, "
             "overconfident_count = ?, underconfident_count = ?, confidence = ?, "
-            "last_assessed_at = ?, evidence_json = ? WHERE topic = ?",
+            "last_assessed_at = ?, evidence_json = ? WHERE session_id = ? AND topic = ?",
             (
                 observed,
                 correct,
@@ -153,6 +157,7 @@ def _record_evidence_insert(
                 confidence,
                 now,
                 json.dumps(evidence),
+                session_id,
                 topic,
             ),
         )
@@ -160,6 +165,7 @@ def _record_evidence_insert(
 
 def record_evidence(
     conn: sqlite3.Connection,
+    session_id: str,
     topic: str | None,
     source: str,
     outcome: str,
@@ -172,7 +178,8 @@ def record_evidence(
     label = _display_label(topic)
     now = utc_now()
     row = conn.execute(
-        "SELECT * FROM mastery_topics WHERE topic = ?", (normalized,)
+        "SELECT * FROM mastery_topics WHERE session_id = ? AND topic = ?",
+        (session_id, normalized),
     ).fetchone()
     if row is None:
         observed = 0
@@ -182,8 +189,8 @@ def record_evidence(
         underconfident = 0
         evidence: list[dict] = []
         conn.execute(
-            "INSERT INTO mastery_topics (topic, label, observed_count, correct_count, idk_count, overconfident_count, underconfident_count, last_assessed_at, evidence_json) VALUES (?, ?, 0, 0, 0, 0, 0, ?, '[]')",
-            (normalized, label, now),
+            "INSERT INTO mastery_topics (session_id, topic, label, observed_count, correct_count, idk_count, overconfident_count, underconfident_count, last_assessed_at, evidence_json) VALUES (?, ?, ?, 0, 0, 0, 0, 0, ?, '[]')",
+            (session_id, normalized, label, now),
         )
     else:
         observed = row["observed_count"]
@@ -232,6 +239,7 @@ def record_evidence(
     confidence_value = _laplace_confidence(correct, observed)
     _record_evidence_insert(
         conn,
+        session_id,
         normalized,
         label,
         correct,
@@ -247,13 +255,15 @@ def record_evidence(
     conn.commit()
     return row_to_dict(
         conn.execute(
-            "SELECT * FROM mastery_topics WHERE topic = ?", (normalized,)
+            "SELECT * FROM mastery_topics WHERE session_id = ? AND topic = ?",
+            (session_id, normalized),
         ).fetchone()
     ) or {}
 
 
 def apply_statement(
     conn: sqlite3.Connection,
+    session_id: str,
     topic: str | None,
     level: str,
     note: str | None = None,
@@ -270,9 +280,10 @@ def apply_statement(
     if note:
         entry["note"] = note
     conn.execute(
-        "INSERT INTO mastery_topics (topic, label, confidence, observed_count, correct_count, idk_count, last_assessed_at, evidence_json, notes) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?) "
-        "ON CONFLICT(topic) DO UPDATE SET label = excluded.label, confidence = excluded.confidence, observed_count = excluded.observed_count, correct_count = excluded.correct_count, idk_count = 0, last_assessed_at = excluded.last_assessed_at, evidence_json = excluded.evidence_json, notes = excluded.notes",
+        "INSERT INTO mastery_topics (session_id, topic, label, confidence, observed_count, correct_count, idk_count, last_assessed_at, evidence_json, notes) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?) "
+        "ON CONFLICT(session_id, topic) DO UPDATE SET label = excluded.label, confidence = excluded.confidence, observed_count = excluded.observed_count, correct_count = excluded.correct_count, idk_count = 0, last_assessed_at = excluded.last_assessed_at, evidence_json = excluded.evidence_json, notes = excluded.notes",
         (
+            session_id,
             normalized,
             label,
             _laplace_confidence(correct, observed),
@@ -286,16 +297,18 @@ def apply_statement(
     conn.commit()
     return row_to_dict(
         conn.execute(
-            "SELECT * FROM mastery_topics WHERE topic = ?", (normalized,)
+            "SELECT * FROM mastery_topics WHERE session_id = ? AND topic = ?",
+            (session_id, normalized),
         ).fetchone()
     ) or {}
 
 
-def summarize_mastery(conn: sqlite3.Connection) -> str:
+def summarize_mastery(conn: sqlite3.Connection, session_id: str) -> str:
     rows = rows_to_dicts(
         conn.execute(
             "SELECT topic, label, confidence FROM mastery_topics "
-            "WHERE confidence > 0 ORDER BY label"
+            "WHERE session_id = ? AND confidence > 0 ORDER BY label",
+            (session_id,),
         )
     )
     if not rows:
@@ -312,6 +325,7 @@ def reset_mastery(conn: sqlite3.Connection) -> None:
 
 def lowest_confidence_topics(
     conn: sqlite3.Connection,
+    session_id: str,
     exclude: set[str] | None = None,
     limit: int = 3,
 ) -> list[dict]:
@@ -320,10 +334,10 @@ def lowest_confidence_topics(
     rows = rows_to_dicts(
         conn.execute(
             "SELECT topic, label, confidence, observed_count FROM mastery_topics "
-            "WHERE confidence > 0 AND topic NOT IN ("
+            "WHERE session_id = ? AND confidence > 0 AND topic NOT IN ("
             + ",".join("?" for _ in exclude)
             + ") ORDER BY confidence ASC, observed_count ASC LIMIT ?",
-            tuple(exclude) + (limit,),
+            tuple([session_id]) + tuple(exclude) + (limit,),
         )
     )
     return rows

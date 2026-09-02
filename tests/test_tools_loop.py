@@ -35,6 +35,7 @@ _LEARNING_TOOL_NAMES = {
     "grade_answer",
     "build_plan",
     "advance_lesson",
+    "start_review",
 }
 
 _PROBE_JSON = json.dumps(
@@ -150,7 +151,28 @@ def test_available_tools_gates_web_search_on_searxng():
     }
     assert _LEARNING_TOOL_NAMES <= names_without
     assert "web_search" not in names_without
-    assert len(names_without) == 9
+    assert len(names_without) == 10
+
+
+def test_execute_tool_start_review_returns_due_cards(conn, settings, fake_llm):
+    # Issue #3: review is model-triggered via the start_review tool. It must
+    # return this session's due cards (with their original question) so the UI
+    # can render a review batch from the model's tool call.
+    import asyncio as _aio
+
+    from app.services import review as review_service
+
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+    # Register a question + a due (new) card for this session.
+    review_service.register_card(
+        conn, session.id, "recursion", "q-due", "check", "idk"
+    )
+    result = _aio.run(execute_tool("start_review", {}, ctx))
+    assert result.get("due_count") == 1
+    cards = result.get("cards") or []
+    assert len(cards) == 1
+    assert cards[0]["session_id"] == session.id
+    assert cards[0]["card_id"]
 
 
 def test_turn_tool_loop_event_order_and_followup(conn, settings, monkeypatch):

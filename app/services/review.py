@@ -293,7 +293,8 @@ def mastery_panel(conn: sqlite3.Connection, session_id: str) -> dict:
     mt_rows = rows_to_dicts(
         conn.execute(
             "SELECT topic, label, confidence, last_assessed_at FROM mastery_topics "
-            "WHERE confidence > 0 ORDER BY label"
+            "WHERE session_id = ? AND confidence > 0 ORDER BY label",
+            (session_id,),
         )
     )
     # FSRS retrievability per topic, and whether any card is due.

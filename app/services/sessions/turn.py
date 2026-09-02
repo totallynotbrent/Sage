@@ -195,7 +195,7 @@ class TurnMixin:
                     session_dict,
                     user_text,
                     chunks,
-                    self._mastery_summary(),
+                    self._mastery_summary(session_id),
                     mode,
                     lesson_state=lesson_state,
                 )
@@ -203,7 +203,7 @@ class TurnMixin:
                     settings=self.settings,
                     session_dict=session_dict,
                     chunks=chunks,
-                    mastery_summary=self._mastery_summary(),
+                    mastery_summary=self._mastery_summary(session_id),
                     mode=mode,
                     llm=llm,
                     conn=self.conn,
@@ -348,6 +348,8 @@ class TurnMixin:
                                 }
                             if name == "run_probe":
                                 tool_event["questions"] = result.get("questions", [])
+                            if name == "start_review":
+                                tool_event["review_cards"] = result.get("cards", [])
                             if name == "advance_lesson" and (
                                 result.get("check_question")
                                 or result.get("check_questions")

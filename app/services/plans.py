@@ -28,7 +28,7 @@ class PlansService:
             llm,
             session=session.model_dump(),
             chunks=chunks,
-            mastery_summary=self.sessions._mastery_summary(),
+            mastery_summary=self.sessions._mastery_summary(session_id),
             mode=session.grounding_mode,
             focus=session.goal,
         )
@@ -135,7 +135,7 @@ class PlansService:
             llm,
             session=session.model_dump(),
             chunks=chunks,
-            mastery_summary=self.sessions._mastery_summary(),
+            mastery_summary=self.sessions._mastery_summary(session_id),
             mode=session.grounding_mode,
             focus=focus,
         )

@@ -276,6 +276,7 @@ async def request_questions(
     mode: str,
     count: int = 3,
     focus: str | None = None,
+    avoid: list[str] | None = None,
 ) -> list[QuizQuestionInput]:
     system = make_system_prompt(session, mode, mastery_summary)
     user = (
@@ -289,6 +290,13 @@ async def request_questions(
     )
     if focus:
         user += f"\n\nFocus on: {focus}"
+    if avoid:
+        user += (
+            "\n\nDo NOT repeat or closely rephrase any of these questions that "
+            "were already asked in this session. Write fresh questions with "
+            "different phrasing and different distractors:\n"
+            + "\n".join(f"- {stem[:180]}" for stem in avoid)
+        )
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},

@@ -6,7 +6,7 @@ from typing import Iterator
 
 from fastapi import Request
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 # fmt: off
 _DDL = """
@@ -123,7 +123,8 @@ CREATE TABLE IF NOT EXISTS feedback_actions (
 CREATE INDEX IF NOT EXISTS idx_feedback_session ON feedback_actions (session_id);
 
 CREATE TABLE IF NOT EXISTS mastery_topics (
-    topic            TEXT PRIMARY KEY,
+    session_id       TEXT NOT NULL DEFAULT '',
+    topic            TEXT NOT NULL,
     label            TEXT NOT NULL,
     confidence       REAL NOT NULL DEFAULT 0,
     observed_count   INTEGER NOT NULL DEFAULT 0,
@@ -133,7 +134,8 @@ CREATE TABLE IF NOT EXISTS mastery_topics (
     underconfident_count INTEGER NOT NULL DEFAULT 0,
     last_assessed_at TEXT,
     evidence_json    TEXT NOT NULL DEFAULT '[]',
-    notes            TEXT
+    notes            TEXT,
+    PRIMARY KEY (session_id, topic)
 );
 
 CREATE TABLE IF NOT EXISTS review_cards (
@@ -216,6 +218,36 @@ def init_db(db_path: Path) -> None:
             )
         for table, name, ddl in _MIGRATED_COLUMNS:
             _ensure_column(conn, table, name, ddl)
+        mastery_cols = {r[1] for r in conn.execute("PRAGMA table_info(mastery_topics)")}
+        if "session_id" not in mastery_cols:
+            conn.executescript(
+                """
+                ALTER TABLE mastery_topics RENAME TO mastery_topics_legacy;
+                CREATE TABLE mastery_topics (
+                    session_id       TEXT NOT NULL DEFAULT '',
+                    topic            TEXT NOT NULL,
+                    label            TEXT NOT NULL,
+                    confidence       REAL NOT NULL DEFAULT 0,
+                    observed_count   INTEGER NOT NULL DEFAULT 0,
+                    correct_count    INTEGER NOT NULL DEFAULT 0,
+                    idk_count        INTEGER NOT NULL DEFAULT 0,
+                    overconfident_count INTEGER NOT NULL DEFAULT 0,
+                    underconfident_count INTEGER NOT NULL DEFAULT 0,
+                    last_assessed_at TEXT,
+                    evidence_json    TEXT NOT NULL DEFAULT '[]',
+                    notes            TEXT,
+                    PRIMARY KEY (session_id, topic)
+                );
+                INSERT INTO mastery_topics (session_id, topic, label, confidence,
+                    observed_count, correct_count, idk_count, overconfident_count,
+                    underconfident_count, last_assessed_at, evidence_json, notes)
+                SELECT '', topic, label, confidence, observed_count, correct_count,
+                    idk_count, overconfident_count, underconfident_count,
+                    last_assessed_at, evidence_json, notes
+                FROM mastery_topics_legacy;
+                DROP TABLE mastery_topics_legacy;
+                """
+            )
         conn.execute(
             "UPDATE quiz_questions SET latency_ms = "
             "CAST(ROUND((julianday(answered_at) - julianday(created_at)) * 86400000) AS INTEGER) "

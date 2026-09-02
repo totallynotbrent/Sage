@@ -244,8 +244,8 @@ class SessionService(TurnMixin):
             except Exception:
                 return []
 
-    def _mastery_summary(self) -> str:
-        return summarize_mastery(self.conn)
+    def _mastery_summary(self, session_id: str) -> str:
+        return summarize_mastery(self.conn, session_id)
 
     def save_partial_marker(
         self, session_id: str, client_msg_id: str

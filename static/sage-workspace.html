@@ -64,6 +64,11 @@
 .rail-probe__title{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--meta);padding-bottom:var(--space-1)}
 .rail-probe .artifact-card{padding:var(--space-3)}
 .rail-probe .probe-actions{justify-content:center}
+/* Continue gate (issue #6): a single Continue button that reveals the question
+   cards only once pressed, so reading precedes the question and the per-question
+   latency timer starts at reveal. */
+.continue-gate{display:flex;justify-content:flex-start;align-items:center;gap:var(--space-2)}
+.continue-gate__btn{flex:0 0 auto}
 
 /* Mastery panel in the right rail */
 .mastery-panel{display:flex;flex-direction:column;gap:var(--space-2);padding:var(--space-3);border-bottom:1px solid var(--border);overflow-y:auto;flex-shrink:0}
@@ -1427,8 +1432,14 @@ function start_probe_batch(items, kind_label) {
       const sel = entry.card.dataset.selected;
       if (sel === '') return;
       const conf = entry.card.dataset.confidence || 'confident';
+      // Per-question latency (issue #2): time from the card being revealed
+      // (Continue pressed -> rendered_at) to THIS card being answered
+      // (answered_at). Each question reports its own retrieval time.
+      const answered_at = entry.card.dataset.answered_at
+        ? Number(entry.card.dataset.answered_at)
+        : performance.now();
       const latency_ms = entry.card.dataset.rendered_at
-        ? Math.round(performance.now() - Number(entry.card.dataset.rendered_at))
+        ? Math.round(answered_at - Number(entry.card.dataset.rendered_at))
         : 0;
       parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))} [${conf}] [${latency_ms}ms]`);
     });
@@ -1441,6 +1452,11 @@ function start_probe_batch(items, kind_label) {
     if (!send_btn) return;
     const open = entries.filter(entry => !entry.card.classList.contains('sent'));
     const answered = open.filter(entry => entry.card.dataset.selected !== '' && entry.card.dataset.confidence !== '');
+    answered.forEach(entry => {
+      if (!entry.card.dataset.answered_at) {
+        entry.card.dataset.answered_at = String(Math.round(performance.now()));
+      }
+    });
     send_btn.disabled = answered.length === 0;
     if (open.length > 0 && answered.length === open.length) submit();
   };
@@ -1585,6 +1601,10 @@ let activeTyper = null, activeTyperDone = null; // (kept: reserved for future st
 // interactive card AFTER the assistant response so the artifact follows the
 // narration instead of jumping ahead of it.
 let pendingCards = [];
+// Model-triggered review: cards arrive on the start_review tool_result and
+// are buffered (same ordering rule as check/probe cards) until the reply prose
+// finalizes, then rendered through the review card UI.
+let pendingReviewCards = [];
 
 // Remove a check question (stem + lettered options) from reply prose. The model
 // restates the question inside its narration AND returns it as a structured
@@ -1660,6 +1680,7 @@ async function sendMessage() {
   let meta_chunks = [];
   let citation_ids = [];
   pendingCards = [];           // fresh render queue per turn
+  pendingReviewCards = [];     // fresh review-card queue per turn
   streaming = true;
   sendBtn.style.display = 'none';
   if (stopBtn) stopBtn.style.display = 'grid';
@@ -1711,6 +1732,8 @@ async function sendMessage() {
           if (sl) sl.remove();
           if (ev.name === 'run_probe' && Array.isArray(ev.questions) && ev.questions.length) {
             pendingCards.push({ items: ev.questions, kind: 'probe' });
+          } else if (ev.name === 'start_review' && Array.isArray(ev.review_cards) && ev.review_cards.length) {
+            pendingReviewCards = pendingReviewCards.concat(ev.review_cards);
           } else if (ev.name === 'advance_lesson' && (ev.check_questions || ev.check_question)) {
             const checks = Array.isArray(ev.check_questions) && ev.check_questions.length ? ev.check_questions : (ev.check_question ? [ev.check_question] : []);
             if (checks.length) pendingCards.push({ items: checks, kind: 'check' });
@@ -1838,10 +1861,23 @@ async function sendMessage() {
   // Render queued quiz/check cards AFTER the response so the interactive
   // artifact follows the narration (and the question restated in prose above was
   // deduped away). This also fixes the "card appears before the reply" ordering.
+  if (pendingReviewCards.length) {
+    const rc = pendingReviewCards;
+    pendingReviewCards = [];
+    startReviewFromCards(rc);
+  }
   if (pendingCards.length) {
-    const to_render = pendingCards;
+    const batches = pendingCards;
     pendingCards = [];
-    to_render.forEach(({ items, kind }) => start_probe_batch(items, kind));
+    // Reading -> Continue -> question (issue #6): when the assistant produced
+    // narration, hold the questions behind an explicit Continue button so the
+    // learner reads first and the per-question timer starts only once the card
+    // is revealed. Tool-only turns (no prose) render the questions directly.
+    if (fullText) {
+      showContinueGate(() => batches.forEach(({ items, kind }) => start_probe_batch(items, kind)));
+    } else {
+      batches.forEach(({ items, kind }) => start_probe_batch(items, kind));
+    }
   }
   if (pending_probe_reply) {
     const reply = pending_probe_reply;
@@ -1874,35 +1910,43 @@ async function refreshSessionUI() {
 
 sendBtn?.addEventListener('click', sendMessage);
 
-/* ---- Spaced-repetition review (FSRS) ---- */
-let reviewActive = false;
+/* ---- Spaced-repetition review (FSRS), model-triggered (issue #3) ---- */
+// The learner-facing "Review N due" button was removed: review now starts only
+// when the model calls the start_review tool, which returns the due cards. This
+// renders them into the same interactive card UI and grades each via the
+// per-session /review/{card_id}/grade endpoint.
+function startReviewFromCards(cards) {
+  if (!Array.isArray(cards) || !cards.length) return;
+  const items = cards.map(c => {
+    const q = (c.question && c.question.question) ? c.question : { question: '(question unavailable)', options: ['I do not know'] };
+    const opts = Array.isArray(q.options) ? q.options.slice() : [];
+    if (!opts.some(o => /don'?t know/i.test(String(o)))) opts.push("I don't know");
+    return { question: q.question, options: opts, _card_id: c.card_id, _topic: c.topic };
+  });
+  startReviewBatch(items, 'REVIEW');
+}
 
-async function startReview() {
-  if (reviewActive || !sessionId) return;
-  reviewActive = true;
-  try {
-    const res = await fetch(`${API}/sessions/${sessionId}/review/due`, { method: 'POST' });
-    const data = await res.json().catch(() => ({ cards: [] }));
-    const cards = Array.isArray(data.cards) ? data.cards : [];
-    if (!cards.length) {
-      // Nothing due right now — surface a friendly toast instead of an empty deck.
-      showComposerToast('No review cards due right now. Sage will surface them as they mature.');
-      return;
-    }
-    // Render each due card's original question inline, reusing the probe card UI.
-    const items = cards.map(c => {
-      const q = (c.question && c.question.question) ? c.question : { question: '(question unavailable)', options: ['I do not know'] };
-      // Normalize: ensure an "I don't know" trailing option for grading.
-      const opts = Array.isArray(q.options) ? q.options.slice() : [];
-      if (!opts.some(o => /don'?t know/i.test(String(o)))) opts.push("I don't know");
-      return { question: q.question, options: opts, _card_id: c.card_id, _question_id: q.id, _topic: c.topic };
-    });
-    startReviewBatch(items);
-  } catch (e) {
-    showComposerToast('Could not load review cards.');
-  } finally {
-    reviewActive = false;
+
+// Reading -> Continue -> question (issue #6): shows a single Continue button
+// after the narration; the question cards render only once it is pressed, so
+// the learner reads first and the per-question latency timer starts at reveal.
+function showContinueGate(on_continue) {
+  const wrap = document.createElement('div');
+  wrap.className = 'probe-wrap continue-gate';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'probe-send continue-gate__btn';
+  btn.textContent = 'Continue';
+  btn.onclick = () => { wrap.remove(); on_continue(); };
+  wrap.appendChild(btn);
+  if (!box.querySelector('.probe-wrap')) {
+    const role = document.createElement('div');
+    role.className = 'msg__role';
+    role.textContent = 'Sage';
+    box.appendChild(role);
   }
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
 }
 
 function startReviewBatch(items, marker) {
@@ -1984,23 +2028,6 @@ async function gradeReviewBatch(grades) {
     done++;
   }
   showComposerToast(`Reviewed ${done} card${done === 1 ? '' : 's'}. Spacing them out so they stick.`);
-  maybeShowReviewChip();
-}
-
-async function maybeShowReviewChip() {
-  if (!sessionId || reviewActive) return;
-  try {
-    // Per-session status: this session's due cards only.
-    const res = await fetch(`${API}/sessions/${sessionId}/review/status`, { method: 'POST' });
-    const data = await res.json().catch(() => ({}));
-    if (data && data.due_cards > 0) {
-      setQuickChips([
-        { label: `Review · ${data.due_cards} due`, prompt: '', action: 'review' },
-      ]);
-      const chip = QUICK_CHIPS_EL?.querySelector('.quick-chip');
-      if (chip) chip.onclick = () => { if (!streaming) startReview(); };
-    }
-  } catch (e) { /* non-fatal */ }
 }
 
 function showComposerToast(text) {
@@ -2159,18 +2186,15 @@ sendMessage = async function () {
   finally {
     QUICK_CHIPS_EL?.querySelectorAll('.quick-chip').forEach(b => b.disabled = false);
     refreshChipsForPhase();
-    maybeShowReviewChip();
     renderMasteryPanel();
   }
 };
 // initial chips once DOM ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', refreshChipsForPhase);
-  document.addEventListener('DOMContentLoaded', maybeShowReviewChip);
   document.addEventListener('DOMContentLoaded', renderMasteryPanel);
 } else {
   refreshChipsForPhase();
-  maybeShowReviewChip();
   renderMasteryPanel();
 }
 document.addEventListener('DOMContentLoaded', () => {
@@ -2227,6 +2251,17 @@ async function loadSession(id) {
       document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
     } else { currentSessionFiles = []; }
     if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+    // Persist pending questions across a page refresh (issue #7): the server
+    // keeps unanswered probe/check questions in the DB; re-render them so a
+    // reload shows the SAME questions instead of regenerating them.
+    if (Array.isArray(data.quiz)) {
+      const pending = data.quiz.filter(q => q && q.status === 'pending');
+      if (pending.length) {
+        const byKind = {};
+        pending.forEach(q => { (byKind[q.kind] = byKind[q.kind] || []).push(q); });
+        Object.keys(byKind).forEach(kind => start_probe_batch(byKind[kind], kind));
+      }
+    }
     loadSessionsList();
   } catch (e) { console.error('Failed to load session:', e); }
 }

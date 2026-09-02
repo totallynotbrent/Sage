@@ -157,7 +157,7 @@ class TeachService:
                 "content": make_system_prompt(
                     session.model_dump(),
                     session.grounding_mode,
-                    self.sessions._mastery_summary(),
+                    self.sessions._mastery_summary(session_id),
                 ),
             },
             {"role": "user", "content": user},

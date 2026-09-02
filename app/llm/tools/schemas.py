@@ -55,7 +55,13 @@ _ACTIONS_PROP = {
     },
 }
 _LEARNING_TOOLS = frozenset(
-    {"run_probe", "grade_answer", "build_plan", "advance_lesson"}
+    {
+        "run_probe",
+        "grade_answer",
+        "build_plan",
+        "advance_lesson",
+        "start_review",
+    }
 )
 
 
@@ -83,8 +89,22 @@ TOOL_SCHEMAS = [
     ),
     _fn(
         "run_probe",
-        "Start the diagnostic probe: generates 3 adaptive multiple-choice "
-        "questions mapping what the learner already knows.",
+        "Start the diagnostic probe: generates adaptive multiple-choice "
+        "questions mapping what the learner already knows before teaching "
+        "begins. Call it ONLY when the session phase is 'setup' or 'probe' and "
+        "no real teaching has started yet. Do NOT fire it mid-lesson — "
+        "mid-lesson understanding is checked via advance_lesson "
+        "(passed_check=true/false), which issues the check questions.",
+        {},
+        [],
+    ),
+    _fn(
+        "start_review",
+        "Begin spaced-repetition review of the cards due for this session. "
+        "Call it when the learner is ready to review material that is due on "
+        "the forgetting schedule (Sage decides when review is timely); it "
+        "returns the due cards to present. If none are due it returns an "
+        "empty list.",
         {},
         [],
     ),
