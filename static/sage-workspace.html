@@ -508,12 +508,23 @@ try{ reconcile_sidebar(); }catch(e){}
   function applyRailDefault(){
     if(!railEl) return;
     if(mq.matches){ railEl.classList.add('closed'); }
-    else if (!railEl.dataset.userClosed) { railEl.classList.remove('closed'); }
+    else if (railEl.dataset.userClosed) { railEl.classList.add('closed'); }
+    else if (
+      !diagramBody.querySelector('.artifact-card') &&
+      !diagramBody.querySelector('.summary-card')
+    ) {
+      // Auto-hide an empty artifacts rail so the chat centers. It reopens when
+      // the model generates something (appendArtifact → openArtifactsRail).
+      railEl.classList.add('closed');
+    }
   }
   applyRailDefault();
   mq.addEventListener('change', e => {
     if(e.matches) railEl.classList.add('closed');
-    else if (!railEl.dataset.userClosed) railEl.classList.remove('closed');
+    else if (
+      !railEl.dataset.userClosed &&
+      (diagramBody.querySelector('.artifact-card') || diagramBody.querySelector('.summary-card'))
+    ) railEl.classList.remove('closed');
   });
 })();
 mobile_query.addEventListener('change', reconcile_sidebar);
@@ -804,6 +815,10 @@ function updateArtifactsCount() {
     !diagramBody.querySelector('.summary-card')
   ) {
     diagramBody.innerHTML = '<div class="diagram-panel__empty">Diagrams, quizzes, and checklists Sage generates will appear here.</div>';
+    // Auto-hide the artifacts sidebar while it has nothing generated (issue:
+    // empty rail pushed the chat off-center). It reopens when an artifact is
+    // appended (appendArtifact → openArtifactsRail).
+    diagramPanel.classList.add('closed');
   }
 }
 
