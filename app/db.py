@@ -6,7 +6,7 @@ from typing import Iterator
 
 from fastapi import Request
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # fmt: off
 _DDL = """
@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
     user_choice    INTEGER,
     outcome        TEXT,
     confidence     TEXT,
+    latency_ms     INTEGER,
     created_at     TEXT NOT NULL,
     answered_at    TEXT
 );
@@ -190,6 +191,7 @@ _MIGRATED_COLUMNS = (
     ("chunks", "label", "label TEXT"),
     ("quiz_questions", "source_ref", "source_ref TEXT"),
     ("quiz_questions", "confidence", "confidence TEXT"),
+    ("quiz_questions", "latency_ms", "latency_ms INTEGER"),
     ("mastery_topics", "overconfident_count", "overconfident_count INTEGER NOT NULL DEFAULT 0"),
     ("mastery_topics", "underconfident_count", "underconfident_count INTEGER NOT NULL DEFAULT 0"),
 )
@@ -214,6 +216,11 @@ def init_db(db_path: Path) -> None:
             )
         for table, name, ddl in _MIGRATED_COLUMNS:
             _ensure_column(conn, table, name, ddl)
+        conn.execute(
+            "UPDATE quiz_questions SET latency_ms = "
+            "CAST(ROUND((julianday(answered_at) - julianday(created_at)) * 86400000) AS INTEGER) "
+            "WHERE latency_ms IS NULL AND created_at IS NOT NULL AND answered_at IS NOT NULL"
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_files_subject ON files (subject)")
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_files_source_path ON files (source_path)"

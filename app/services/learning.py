@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime
 
 from app.config import Settings
 from app.db import rows_to_dicts
@@ -15,6 +16,22 @@ from app.services.teach import TeachService
 from app.util import new_id, utc_now
 
 IDK_OPTION = "I don't know"
+
+
+def _timestamp_gap_ms(created_at: str | None, answered_at: str | None) -> int | None:
+    """Server-side latency fallback: the created_at→answered_at gap.
+
+    Used when no UI latency came through (e.g. latency badge dropped in the
+    model relay), so retrieval effort still reaches mastery scheduling.
+    """
+    if not created_at or not answered_at:
+        return None
+    try:
+        start = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        end = datetime.fromisoformat(answered_at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return max(0, int(round((end - start).total_seconds() * 1000)))
 
 
 class LearningService:
@@ -34,7 +51,7 @@ class LearningService:
         confidence) drills harder with up to 3 mixed questions.
         """
         recent = self.conn.execute(
-            "SELECT outcome FROM quiz_questions "
+            "SELECT outcome, latency_ms FROM quiz_questions "
             "WHERE session_id = ? AND kind IN ('probe','check') AND outcome IS NOT NULL "
             "AND answered_at IS NOT NULL ORDER BY answered_at DESC, rowid DESC LIMIT 2",
             (session_id,),
@@ -47,6 +64,9 @@ class LearningService:
             and not miss
             and confidence is not None
             and confidence >= 0.6
+            and all(
+                not mastery.is_slow_answer(r["latency_ms"]) for r in recent
+            )
         )
         stalling = miss or (confidence is not None and confidence < 0.35)
         if stalling:
@@ -130,6 +150,44 @@ class LearningService:
         return {
             "session": self.sessions.get(session_id).model_dump(),
             "questions": self._pending_questions(session_id, "check"),
+        }
+
+    async def generate_pretest(self, session_id: str, llm) -> dict:
+        """Fire one diagnostic question on the current node before teaching it.
+
+        A wrong guess primes encoding of the explanation that follows
+        (pretesting effect). The session phase is left untouched so the
+        teach/check flow proceeds normally around the pending card.
+        """
+        session = self.sessions.get(session_id)
+        existing = self._pending_questions(session_id, "pretest")
+        if existing:
+            return {"session": session.model_dump(), "questions": existing}
+        self._delete_pending_questions(session_id, "pretest")
+        topic = self._current_node_title(session) or session.goal
+        chunks = self.sessions._select_chunks(session, "pretest question")
+        questions = await request_questions(
+            llm,
+            session=session.model_dump(),
+            chunks=chunks,
+            mastery_summary=self.sessions._mastery_summary(),
+            mode=session.grounding_mode,
+            count=1,
+            focus=topic,
+        )
+        if not questions:
+            error = ModelOutputError("The model returned no usable pretest question.")
+            error.retryable = True
+            raise error
+        # A pretest is defined as exactly one diagnostic question; never let a
+        # verbose model dump extras into the pending queue.
+        questions = questions[:1]
+        for question in questions:
+            question.topic = topic
+            self._insert_question(session_id, "pretest", question)
+        return {
+            "session": self.sessions.get(session_id).model_dump(),
+            "questions": self._pending_questions(session_id, "pretest"),
         }
 
     async def review_learner_questions(
@@ -218,6 +276,7 @@ class LearningService:
         choice_index: int | None = None,
         idk: bool = False,
         confidence: str | None = None,
+        latency_ms: int | None = None,
     ) -> dict:
         if confidence is not None and confidence not in mastery.CONFIDENCE_LEVELS:
             raise ValueError(
@@ -265,14 +324,19 @@ class LearningService:
                 return self._answer_response(session_id, question, question["outcome"])
 
         now = utc_now()
+        latency_ms = mastery.coerce_latency_ms(latency_ms)
+        if latency_ms is None:
+            latency_ms = _timestamp_gap_ms(question["created_at"], now)
         claimed = self.conn.execute(
             "UPDATE quiz_questions SET status = 'answered', user_choice = ?, outcome = ?, "
-            "answered_at = ?, confidence = ? WHERE id = ? AND session_id = ? AND status IS ? AND outcome IS ?",
+            "answered_at = ?, confidence = ?, latency_ms = ? "
+            "WHERE id = ? AND session_id = ? AND status IS ? AND outcome IS ?",
             (
                 choice,
                 outcome,
                 now,
                 confidence,
+                latency_ms,
                 question_id,
                 session_id,
                 question["status"],
@@ -298,6 +362,7 @@ class LearningService:
                 "outcome": outcome,
                 "answered_at": now,
                 "confidence": confidence,
+                "latency_ms": latency_ms,
             }
         )
         source = (
@@ -312,6 +377,7 @@ class LearningService:
             outcome,
             question_id=question_id,
             confidence=confidence,
+            latency_ms=latency_ms,
         )
         # Register / reschedule an FSRS review card so material is spaced over time.
         try:
@@ -324,6 +390,7 @@ class LearningService:
                 question_id=question_id,
                 kind=question["kind"],
                 outcome=outcome,
+                latency_ms=latency_ms,
             )
         except Exception:
             # Review scheduling is best-effort; never block grading on it.

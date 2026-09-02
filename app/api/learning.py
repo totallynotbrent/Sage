@@ -78,6 +78,7 @@ async def answer_quiz(
             body.choice_index,
             body.idk,
             body.confidence,
+            body.latency_ms,
         )
     except ValueError as exc:
         raise handle_value_error(exc)

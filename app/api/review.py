@@ -68,7 +68,12 @@ async def grade_review(
             status_code=400,
             detail="outcome must be one of: correct, incorrect, idk",
         )
-    updated = review_service.grade_card(conn, card_id, session_id, outcome)
+    from app.services import mastery as mastery_service
+
+    latency_ms = mastery_service.coerce_latency_ms((body or {}).get("latency_ms"))
+    updated = review_service.grade_card(
+        conn, card_id, session_id, outcome, latency_ms=latency_ms
+    )
     if updated is None:
         raise HTTPException(status_code=404, detail="review card not found")
     status = review_service.review_status(conn, session_id)

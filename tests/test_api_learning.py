@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 
 
 def _create_session(client, goal="learn algebra"):
@@ -96,6 +97,31 @@ def test_answer_endpoint_grading_and_replay(client, override_llm):
     full = client.get(f"/api/sessions/{session['id']}").json()
     topic = next(m for m in full["mastery"] if m["topic"] == "topic-0")
     assert topic["observed_count"] == 1
+    assert topic["correct_count"] == 1
+
+
+def test_answer_endpoint_records_latency(client, override_llm, settings):
+    session = _create_session(client)
+    override_llm.complete_json_responses = [json.dumps(_good_questions())]
+    questions = _probe(client, session["id"])["questions"]
+    question_id = questions[0]["id"]
+
+    response = client.post(
+        f"/api/sessions/{session['id']}/quiz/{question_id}/answer",
+        json={"choice_index": 1, "latency_ms": 15_000},
+    )
+    assert response.status_code == 200
+
+    conn = sqlite3.connect(str(settings.db_path))
+    row = conn.execute(
+        "SELECT latency_ms FROM quiz_questions WHERE id = ?", (question_id,)
+    ).fetchone()
+    conn.close()
+    assert row[0] == 15_000
+    # Slow-but-correct weakens the mastery row: 1 implicit observed event.
+    full = client.get(f"/api/sessions/{session['id']}").json()
+    topic = next(m for m in full["mastery"] if m["topic"] == "topic-0")
+    assert topic["observed_count"] == 2
     assert topic["correct_count"] == 1
 
 

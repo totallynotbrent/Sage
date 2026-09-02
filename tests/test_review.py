@@ -101,3 +101,67 @@ def test_lowest_confidence_topics_excludes_current(conn, settings):
     topics = [w["topic"] for w in weak]
     assert "algebra" not in topics
     assert topics[0] in ("calculus", "geometry")
+
+
+def test_fresh_slow_correct_seeds_lower_stability(conn, settings):
+    session = _session(conn, settings)
+    fast = review_service.register_card(
+        conn, session.id, "derivatives", "q1", "check", "correct", latency_ms=1000
+    )
+    slow = review_service.register_card(
+        conn, session.id, "derivatives", "q2", "check", "correct", latency_ms=15_000
+    )
+    # Initial stability is seeded lower for the effortful recall.
+    assert slow["stability"] < fast["stability"]
+    # And the next stability-derived review comes back sooner: answering both
+    # cards correctly again schedules the slow card's interval from the scaled
+    # stability, so it lands at or before the fast card.
+    review_service.register_card(
+        conn, session.id, "derivatives", "q1", "check", "correct"
+    )
+    slow2 = review_service.register_card(
+        conn, session.id, "derivatives", "q2", "check", "correct"
+    )
+    fast2 = review_service.get_card(conn, fast["card_id"], session.id)
+    assert slow2["due"] <= fast2["due"]
+
+
+def test_grade_card_accepts_latency(conn, settings):
+    session = _session(conn, settings)
+    card = review_service.register_card(
+        conn, session.id, "vectors", "q9", "check", "correct"
+    )
+    updated = review_service.grade_card(
+        conn, card["card_id"], session.id, "incorrect", latency_ms=12_000
+    )
+    assert updated is not None
+    assert updated["lapses"] == 1
+    assert updated["reps"] == 2
+
+
+def test_latency_column_migrates_and_backfills(settings):
+    from app.db import init_db
+
+    init_db(settings.db_path)
+    conn = sqlite3.connect(str(settings.db_path))
+    conn.execute(
+        "INSERT INTO quiz_questions (id, session_id, kind, question, options_json, "
+        "correct_index, status, created_at, answered_at) "
+        "VALUES ('q-legacy', 's1', 'probe', 'Old Q?', '[\"a\"]', 0, 'answered', "
+        "'2026-01-01T10:00:00.000Z', '2026-01-01T10:00:05.500Z')"
+    )
+    conn.commit()
+    conn.close()
+    # Second pass runs the migration/backfill over existing rows.
+    init_db(settings.db_path)
+    conn = sqlite3.connect(str(settings.db_path))
+    conn.row_factory = sqlite3.Row
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(quiz_questions)")}
+    assert "latency_ms" in cols
+    version = conn.execute("SELECT version FROM schema_version").fetchone()["version"]
+    assert version == 4
+    row = conn.execute(
+        "SELECT latency_ms FROM quiz_questions WHERE id = 'q-legacy'"
+    ).fetchone()
+    assert row["latency_ms"] == 5500
+    conn.close()

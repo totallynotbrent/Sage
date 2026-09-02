@@ -1254,6 +1254,7 @@ function build_probe_card(question, ordinal, marker_text, on_select) {
   card.dataset.kind = 'quiz';
   card.dataset.ordinal = String(ordinal);
   card.dataset.selected = '';
+  card.dataset.rendered_at = String(Math.round(performance.now()));
   card.setAttribute('aria-label', `Question ${ordinal}`);
   const marker = document.createElement('span');
   marker.className = 'artifact-card__marker';
@@ -1426,7 +1427,10 @@ function start_probe_batch(items, kind_label) {
       const sel = entry.card.dataset.selected;
       if (sel === '') return;
       const conf = entry.card.dataset.confidence || 'confident';
-      parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))} [${conf}]`);
+      const latency_ms = entry.card.dataset.rendered_at
+        ? Math.round(performance.now() - Number(entry.card.dataset.rendered_at))
+        : 0;
+      parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))} [${conf}] [${latency_ms}ms]`);
     });
     if (!parts.length) return;
     entries.forEach(entry => entry.card.classList.add('sent'));
@@ -1915,7 +1919,10 @@ function startReviewBatch(items, marker) {
       const isIdk = /don'?t know/i.test(String(entry.item.options[Number(sel)] || ''));
       const isCorrect = Number(sel) === entry.item._correct_index;
       const outcome = isIdk ? 'idk' : (isCorrect ? 'correct' : 'incorrect');
-      grades.push({ card_id: entry.item._card_id, outcome });
+      const latency_ms = entry.card.dataset.rendered_at
+        ? Math.round(performance.now() - Number(entry.card.dataset.rendered_at))
+        : null;
+      grades.push({ card_id: entry.item._card_id, outcome, latency_ms });
     });
     entries.forEach(entry => entry.card.classList.add('sent'));
     send_btn.disabled = true;
@@ -1971,7 +1978,7 @@ async function gradeReviewBatch(grades) {
       await fetch(`${API}/sessions/${sessionId}/review/${g.card_id}/grade`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ outcome: g.outcome }),
+        body: JSON.stringify({ outcome: g.outcome, latency_ms: g.latency_ms }),
       });
     } catch (e) { /* best-effort */ }
     done++;
