@@ -28,14 +28,21 @@ services:
         set -e
         apt-get update -qq && apt-get install -y -qq git nodejs npm curl >/dev/null 2>&1
         if [ ! -f /app/requirements.txt ]; then
-          git clone --depth 1 https://github.com/totallynotbrent/sage.git /app
+          # Clone into /tmp first, then cp -rn into /app so this works even when
+          # /app is an existing (non-empty) bind mount — a direct `git clone /app`
+          # would fail on an existing dir, leaving the app missing at first boot.
+          [ -d /app/.git ] || (rm -rf /tmp/sage && git clone https://github.com/totallynotbrent/sage.git /tmp/sage && cp -rn /tmp/sage/. /app/ && rm -rf /tmp/sage)
         fi
         cd /app
+        # Pull latest code on every (re)start so a simple `docker restart sage`
+        # picks up updates pushed by the maintainer.
+        git fetch origin main
+        git reset --hard origin/main
         python -m venv /app/.venv
         /app/.venv/bin/pip install -q -r /app/requirements.txt
         /app/.venv/bin/python -m pip install -q uvicorn
         if [ ! -d /app/node_modules ]; then npm ci --silent --ignore-scripts --no-audit --no-fund; fi
-        exec /app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+        exec env PYTHONPATH=/app /app/.venv/bin/uvicorn app.main:app --app-dir /app --host 0.0.0.0 --port 8000
     networks:
       - ollama-nvidia_default
 
