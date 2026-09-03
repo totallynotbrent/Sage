@@ -15,7 +15,16 @@ from app.services.sessions.rows import plan_node_dict, question_dict
 from app.services.sessions.turn import TurnMixin
 from app.util import new_id, utc_now
 
-PHASES = ("setup", "probe", "plan", "teach", "check", "remediate", "complete")
+PHASES = (
+    "setup",
+    "probe",
+    "plan",
+    "teach",
+    "check",
+    "remediate",
+    "final_quiz",
+    "complete",
+)
 
 GROUNDING_MODES: set[str] = {"strict", "grounded"}
 
