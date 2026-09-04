@@ -30,8 +30,9 @@
         });
       }
       setTimeout(slowText, 60);   // after the shared module wraps the hero words
-      var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.75, HOLD = 40;
-      var RF_BASE = 0.06;                              // starting render res = big pixels
+      var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.62, HOLD = 40;
+      var RF_BASE = 0.04;                              // starting render res = big pixels (held briefly)
+      var RF_HOLD = 0.12;                              // fraction of the sweep to keep the big-pixel start
       function easeOutCirc(t) { return Math.sqrt(1 - Math.pow(t - 1, 2)); }
       function fullRes() {
         var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -104,10 +105,14 @@
           bg.style.opacity = '0';
           function frame() {
             var t = (i + 1) / steps;
-            var e = easeOutCirc(t);                    // ease-out on everything
-            // Color count (eased), pixel/resolution (eased), fade (eased).
+            var e = easeOutCirc(t);                    // ease-out on color + fade
+            // Color count (eased) + fade (eased).
             var k = Math.max(MINC, Math.min(K, Math.round(MINC + (K - MINC) * e)));
-            var rf = RF_BASE + (1 - RF_BASE) * e;      // big pixels -> full resolution
+            // Pixel/resolution: hold the big-pixel start for the first RF_HOLD,
+            // then ease out to full so the opening blocks are genuinely big.
+            var rf = t < RF_HOLD
+              ? RF_BASE
+              : RF_BASE + (1 - RF_BASE) * easeOutCirc((t - RF_HOLD) / (1 - RF_HOLD));
             bg.width = Math.max(64, Math.round(s.W * rf));
             bg.height = Math.max(64, Math.round(s.H * rf));
             var dc = D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { paletteC: resolvePal(pal, k, TARGET) }));
@@ -223,7 +228,7 @@
        background behind the app, dark window-edge vignette, slowed text entrance,
        and shadows so text/boxes stay readable. */
     #home-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;object-fit:cover;image-rendering:pixelated;background:var(--standard-bg,#181825);pointer-events:none}
-    #home-vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(120% 120% at 50% 45%, rgba(24,23,36,0) 42%, rgba(24,23,36,0.6) 100%)}
+    #home-vignette{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(130% 130% at 50% 45%, rgba(24,23,36,0) 34%, rgba(24,23,36,0.82) 100%)}
     .app{position:relative;z-index:2}
     .word,.toast-in{animation-duration:680ms}
     .main,.chat,.chat__messages,.input-bar{background:transparent}
