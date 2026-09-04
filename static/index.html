@@ -76,41 +76,36 @@
         crop.getContext('2d').drawImage(img, r.sx, r.sy, r.sw, r.sh, 0, 0, crop.width, crop.height);
         return crop;
       }
-      // Resolve the dithered background: LINEAR color count 1 -> 50 (every level,
-      // single extract), fading up to 75% opacity so it stays a little dark.
+      // Resolve the dithered background: color count 1->50 AND pixel (cell) size
+      // 1->2 animate together, EVERY frame rendered at FULL resolution (no low-res
+      // preview, so there's no instantaneous resolution jump at the end), fading
+      // to 75% opacity. Grain is applied once on the final frame.
       function start() {
         var s = fullRes();
-        var pScale = Math.min(0.5, 460 / Math.max(s.W, s.H));
-        var Wp = Math.max(64, Math.round(s.W * pScale)), Hp = Math.max(64, Math.round(s.H * pScale));
         D.loadImage('wallpaper.jpg').then(function (img) {
           var iw = img.width, ih = img.height;
           var crop = buildCrop(img, iw, ih, s);
-          var cropS = document.createElement('canvas');
-          cropS.width = Wp; cropS.height = Hp;
-          cropS.getContext('2d').drawImage(crop, 0, 0, Wp, Hp);
           var pal = ensurePal(D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 }), TARGET);
           var K = Math.max(MINC, pal.length), steps = K - MINC + 1, i = 0;
-          bg.width = Wp; bg.height = Hp;
+          bg.width = s.W; bg.height = s.H;
           bg.style.opacity = '0';
           function frame() {
-            var k = MINC + i;                            // linear: every count, no skip
+            var k = MINC + i;                        // linear color count 1..50
+            var f = (k - MINC) / (K - MINC);         // 0..1
+            var cell = Math.max(1, Math.round(1 + f)); // pixel size 1 -> 2
             var t = (i + 1) / steps;
-            var dc = D.ditherInto(bg, cropS, Object.assign({}, DITHER_BASE, { paletteC: resolvePal(pal, k, TARGET) }));
+            var dc = D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { cell: cell, paletteC: resolvePal(pal, k, TARGET) }));
             return dc.then(function () {
               bg.style.opacity = String((0.06 + (FINAL_OPACITY - 0.06) * t).toFixed(3));
               i++;
-              if (i >= steps) return new Promise(function (r) { setTimeout(r, HOLD); }).then(function () { return settle(s, crop, pal); });
+              if (i >= steps) return new Promise(function (r) { setTimeout(r, HOLD); }).then(function () {
+                D.applyNoise(bg, NOISE);
+                bg.style.opacity = String(FINAL_OPACITY);
+              });
               return new Promise(function (r) { setTimeout(r, HOLD); }).then(frame);
             });
           }
           return frame();
-        });
-      }
-      function settle(s, crop, pal) {
-        bg.width = s.W; bg.height = s.H;
-        return D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { paletteC: pal })).then(function () {
-          D.applyNoise(bg, NOISE);
-          bg.style.opacity = String(FINAL_OPACITY);
         });
       }
       start();
@@ -123,7 +118,11 @@
             var iw = img.width, ih = img.height;
             var crop = buildCrop(img, iw, ih, s);
             var pal = ensurePal(D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 }), TARGET);
-            settle(s, crop, pal);
+            bg.width = s.W; bg.height = s.H;
+            return D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { paletteC: pal })).then(function () {
+              D.applyNoise(bg, NOISE);
+              bg.style.opacity = String(FINAL_OPACITY);
+            });
           });
         }, 200);
       });
