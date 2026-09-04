@@ -22,16 +22,27 @@
       var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.75, HOLD = 24;
       function fullRes() {
         var dpr = Math.min(window.devicePixelRatio || 1, 2);
-        return { W: Math.min(Math.round(innerWidth * dpr), 1920), H: Math.min(Math.round(innerHeight * dpr), 1920) };
+        var W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
+        var sc = Math.min(1, 1920 / Math.max(W, H));   // cap while KEEPING aspect
+        return { W: Math.round(W * sc), H: Math.round(H * sc) };
       }
       var DITHER_BASE = { cell: 2, mode: 'bayer', kernel: 'burkes', serpentine: false, matrix: 16 };
       var NOISE = { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' };
-      // Sample k tones evenly across the palette; guard the 1-color start.
-      function resolvePal(pal, k) {
+      // Sample k tones from a tonal WINDOW that widens LINEARLY with the count
+      // (spread = k/target). Early counts are low-contrast and the range grows
+      // evenly all the way to full, so every level adds visibly new tone without
+      // an exponential burst — linear, not jittery, and no 'skips halfway'.
+      function resolvePal(pal, k, target) {
         var L = pal.length;
-        if (k <= 1) return [pal[0]];
-        if (k >= L) return pal.slice();
-        var o = []; for (var j = 0; j < k; j++) o.push(pal[Math.round((L - 1) * j / (k - 1))]);
+        if (k <= 1) return [pal[Math.round(L / 2)]];
+        if (k >= target) return pal.slice();
+        var spread = k / target;
+        var mid = (L - 1) / 2;
+        var lo = Math.max(0, Math.floor(mid - mid * spread));
+        var hi = Math.min(L - 1, Math.ceil(mid + mid * spread));
+        var span = Math.max(1, hi - lo);
+        var o = [];
+        for (var j = 0; j < k; j++) o.push(pal[lo + Math.round(span * j / (k - 1))]);
         return o;
       }
       // Guarantee an exact TARGET-color palette: the extractor can return fewer
@@ -89,7 +100,7 @@
           function frame() {
             var k = MINC + i;                            // linear: every count, no skip
             var t = (i + 1) / steps;
-            var dc = D.ditherInto(bg, cropS, Object.assign({}, DITHER_BASE, { paletteC: resolvePal(pal, k) }));
+            var dc = D.ditherInto(bg, cropS, Object.assign({}, DITHER_BASE, { paletteC: resolvePal(pal, k, TARGET) }));
             return dc.then(function () {
               bg.style.opacity = String((0.06 + (FINAL_OPACITY - 0.06) * t).toFixed(3));
               i++;
