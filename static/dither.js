@@ -140,10 +140,10 @@
 
   function buildPalette(img, opt) {
     let pal;
-    if (opt.palette === 'extract') pal = extractAuto(img, clamp(opt.colors, 2, 40));
+    if (opt.palette === 'extract') pal = extractAuto(img, clamp(opt.colors, 2, 50));
     else {
       const p = PALETTES[opt.palette] || PALETTES.rosepine;
-      pal = quantizeLevels(clamp(opt.colors, 2, 40), p.dark, p.light);
+      pal = quantizeLevels(clamp(opt.colors, 2, 50), p.dark, p.light);
     }
     return applySaturation(pal, opt.saturation == null ? 1 : clamp(opt.saturation, 0, 2));
   }
@@ -170,7 +170,7 @@
       c.drawImage(img, 0, 0, w, h);
       const d = c.getImageData(0, 0, w, h).data;
       try {
-        const quant = new rq({ colors: clamp(k, 2, 40) });
+        const quant = new rq({ colors: clamp(k, 2, 50) });
         quant.reduce(d, w);
         const raw = quant.palette(true);
         const out = [];
@@ -498,5 +498,6 @@
   global.dither = {
     renderBase, renderCover, applyNoise, paint, placeholder, bayer, PALETTES,
     extractPalette, extractAuto, applySaturation, quantizeLevels, DIFFUSION_KERNELS, controlBar,
+    ditherInto, buildPalette, loadImage,
   };
 })(window);
