@@ -12,26 +12,55 @@
   <script src="RgbQuant.js"></script>
   <script src="dither.js"></script>
   <script>
-    // Home-screen experiment: full-bleed ordered-dither background (left-anchored),
-    // readable via shadows. On the feature/homepage-dither branch — rollback by
-    // checking out main.
+    // Home-screen experiment (feature/homepage-dither): full-bleed ordered-dither
+    // background, left-anchored, with a colors bloom intro (2 -> 40, easeInOutCirc).
+    // Rollback = git checkout main.
     document.addEventListener('DOMContentLoaded', function () {
       var bg = document.getElementById('home-bg');
       if (!bg || !window.dither) return;
-      function draw() {
-        var dpr = Math.min(window.devicePixelRatio || 1, 2);
-        var W = Math.min(Math.round(innerWidth * dpr), 1920);
-        var H = Math.min(Math.round(innerHeight * dpr), 1920);
-        dither.renderCover(bg, 'wallpaper.jpg', {
-          width: W, height: H,
-          cell: 2, mode: 'bayer', kernel: 'burkes', serpentine: false, matrix: 16,
-          colors: 40, palette: 'extract', saturation: 0.6, anchor: 0,
-          noise: { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' }
-        }).catch(function () { bg.style.display = 'none'; });
+      var TARGET = 40, MINC = 2;
+      function easeInOutCirc(t) {
+        return t < 0.5 ? 0.5 * (1 - Math.sqrt(1 - Math.pow(2 * t, 2)))
+          : 0.5 * (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1);
       }
-      draw();
+      function renderStep(c, w, h) {
+        return dither.renderCover(bg, 'wallpaper.jpg', {
+          width: w, height: h,
+          cell: 2, mode: 'bayer', kernel: 'burkes', serpentine: false, matrix: 16,
+          colors: c, palette: 'extract', saturation: 0.6, anchor: 0,
+          noise: { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' }
+        });
+      }
+      function fullRes() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        return { W: Math.min(Math.round(innerWidth * dpr), 1920), H: Math.min(Math.round(innerHeight * dpr), 1920) };
+      }
+      // Colors bloom: resolve 2 -> 40 at a downscaled res for speed, then settle at full res.
+      function bloom() {
+        var s = fullRes(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var lw = Math.round(Math.min(s.W, dpr * 640)), lh = Math.round(Math.min(s.H, dpr * 640));
+        var steps = 10, i = 0;
+        function frame() {
+          var t = (i + 1) / steps, e = easeInOutCirc(t);
+          var c = Math.max(MINC, Math.round(MINC + (TARGET - MINC) * e));
+          return renderStep(c, lw, lh).then(function () {
+            bg.style.opacity = String(0.1 + 0.9 * t);
+            i++;
+            return i < steps ? frame() : renderStep(TARGET, s.W, s.H);
+          }).then(function () { bg.style.opacity = '1'; });
+        }
+        return frame();
+      }
+      bg.style.opacity = '0';
+      bloom().catch(function () { bg.style.display = 'none'; });
       var t;
-      addEventListener('resize', function () { clearTimeout(t); t = setTimeout(draw, 200); });
+      addEventListener('resize', function () {
+        clearTimeout(t);
+        t = setTimeout(function () {
+          var s = fullRes();
+          renderStep(TARGET, s.W, s.H).catch(function () {});
+        }, 200);
+      });
     });
   </script>
 <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},startup:{pageReady:()=>MathJax.startup.defaultPageReady()}}</script>
@@ -113,6 +142,7 @@
        background behind the app, shadows so text/boxes stay readable on it. */
     #home-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;object-fit:cover;image-rendering:pixelated;background:var(--standard-bg,#181825);pointer-events:none}
     .app{position:relative;z-index:1}
+    .main,.chat,.chat__messages,.input-bar{background:transparent}
     .hero h1{text-shadow:0 2px 18px rgba(0,0,0,.85),0 1px 4px rgba(0,0,0,.8)}
     .hero p{text-shadow:0 1px 12px rgba(0,0,0,.92),0 0 2px rgba(0,0,0,.6)}
     .composer-toolbar__status{text-shadow:0 1px 6px rgba(0,0,0,.9)}
