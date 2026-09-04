@@ -19,8 +19,9 @@
       var bg = document.getElementById('home-bg');
       if (!bg || !window.dither) return;
       var D = window.dither;
-      var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.75, HOLD = 60;
-      var CELL_END = 2;                                  // final pixel size (the value you set)
+      var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.75, HOLD = 40;
+      var RF_BASE = 0.06;                              // starting render res = big pixels
+      function easeOutCirc(t) { return Math.sqrt(1 - Math.pow(t - 1, 2)); }
       function fullRes() {
         var dpr = Math.min(window.devicePixelRatio || 1, 2);
         var W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
@@ -91,16 +92,16 @@
           bg.width = s.W; bg.height = s.H;
           bg.style.opacity = '0';
           function frame() {
-            var k = MINC + i;                    // linear color count 1..50
-            var f = (k - MINC) / (K - MINC);     // 0..1
-            // Pixel size starts at ~one big pixel (full width) and refines LINEARLY
-            // down to CELL_END as the colors resolve — resolution reveals through the
-            // whole sweep, including the back half where the palette saturates.
-            var cell = Math.max(1, Math.round(s.W + (CELL_END - s.W) * f));
             var t = (i + 1) / steps;
-            var dc = D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { cell: cell, paletteC: resolvePal(pal, k, TARGET) }));
+            var e = easeOutCirc(t);                    // ease-out on everything
+            // Color count (eased), pixel/resolution (eased), fade (eased).
+            var k = Math.max(MINC, Math.min(K, Math.round(MINC + (K - MINC) * e)));
+            var rf = RF_BASE + (1 - RF_BASE) * e;      // big pixels -> full resolution
+            bg.width = Math.max(64, Math.round(s.W * rf));
+            bg.height = Math.max(64, Math.round(s.H * rf));
+            var dc = D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { paletteC: resolvePal(pal, k, TARGET) }));
             return dc.then(function () {
-              bg.style.opacity = String((0.06 + (FINAL_OPACITY - 0.06) * t).toFixed(3));
+              bg.style.opacity = String((0.06 + (FINAL_OPACITY - 0.06) * e).toFixed(3));
               i++;
               if (i >= steps) return new Promise(function (r) { setTimeout(r, HOLD); }).then(function () {
                 D.applyNoise(bg, NOISE);
