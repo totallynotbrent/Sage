@@ -40,9 +40,9 @@
       // so the framing never shifts mid-animation; then settle at full res.
       function bloom() {
         var s = fullRes();
-        var scale = Math.min(0.64, 640 / Math.max(s.W, s.H));
+        var scale = Math.min(0.5, 480 / Math.max(s.W, s.H));
         var lw = Math.max(64, Math.round(s.W * scale)), lh = Math.max(64, Math.round(s.H * scale));
-        var steps = 14, hold = 200, i = 0;
+        var steps = 12, hold = 100, i = 0;
         function frame() {
           var t = (i + 1) / steps, e = easeInOutCirc(t);
           var c = Math.max(MINC, Math.round(MINC + (TARGET - MINC) * e));
