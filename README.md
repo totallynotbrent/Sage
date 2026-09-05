@@ -367,3 +367,24 @@ erDiagram
         text last_error "JSON warnings from last scan"
     }
 ```
+
+## Homepage background experiment (feature/homepage-dither)
+
+Served from `static/index.html` on the `feature/homepage-dither` branch (NOT
+on main). Adds a full-bleed ordered-dither wallpaper behind the home hero,
+rendering inline via the vendored engine `static/dither.js` +
+`static/RgbQuant.js` (MIT), with a color-count (1→50) + resolution intro,
+edge vignette, and slowed text entrance. Rollback = `git checkout main`.
+
+Notes:
+- Default dither config lives as `dither_base` in the inline renderer
+  (cell 2, bayer 16, burkes, extract palette, saturation 0.6, subtract grain).
+- Export surface is snake_case (`dither_into`, `build_palette`, `apply_noise`,
+  `load_image`); engine internals and the vendored RgbQuant keep their original
+  names.
+- The mobile_query/resize paths re-render the final frame; run `node --check`
+  after any edit to `static/dither.js` or the inline script.
+
+## License
+
+Sage is licensed under the GNU Affero General Public License v3.0. See the LICENSE file in the repository root.
