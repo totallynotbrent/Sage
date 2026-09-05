@@ -9,7 +9,7 @@ configuration:
   analytics:
     provider: plausible
   locale: en-US
-  baseUrl: totallynotbrent.github.io/sage
+  baseUrl: totallynotbrent.github.io/Sage
   ignorePatterns:
     - private
     - templates
