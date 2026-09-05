@@ -59,15 +59,14 @@ def test_advance_marks_done_and_moves(conn, settings):
     assert result["session"]["nodes_since_check"] == 1
 
 
-def test_advance_check_due_after_two_nodes(conn, settings):
+def test_advance_never_flags_check_due(conn, settings):
     session = _teach_session(conn, settings)
     service = TeachService(conn, settings)
     first = service.advance(session.id)
     assert first["check_due"] is False
     second = service.advance(session.id)
     assert second["node"]["id"] == "n3"
-    assert second["check_due"] is True
-    assert second["session"]["nodes_since_check"] == 2
+    assert second["check_due"] is False
 
 
 def test_advance_completes_plan(conn, settings):
