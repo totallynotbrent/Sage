@@ -20,7 +20,7 @@
       const D = window.dither;
 
       const target = 50;
-      const min_count = 1;
+      const min_count = 3;
       const final_opacity = 0.62;
       const hold = 40;
       const rf_base = 0.04;
@@ -29,6 +29,7 @@
 
       function ease_out_circ(t) { return Math.sqrt(1 - Math.pow(t - 1, 2)); }
       function ease_out_quart(t) { return 1 - Math.pow(1 - t, 4); }
+      function ease_in_expo(t) { return t === 0 ? 0 : Math.pow(2, 10 * t - 10); }
 
       function full_res() {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -109,14 +110,14 @@
           let i = 0;
           function frame() {
             const t = (i + 1) / steps;
-            const e = ease_out_circ(t);
+            const e = ease_in_expo(t);
             const k = Math.max(min_count, Math.min(k_max, Math.round(min_count + (k_max - min_count) * e)));
             const rf = rf_base + (1 - rf_base) * ease_out_quart(t);
             bg.width = Math.max(64, Math.round(s.w * rf));
             bg.height = Math.max(64, Math.round(s.h * rf));
             const dc = D.dither_into(bg, crop, Object.assign({}, dither_base, { palette_c: resolve_pal(pal, k, target) }));
             return dc.then(function () {
-              bg.style.opacity = String((0.06 + (final_opacity - 0.06) * e).toFixed(3));
+              bg.style.opacity = String((0.06 + (final_opacity - 0.06) * ease_out_circ(t)).toFixed(3));
               i++;
               if (i >= steps) return new Promise(function (r) { setTimeout(r, hold); }).then(function () { return set_final(crop, s, pal); });
               return new Promise(function (r) { setTimeout(r, hold); }).then(frame);
