@@ -384,3 +384,7 @@ Notes:
   names.
 - The mobile_query/resize paths re-render the final frame; run `node --check`
   after any edit to `static/dither.js` or the inline script.
+
+## License
+
+Sage is licensed under the GNU Affero General Public License v3.0. See the LICENSE file in the repository root.
