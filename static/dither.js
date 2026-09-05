@@ -37,7 +37,7 @@
     return M;
   }
 
-  function loadImage(src) {
+  function load_image(src) {
     return new Promise((res, rej) => {
       const im = new Image();
       im.onload = () => res(im);
@@ -138,7 +138,7 @@
     return sortLuma(means.map(m => m.map(Math.round)));
   }
 
-  function buildPalette(img, opt) {
+  function build_palette(img, opt) {
     let pal;
     if (opt.palette === 'extract') pal = extractAuto(img, clamp(opt.colors, 2, 50));
     else {
@@ -183,13 +183,13 @@
   }
 
   // Core pass: render a dithered N-level image of `img` filling `dest`.
-  // `paletteC` = N sorted colors (darkest -> lightest).
-  async function ditherInto(dest, img, opt) {
+  // `palette_c` = N sorted colors (darkest -> lightest).
+  async function dither_into(dest, img, opt) {
     opt = Object.assign({
       cell: 6, matrix: 8, mode: 'diffusion', kernel: 'floyd-steinberg',
       serpentine: false, level: 0.5, spread: 1, invert: false,
     }, opt || {});
-    const pal = opt.paletteC && opt.paletteC.length ? opt.paletteC : null;
+    const pal = opt.palette_c && opt.palette_c.length ? opt.palette_c : null;
     const colors = pal || quantizeLevels(2, PALETTES.rosepine.dark, PALETTES.rosepine.light);
     const N = colors.length;
     const workW = Math.max(8, Math.round(dest.width / opt.cell));
@@ -272,13 +272,13 @@
 
   async function renderBase(dest, src, opt) {
     opt = Object.assign({ width: 1200, palette: 'extract', colors: 4, saturation: 1, noise: { kind: 'grain', amount: 0.3 } }, opt || {});
-    const img = await loadImage(src);
+    const img = await load_image(src);
     dest.width = opt.width;
     dest.height = Math.max(1, Math.round(opt.width * img.height / img.width));
-    opt.paletteC = buildPalette(img, opt);
-    opt.paletteC = opt.paletteC.filter(Boolean);
-    await ditherInto(dest, img, opt);
-    applyNoise(dest, opt.noise);
+    opt.palette_c = build_palette(img, opt);
+    opt.palette_c = opt.palette_c.filter(Boolean);
+    await dither_into(dest, img, opt);
+    apply_noise(dest, opt.noise);
     return dest;
   }
 
@@ -290,7 +290,7 @@
       mode: 'diffusion', kernel: 'floyd-steinberg', serpentine: false,
       matrix: 8, noise: { kind: 'grain', amount: 0.3 },
     }, opt || {});
-    const img = await loadImage(src);
+    const img = await load_image(src);
     dest.width = opt.width; dest.height = opt.height;
     const iw = img.width, ih = img.height, arW = dest.width / dest.height;
     const anchor = opt.anchor == null ? 0.5 : Math.max(0, Math.min(1, opt.anchor));
@@ -301,14 +301,14 @@
     const tmp = document.createElement('canvas');
     tmp.width = Math.max(8, Math.round(sw)); tmp.height = Math.max(8, Math.round(sh));
     tmp.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, tmp.width, tmp.height);
-    opt.paletteC = buildPalette(img, opt);
-    opt.paletteC = opt.paletteC.filter(Boolean);
-    await ditherInto(dest, tmp, opt);
-    applyNoise(dest, opt.noise);
+    opt.palette_c = build_palette(img, opt);
+    opt.palette_c = opt.palette_c.filter(Boolean);
+    await dither_into(dest, tmp, opt);
+    apply_noise(dest, opt.noise);
     return dest;
   }
 
-  function applyNoise(dest, opt) {
+  function apply_noise(dest, opt) {
     opt = Object.assign({ kind: 'grain', amount: 0.30, cell: 3, blend: 'overlay' }, opt || {});
     const ctx = dest.getContext('2d');
     if (opt.kind === 'none' || !opt.amount) return;
@@ -349,7 +349,7 @@
 
   async function paint(canvas, src, opts) {
     await renderBase(canvas, src, opts);
-    applyNoise(canvas, opts.noise || {});
+    apply_noise(canvas, opts.noise || {});
     return canvas;
   }
 
@@ -496,8 +496,8 @@
   }
 
   global.dither = {
-    renderBase, renderCover, applyNoise, paint, placeholder, bayer, PALETTES,
+    renderBase, renderCover, apply_noise, paint, placeholder, bayer, PALETTES,
     extractPalette, extractAuto, applySaturation, quantizeLevels, DIFFUSION_KERNELS, controlBar,
-    ditherInto, buildPalette, loadImage,
+    dither_into, build_palette, load_image,
   };
 })(window);

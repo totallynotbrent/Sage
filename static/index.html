@@ -12,59 +12,48 @@
   <script src="RgbQuant.js"></script>
   <script src="dither.js"></script>
   <script>
-    // Home-screen experiment (feature/homepage-dither): full-bleed ordered-dither
-    // background, width-first wallpaper sizing, colors bloom intro (1 -> 50, linear),
-    // fade capped at 75% so it reads darker. Rollback = git checkout main.
+    // Home-screen experiment (feature/homepage-dither): full-bleed dithered
+    // wallpaper with a colors + resolution intro. Rollback = git checkout main.
     document.addEventListener('DOMContentLoaded', function () {
-      var bg = document.getElementById('home-bg');
+      const bg = document.getElementById('home-bg');
       if (!bg || !window.dither) return;
-      var D = window.dither;
-      // Slow the global text entrance on the homepage: restart each hero word
-      // with a longer stagger + slower motion (the shared module uses ~32ms).
-      function slowText() {
-        document.querySelectorAll('.hero .word, .hero p .word').forEach(function (sp, idx) {
-          sp.style.animation = 'none';
-          void sp.offsetWidth;
-          sp.style.animation = 'wordIn 640ms cubic-bezier(0.33,1,0.68,1) forwards';
-          sp.style.animationDelay = (60 + idx * 170) + 'ms';
-        });
+      const D = window.dither;
+
+      const target = 50;
+      const min_count = 1;
+      const final_opacity = 0.62;
+      const hold = 40;
+      const rf_base = 0.04;
+      const dither_base = { cell: 2, mode: 'bayer', kernel: 'burkes', serpentine: false, matrix: 16 };
+      const noise = { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' };
+
+      function ease_out_circ(t) { return Math.sqrt(1 - Math.pow(t - 1, 2)); }
+      function ease_in_out_circ(t) { return t < 0.5 ? 0.5 * (1 - Math.sqrt(1 - Math.pow(2 * t, 2))) : 0.5 * (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1); }
+
+      function full_res() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        let w = Math.round(innerWidth * dpr);
+        let h = Math.round(innerHeight * dpr);
+        const sc = Math.min(1, 1920 / Math.max(w, h));
+        return { w: Math.round(w * sc), h: Math.round(h * sc) };
       }
-      setTimeout(slowText, 60);   // after the shared module wraps the hero words
-      var TARGET = 50, MINC = 1, FINAL_OPACITY = 0.62, HOLD = 40;
-      var RF_BASE = 0.04;                              // starting render res = big pixels (held briefly)
-      function easeOutCirc(t) { return Math.sqrt(1 - Math.pow(t - 1, 2)); }
-      function easeInOutCirc(t) { return t < 0.5 ? 0.5 * (1 - Math.sqrt(1 - Math.pow(2 * t, 2))) : 0.5 * (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1); }
-      function fullRes() {
-        var dpr = Math.min(window.devicePixelRatio || 1, 2);
-        var W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
-        var sc = Math.min(1, 1920 / Math.max(W, H));   // cap while KEEPING aspect
-        return { W: Math.round(W * sc), H: Math.round(H * sc) };
-      }
-      var DITHER_BASE = { cell: 2, mode: 'bayer', kernel: 'burkes', serpentine: false, matrix: 16 };
-      var NOISE = { kind: 'grain', amount: 0.1, cell: 2, blend: 'subtract' };
-      // Sample k tones EVENLY across the full palette (k=1 -> single mid tone).
-      // This guarantees k DISTINCT tones at every count — monotonic, strictly
-      // increasing indices, so no two consecutive frames are ever identical and
-      // the count-up reads cleanly to the end (no floor/ceil window collapse).
-      function resolvePal(pal, k, target) {
-        var L = pal.length;
-        if (k <= 1) return [pal[Math.round((L - 1) / 2)]];
+
+      function resolve_pal(pal, k, target) {
+        const n = pal.length;
+        if (k <= 1) return [pal[Math.round((n - 1) / 2)]];
         if (k >= target) return pal.slice();
-        var o = [];
-        for (var j = 0; j < k; j++) o.push(pal[Math.round((L - 1) * j / (k - 1))]);
-        return o;
+        const out = [];
+        for (let j = 0; j < k; j++) out.push(pal[Math.round((n - 1) * j / (k - 1))]);
+        return out;
       }
-      // Guarantee an exact TARGET-color palette: the extractor can return fewer
-      // colors than requested on a low-detail image, which would cut the bloom
-      // short at `pal.length` ("halfway"). Interpolate up so the count-up always
-      // spans 1..TARGET with distinct levels.
-      function ensurePal(pal, target) {
-        var L = pal.length;
-        if (L >= target) return pal.slice(0, target);
-        var out = [];
-        for (var j = 0; j < target; j++) {
-          var f = (L - 1) * j / (target - 1);
-          var a = Math.floor(f), g = f - a, b = Math.min(L - 1, a + 1);
+
+      function ensure_pal(pal, target) {
+        const n = pal.length;
+        if (n >= target) return pal.slice(0, target);
+        const out = [];
+        for (let j = 0; j < target; j++) {
+          const f = (n - 1) * j / (target - 1);
+          const a = Math.floor(f), g = f - a, b = Math.min(n - 1, a + 1);
           out.push([
             Math.round(pal[a][0] + (pal[b][0] - pal[a][0]) * g),
             Math.round(pal[a][1] + (pal[b][1] - pal[a][1]) * g),
@@ -73,77 +62,86 @@
         }
         return out;
       }
-      // Width-first cover: show the wallpaper's full width and crop only excess
-      // height; if it isn't tall enough to fill, fall back to a height-fill crop
-      // anchored at the 1/4 line. The returned span always matches the viewport
-      // aspect, so there's no distortion and preview/settle framing is identical.
-      function coverRect(iw, ih, s) {
-        var dstAr = s.W / s.H;
-        var sw = iw, sh = iw / dstAr, sx = 0, sy = (ih - sh) / 2;
-        if (sh > ih) { sh = ih; sw = ih * dstAr; sx = (iw - sw) * 0.25; sy = 0; }
+
+      function cover_rect(iw, ih, s) {
+        const dst_ar = s.w / s.h;
+        let sw = iw, sh = iw / dst_ar, sx = 0, sy = (ih - sh) / 2;
+        if (sh > ih) { sh = ih; sw = ih * dst_ar; sx = (iw - sw) * 0.25; sy = 0; }
         return { sw: Math.round(sw), sh: Math.round(sh), sx: Math.round(sx), sy: Math.round(sy) };
       }
-      function buildCrop(img, iw, ih, s) {
-        var r = coverRect(iw, ih, s);
-        var crop = document.createElement('canvas');
-        crop.width = Math.max(8, r.sw); crop.height = Math.max(8, r.sh);
+
+      function build_crop(img, iw, ih, s) {
+        const r = cover_rect(iw, ih, s);
+        const crop = document.createElement('canvas');
+        crop.width = Math.max(8, r.sw);
+        crop.height = Math.max(8, r.sh);
         crop.getContext('2d').drawImage(img, r.sx, r.sy, r.sw, r.sh, 0, 0, crop.width, crop.height);
         return crop;
       }
-      // Resolve the dithered background: color count 1->50 AND pixel (cell) size
-      // 1->2 animate together, EVERY frame rendered at FULL resolution (no low-res
-      // preview, so there's no instantaneous resolution jump at the end), fading
-      // to 75% opacity. Grain is applied once on the final frame.
+
+      function slow_text() {
+        document.querySelectorAll('.hero .word, .hero p .word').forEach(function (word, idx) {
+          word.style.animation = 'none';
+          void word.offsetWidth;
+          word.style.animation = 'wordIn 640ms cubic-bezier(0.33,1,0.68,1) forwards';
+          word.style.animationDelay = (60 + idx * 170) + 'ms';
+        });
+      }
+
+      function set_final(crop, s, pal) {
+        bg.width = s.w;
+        bg.height = s.h;
+        return D.dither_into(bg, crop, Object.assign({}, dither_base, { palette_c: pal }))
+          .then(function () {
+            D.apply_noise(bg, noise);
+            bg.style.opacity = String(final_opacity);
+          });
+      }
+
       function start() {
-        var s = fullRes();
-        D.loadImage('wallpaper.jpg').then(function (img) {
-          var iw = img.width, ih = img.height;
-          var crop = buildCrop(img, iw, ih, s);
-          var pal = ensurePal(D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 }), TARGET);
-          var K = Math.max(MINC, pal.length), steps = K - MINC + 1, i = 0;
-          bg.width = s.W; bg.height = s.H;
-          bg.style.opacity = '0';
+        const s = full_res();
+        D.load_image('wallpaper.jpg').then(function (img) {
+          const iw = img.width, ih = img.height;
+          const crop = build_crop(img, iw, ih, s);
+          const pal = ensure_pal(D.build_palette(img, { colors: target, palette: 'extract', saturation: 0.6 }), target);
+          const k_max = Math.max(min_count, pal.length);
+          const steps = k_max - min_count + 1;
+          let i = 0;
           function frame() {
-            var t = (i + 1) / steps;
-            var e = easeOutCirc(t);                    // ease-out on color + fade
-            // Color count (eased) + fade (eased).
-            var k = Math.max(MINC, Math.min(K, Math.round(MINC + (K - MINC) * e)));
-            // Pixel/resolution: ease-in-out so it starts big, holds blocky a
-            // while, and transitions to full SMOOTHLY (no post-hold resolution jump).
-            var rf = RF_BASE + (1 - RF_BASE) * easeInOutCirc(t);
-            bg.width = Math.max(64, Math.round(s.W * rf));
-            bg.height = Math.max(64, Math.round(s.H * rf));
-            var dc = D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { paletteC: resolvePal(pal, k, TARGET) }));
+            const t = (i + 1) / steps;
+            const e = ease_out_circ(t);
+            const k = Math.max(min_count, Math.min(k_max, Math.round(min_count + (k_max - min_count) * e)));
+            const rf = rf_base + (1 - rf_base) * ease_in_out_circ(t);
+            bg.width = Math.max(64, Math.round(s.w * rf));
+            bg.height = Math.max(64, Math.round(s.h * rf));
+            const dc = D.dither_into(bg, crop, Object.assign({}, dither_base, { palette_c: resolve_pal(pal, k, target) }));
             return dc.then(function () {
-              bg.style.opacity = String((0.06 + (FINAL_OPACITY - 0.06) * e).toFixed(3));
+              bg.style.opacity = String((0.06 + (final_opacity - 0.06) * e).toFixed(3));
               i++;
-              if (i >= steps) return new Promise(function (r) { setTimeout(r, HOLD); }).then(function () {
-                D.applyNoise(bg, NOISE);
-                bg.style.opacity = String(FINAL_OPACITY);
-              });
-              return new Promise(function (r) { setTimeout(r, HOLD); }).then(frame);
+              if (i >= steps) return new Promise(function (r) { setTimeout(r, hold); }).then(function () { return set_final(crop, s, pal); });
+              return new Promise(function (r) { setTimeout(r, hold); }).then(frame);
             });
           }
           return frame();
         });
       }
+
+      function on_resize() {
+        const s = full_res();
+        D.load_image('wallpaper.jpg').then(function (img) {
+          const iw = img.width, ih = img.height;
+          const crop = build_crop(img, iw, ih, s);
+          const pal = ensure_pal(D.build_palette(img, { colors: target, palette: 'extract', saturation: 0.6 }), target);
+          return set_final(crop, s, pal);
+        });
+      }
+
+      setTimeout(slow_text, 60);
       start();
-      var rt;
+      let rt;
       addEventListener('resize', function () {
         clearTimeout(rt);
-        rt = setTimeout(function () {
-          var s = fullRes();
-          D.loadImage('wallpaper.jpg').then(function (img) {
-            var iw = img.width, ih = img.height;
-            var crop = buildCrop(img, iw, ih, s);
-            var pal = ensurePal(D.buildPalette(img, { colors: TARGET, palette: 'extract', saturation: 0.6 }), TARGET);
-            bg.width = s.W; bg.height = s.H;
-            return D.ditherInto(bg, crop, Object.assign({}, DITHER_BASE, { paletteC: pal })).then(function () {
-              D.applyNoise(bg, NOISE);
-              bg.style.opacity = String(FINAL_OPACITY);
-            });
-          });
-        }, 200);
+        rt = setTimeout(on_resize, 200);
       });
     });
   </script>
