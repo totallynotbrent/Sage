@@ -345,6 +345,36 @@ def test_execute_tool_run_final_quiz_reasks_probe_and_spans(conn, settings):
     assert SessionService(conn, settings).get(session.id).phase == "final_quiz"
 
 
+def test_run_final_quiz_dedupes_duplicate_stems(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.extend(
+        [_PROBE_JSON, _PLAN_JSON, _CHECK_JSON, _CHECK_JSON]
+    )
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+    asyncio.run(execute_tool("run_probe", {}, ctx))
+    asyncio.run(execute_tool("build_plan", {}, ctx))
+    PlansService(conn, settings).approve(session.id)
+    r1 = asyncio.run(execute_tool("run_final_quiz", {}, ctx))
+    first_total = conn.execute(
+        "SELECT COUNT(*) FROM quiz_questions WHERE session_id=? AND kind='final'",
+        (session.id,),
+    ).fetchone()[0]
+    # Mark round 1 answered so round 2 regenerates instead of returning pending.
+    for q in r1["questions"]:
+        conn.execute(
+            "UPDATE quiz_questions SET status='answered' WHERE id=?", (q["id"],)
+        )
+    conn.commit()
+    asyncio.run(execute_tool("run_final_quiz", {}, ctx))
+    rows = conn.execute(
+        "SELECT question FROM quiz_questions WHERE session_id=? AND kind='final'",
+        (session.id,),
+    ).fetchall()
+    stems = [str(r["question"]).strip().lower() for r in rows]
+    assert len(stems) == len(set(stems)), "final quiz contains duplicate stems"
+    assert len(stems) == first_total, "final quiz regrew duplicate questions"
+
+
 def test_execute_tool_removed_mermaid_returns_unsupported():
     fake_llm = FakeLLM()
     fake_llm.complete_json_responses.append(json.dumps({"title": "Tree"}))
