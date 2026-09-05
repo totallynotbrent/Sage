@@ -1,10 +1,10 @@
 ---
 title: Learning Loop
-description: "The end-to-end tutoring loop: files to chunks to session to probe, plan, teach, check, remediate, complete."
+description: "The end-to-end tutoring loop: files to chunks to session to probe, plan, teach, final quiz, remediate, complete."
 ---
 # Learning Loop
 
-The end-to-end tutoring loop: files to chunks to session to probe, plan, teach, check, remediate, complete.
+The end-to-end tutoring loop: files to chunks to session to probe, plan, teach, final quiz, remediate, complete.
 
 ```mermaid
 flowchart LR
@@ -17,16 +17,14 @@ flowchart LR
     F --> G["Mastery evidence<br/>recorded per answer"]
     G --> H["6. Learning plan<br/>dependency-aware plan nodes"]
     H --> I["7. Teach each node<br/>streaming grounded chat + citations"]
-    I --> J{"8. Periodic check<br/>check_due after 2 nodes"}
-    J -->|"correct"| I
-    J -->|"incorrect / idk"| K["9. Remediation<br/>hint / reveal / chat → Continue"]
-    K -->|"POST /continue"| I
-    J -->|"skip question"| H
-    I -->|"no pending nodes"| L["10. Complete<br/>summary + read-only history"]
+    I -->|"no pending nodes"| Q["8. Final quiz — comprehensive<br/>re-asks probe + fresh questions spanning every node"]
+    Q -->|"graded pass"| L["9. Complete<br/>summary + read-only history"]
+    Q -->|"graded gap"| K["10. Remediation<br/>re-teach missed points → quiz again"]
+    K --> Q
     D --> M["Grounded chat tutor<br/>retrieves from session files<br/>strict mode = sources required"]
     C --> M
     G --> I
-    G --> J
+    G --> Q
 ```
 
 ## Latency-weighted mastery signal
@@ -86,8 +84,19 @@ rendered through the probe-card path. Return shape is the same
   every-3rd-check "interleaved weak-topic" sampling was removed, so `generate_check`
   always targets `_current_node_title` (or the session goal) and never asks an
   unrelated prior topic mid-lesson.
+- **No intermediate check rounds.** The periodic mid-lesson check cards were
+  removed (2026-09-05, user direction); teaching is now dense prose that invites
+  the learner's own questions, so `check_due` is always `false` and the only
+  formal question rounds are the opening probe and the closing **comprehensive
+  final quiz** (`run_final_quiz` → `generate_final_quiz`).
+- **Comprehensive final quiz, deduplicated.** `generate_final_quiz` re-asks this
+  session's probe questions, then adds fresh questions spanning every plan node.
+  Questions whose normalized stem already exists among the session's finals are
+  skipped (`_norm_stem` + `_final_stems`), so re-quiz rounds stop re-adding the
+  same wording; a graded gap sends the learner back through remediation to a
+  fresh quiz round.
 - **No repeated stems.** `request_questions` accepts an `avoid` list — the session's
-  recent question stems are passed in for probe/check so the model writes fresh
+  recent question stems are passed in for probe/quiz so the model writes fresh
   stems and distractors instead of recycling near-identical questions.
 - **Pending questions persist across a reload** (issue: refresh regeneration): the
   server keeps unanswered questions in `quiz_questions` (`status='pending'`), and

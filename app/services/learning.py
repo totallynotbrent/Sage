@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from datetime import datetime
 
@@ -32,6 +33,12 @@ def _timestamp_gap_ms(created_at: str | None, answered_at: str | None) -> int | 
     except ValueError:
         return None
     return max(0, int(round((end - start).total_seconds() * 1000)))
+
+
+def _norm_stem(text: str) -> str:
+    """Fold a question to a stable comparison key for duplicate detection."""
+    collapsed = re.sub(r"\s+", " ", str(text or "").strip().lower())
+    return collapsed.rstrip("?.").strip()
 
 
 class LearningService:
@@ -149,11 +156,15 @@ class LearningService:
             "ORDER BY created_at, rowid",
             (session_id,),
         ).fetchall()
+        used = self._final_stems(session_id)
         for row in probe_rows:
             src = dict(row)
             options = json.loads(src.get("options_json") or "[]")
             if options and options[-1] == IDK_OPTION:
                 options = options[:-1]
+            if _norm_stem(src["question"]) in used:
+                continue
+            used.add(_norm_stem(src["question"]))
             self._insert_question(
                 session_id,
                 "final",
@@ -167,6 +178,10 @@ class LearningService:
                 ),
             )
         for question in generated:
+            stem = _norm_stem(question.question)
+            if stem in used:
+                continue
+            used.add(stem)
             self._insert_question(session_id, "final", question)
         self.sessions.set_phase(session_id, "final_quiz")
         return {
@@ -524,6 +539,14 @@ class LearningService:
             (session_id, kind),
         )
         self.conn.commit()
+
+    def _final_stems(self, session_id: str) -> set[str]:
+        rows = self.conn.execute(
+            "SELECT TRIM(question) AS question FROM quiz_questions "
+            "WHERE session_id = ? AND kind = 'final' AND question IS NOT NULL AND TRIM(question) != ''",
+            (session_id,),
+        ).fetchall()
+        return {_norm_stem(r["question"]) for r in rows if r["question"]}
 
     def _notes_seed_chunks(self, session: Session, subject: str | None) -> list[dict]:
         ready_ids = self.sessions.files.get_ready_file_ids(session.file_ids)

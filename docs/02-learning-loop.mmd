@@ -8,13 +8,11 @@ flowchart LR
     F --> G["Mastery evidence<br/>recorded per answer"]
     G --> H["6. Learning plan<br/>dependency-aware plan nodes"]
     H --> I["7. Teach each node<br/>streaming grounded chat + citations"]
-    I --> J{"8. Periodic check<br/>check_due after 2 nodes"}
-    J -->|"correct"| I
-    J -->|"incorrect / idk"| K["9. Remediation<br/>hint / reveal / chat → Continue"]
-    K -->|"POST /continue"| I
-    J -->|"skip question"| H
-    I -->|"no pending nodes"| L["10. Complete<br/>summary + read-only history"]
+    I -->|"no pending nodes"| Q["8. Final quiz — comprehensive<br/>re-asks probe + fresh questions spanning every node"]
+    Q -->|"graded pass"| L["9. Complete<br/>summary + read-only history"]
+    Q -->|"graded gap"| K["10. Remediation<br/>re-teach missed points → quiz again"]
+    K --> Q
     D --> M["Grounded chat tutor<br/>retrieves from session files<br/>strict mode = sources required"]
     C --> M
     G --> I
-    G --> J
+    G --> Q

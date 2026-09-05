@@ -53,7 +53,7 @@ sequenceDiagram
     A-->>F: {session (phase=teach, current_node_id), plan}
     F->>F: render current node
 
-    Note over U,F: D. Teach / check loop
+    Note over U,F: D. Teach loop → final quiz
     loop Until complete
         U->>F: Ask about the current topic
         F->>A: POST /api/sessions/{id}/turns (SSE stream)
@@ -61,24 +61,16 @@ sequenceDiagram
         A-->>F: meta → delta* → citation* → done
         U->>F: "Done with this node"
         F->>A: POST /api/sessions/{id}/advance {}
-        A-->>F: {session, node, check_due}
-        alt check_due == false
-            Note over F: Continue teaching the next node
-        else check_due == true
-            F->>A: POST /api/sessions/{id}/check {}
-            A->>M: one check question on current node (or goal)
-            A-->>F: {session (phase=check), questions[1]}
-            U->>F: answer the check question
-            F->>A: POST /api/sessions/{id}/quiz/{qid}/answer
-            alt correct
-                A-->>F: phase → teach, next node (or complete)
-            else incorrect / idk
-                A-->>F: phase → remediate
-                U->>F: ask for hint / reveal / chat
-                F->>A: POST /hint | POST /reveal | POST /turns
-                F->>A: POST /api/sessions/{id}/continue {}
-                A-->>F: {session (teach), next node}
-            end
+        A-->>F: {session, node}
+        A->>M: no pending nodes left → run_final_quiz
+        F->>A: POST /api/sessions/{id}/quiz/{qid}/answer (comprehensive final quiz)
+        alt graded mastery
+            A-->>F: phase → complete
+        else graded gap
+            A-->>F: phase → remediate
+            U->>F: review missed points
+            F->>A: POST /api/sessions/{id}/continue {}
+            A-->>F: re-teach + fresh final quiz round
         end
     end
 
