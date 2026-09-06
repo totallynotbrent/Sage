@@ -27,8 +27,8 @@ flowchart TB
     end
     subgraph NET["Networking & access"]
         E --> K["http://localhost:8000 — local (PORT override)"]
-        E --> L["http://<host-ip>:8000 — LAN, open the port in the firewall"]
-        E --> M["http://<tailscale-ip>:8000 — remote over Tailscale"]
+        E --> L["http://HOST-IP:8000 — LAN, open the port in the firewall"]
+        E --> M["http://TAILSCALE-IP:8000 — remote over Tailscale"]
     end
     subgraph GROUND["Optional web grounding"]
         N["SEARXNG_URL instance → grounded web results"] --> E
