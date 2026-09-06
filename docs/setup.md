@@ -1,3 +1,6 @@
+---
+title: Setup & deployment
+---
 # Setup
 
 Requirements: Python 3.11 on a 64-bit ARM64 Raspberry Pi (Raspberry Pi OS) or
@@ -54,6 +57,6 @@ Port 8015 is opened in firewalld's `homelan` zone (LAN) and `public` zone;
 Tailscale traffic bypasses zones via its own iptables chain. `HOST`/`PORT`
 environment variables override the bind address and port for manual runs.
 
-See [environment.md](environment.md) for the full environment variable
-reference, and [security.md](security.md) before exposing the service on a
+See [[environment|Environment variables]] for the full environment variable
+reference, and [[security|Security]] before exposing the service on a
 network.

@@ -1,72 +1,39 @@
-# UI & Interaction
+---
+title: Using the web UI
+description: "How to work with Sage's web interface: streaming chat, answer buttons, and the artifacts rail."
+---
+# Using the web UI
 
-How the Sage web UI behaves: streaming, animations, and the two-answer
-check-question buttons.
+Sage's web UI is built around an interactive chat. Open it in a browser at the
+address Sage runs on (see [[setup|Setup & deployment]]), and reply to the first
+prompt with what you want to learn.
 
-## Streaming chat
+## Chat
 
-Assistant turns stream token-by-token over SSE (`meta → delta* → citation* →
-done`). The UI renders deltas into a streaming bubble whose child blocks fade
-in (`streamLineIn`, 320 ms). A status pill above the composer shows live tool
-activity ("Assessing your current knowledge of …") pulled from `tool_call`
-event `status` fields.
+The chat streams Sage's replies as they're generated. Your study files ground
+every answer, and when web search is enabled you'll see sources cited inline.
 
-### Leaked tool-call guard
+## Answer buttons
 
-Some models occasionally emit a tool invocation as inline text
-(`<call:name status="..."/>`) instead of through the proper `tool_calls`
-mechanism. `static/js/leaked-call-guard.js` intercepts streamed deltas:
+Sage keeps interaction button-first. When the lesson asks an understanding
+question it renders as buttons (Yes / No, True / False, Higher / Lower, and
+so on) — tap one instead of typing. The question card locks after you answer
+and dims the option you didn't pick.
 
-- complete `<call:...>` tags are stripped before rendering;
-- a trailing partial tag is held back until the stream closes;
-- the call's `status` attribute becomes the composer status line, so the user
-  still sees what Sage is doing.
+## Artifacts rail
 
-The system prompt also instructs the model to invoke tools only through the
-tool-calls mechanism, which makes the leak rare; the guard is the safety net.
+Quizzes and generated diagrams appear in a rail beside the chat instead of
+cluttering the conversation. The rail opens automatically when a new artifact
+arrives, and the chat column stays clean prose. Probe questions and the final
+quiz show up there as interactive cards you answer by selecting options.
 
-## Animations
+## Move through the session
 
-Motion follows the opendesign spec (see bread repo `opendesign/`): message
-cascade on load, artifact reveal with staggered option delays, quiz-question
-typewriter effect (`artType` steps(30) + blinking cursor) followed by option
-reveals at 1100/1300/1500 ms, correct-answer color sweep, and diagram line
-drawing.
+The opening probe and the closing final quiz are the two formal question
+rounds — see [[02-learning-loop|How Sage teaches]] for the full arc. Between
+them, just chat: ask questions, and say when you're ready to move on.
 
-`prefers-reduced-motion: reduce` does **not** disable animations — it caps
-them at 200 ms animations / 120 ms transitions so the UI stays lively for
-users who have Windows "Show animations" turned off (this was a real bug:
-the original spec's kill-switch made everything look static on such
-machines).
-
-## Two-answer check questions
-
-Teaching turns end with exactly one scaffolded check question that has exactly
-two possible answers. The system prompt requires the question to end with a
-literal parenthesized marker:
-
-| Marker | Buttons rendered |
-| ------ | ---------------- |
-| `(yes/no)` | Yes / No |
-| `(higher/lower)` | Higher / Lower |
-| `(increasing/decreasing)` | Increasing / Decreasing |
-| `(true/false)` | True / False |
-
-`static/js/binary-check.js` detects the trailing marker in the finished
-assistant text, strips it from the displayed bubble, and renders two buttons.
-Tapping one sends the label ("yes", "higher", …) as a normal chat turn, so the
-existing grading pipeline handles it unchanged — no special endpoint. The
-buttons animate in (`binaryRowIn`), lock after answering, and dim the
-untaken option.
-
-This keeps interaction button-driven instead of requiring typed free-text
-answers for binary checks.
-
-## Artifacts placement
-
-- **Workspace** (`sage-workspace.html`): probe quizzes and generated artifacts
-  render in the right-hand artifacts rail (`diagramBody`), which auto-opens
-  when a new artifact arrives. The chat column stays prose-only.
-- **Home** (`index.html`): pure chat + session creation. The manual
-  Diagram/Quiz/Todo buttons were removed — the agent generates artifacts
-  itself via tools.
+## See also
+- [[index|Sage]]
+- [[02-learning-loop|How Sage teaches]]
+- [[security|Security]]

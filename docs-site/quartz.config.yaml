@@ -16,6 +16,7 @@ configuration:
     - .obsidian
     - index.html
     - README.md
+    - GIT_MODEL.md
   theme:
     fontOrigin: googleFonts
     cdnCaching: true

@@ -1,3 +1,6 @@
+---
+title: Security
+---
 # Security warning
 
 **Trusted-network-only service.** Sage ships with no authentication. Anyone
@@ -8,7 +11,9 @@ The API key stays server-side and is never delivered to the browser, and usage
 is bounded by the single local endpoint. A shared access token is a planned
 follow-up.
 
-SearXNG (when configured) is queried server-side only; the browser never sees SEARXNG_URL.
+SearXNG (when configured) is queried server-side only; the browser never sees
+SEARXNG_URL. See [[setup|Setup & deployment]] and [[environment|Environment
+variables]] for how to configure a deployment.
 
 ## Watch API
 
