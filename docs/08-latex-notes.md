@@ -7,7 +7,6 @@ description: "LaTeX-notes integration: folder watch, same-stem pairing, notes qu
 LaTeX-notes integration: folder watch, same-stem pairing, notes quiz.
 
 ```mermaid
-%% LaTeX-notes integration — 1. folder watch
 flowchart LR
     NOTES["Notes folders (SAGE_WATCH_DIRS)<br/>subject/ subfolders · .tex + .pdf"]
     W["app/services/watcher.py<br/>watcher_loop (lifespan, every SAGE_WATCH_SCAN_SECONDS)<br/>scan_once · sync_watch_sources"]
@@ -26,7 +25,6 @@ flowchart LR
 ```
 
 ```mermaid
-LaTeX-notes integration — 2. same-stem pairing (.tex source + .pdf pages)
 flowchart LR
     A["calc.tex ingested"] --> P{"same-stem candidate?<br/>stem equal · suffix differs"}
     P -->|"yes"| B["paired_file_id set both ways<br/>expand_pairings pulls the pair's chunks<br/>pair=calc.pdf on DOC blocks"]
@@ -35,7 +33,6 @@ flowchart LR
 ```
 
 ```mermaid
-LaTeX-notes integration — 3. notes quiz (grounded MCQ)
 sequenceDiagram
     autonumber
     participant C as Client
