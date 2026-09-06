@@ -13,6 +13,7 @@ Run from repo root: .venv/bin/python scripts/gen_docs.py
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -46,7 +47,7 @@ PROSE = [
 
 
 def _sections(code: str) -> list[str]:
-    parts = code.split("\n%% ")
+    parts = re.split(r"^%% .*$", code, flags=re.M)
     return [p.strip() for p in parts if p.strip()]
 
 
