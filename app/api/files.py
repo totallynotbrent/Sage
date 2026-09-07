@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 
 from fastapi import APIRouter, Depends, File, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.api.deps import handle_value_error
 from app.config import Settings, get_app_settings
@@ -64,6 +64,20 @@ async def get_file_content(
     settings: Settings = Depends(get_app_settings),
 ) -> dict:
     return FileService(conn, settings).get_content(file_id)
+
+
+@router.get("/api/files/{file_id}/download")
+async def download_file(
+    file_id: str,
+    conn: sqlite3.Connection = Depends(get_conn),
+    settings: Settings = Depends(get_app_settings),
+):
+    from urllib.parse import quote
+
+    blob, mime, name = FileService(conn, settings).download(file_id)
+    safe = "".join(c if c.isalnum() or c in " ._-" else "_" for c in name) or "file"
+    disposition = f"inline; filename=\"file\"; filename*=UTF-8''{quote(safe)}"
+    return FileResponse(str(blob), media_type=mime, headers={"Content-Disposition": disposition})
 
 
 @router.get("/api/files/{file_id}/excerpts")

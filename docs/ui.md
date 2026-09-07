@@ -38,8 +38,8 @@ flowchart TB
 - Streams answers as they generate; sources cited inline when web search is on.
 - Understanding questions render as buttons — tap one.
 - Quizzes and diagrams land in a side rail; the chat stays prose.
-- The **mode** button above the reply box switches between **Normal** (general
-  knowledge + web search) and **Strict** (teach from your uploaded PDF only).
+- Upload a file and it opens the workspace, where the source pane renders the PDF itself (not its raw text).
+- The mode toggle (strict / normal) sits in the chat composer on both the home page and the workspace.
 
 The probe and the final quiz are the two question rounds. See
 [[02-learning-loop|How Sage teaches]] for the full arc.

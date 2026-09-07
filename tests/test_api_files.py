@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 
+import pytest
+
 from tests.conftest import upload_txt
 
 
@@ -158,3 +160,18 @@ def test_health_reports_ok_with_fake(app, client, override_llm):
     assert report["model_configured"] is True
     assert report["endpoint_reachable"] is True
     assert report["dependency_errors"] == []
+
+
+def test_pdf_download_returns_original_bytes(client):
+    pymupdf = pytest.importorskip("pymupdf")
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_text((72, 72), "download me")
+    blob = doc.tobytes()
+    record = client.post(
+        "/api/files", files={"files": ("note.pdf", blob, "application/pdf")}
+    ).json()[0]
+    r = client.get(f"/api/files/{record['id']}/download")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("application/pdf")
+    assert r.content == blob
