@@ -15,8 +15,6 @@ configuration:
     - templates
     - .obsidian
     - index.html
-    - README.md
-    - GIT_MODEL.md
   theme:
     fontOrigin: googleFonts
     cdnCaching: true
@@ -26,15 +24,15 @@ configuration:
       code: IBM Plex Mono
     colors:
       lightMode:
-        light: "#191724"
-        lightgray: "#1f1d2e"
-        gray: "#6e6a86"
-        darkgray: "#908caa"
-        dark: "#e0def4"
-        secondary: "#c4a7e7"
-        tertiary: "#9ccfd8"
-        highlight: rgba(156, 207, 216, 0.10)
-        textHighlight: "#f6c17799"
+        light: "#faf4ed"
+        lightgray: "#f2e9e1"
+        gray: "#9893a5"
+        darkgray: "#797593"
+        dark: "#575279"
+        secondary: "#907aa9"
+        tertiary: "#286983"
+        highlight: rgba(144, 122, 169, 0.12)
+        textHighlight: "#ea9d3499"
       darkMode:
         light: "#191724"
         lightgray: "#1f1d2e"
