@@ -11,6 +11,7 @@ Set in `.env` (copy `.env.example`).
 | `API_KEY` | `local` | API key |
 | `MODEL` | *(required)* | Model name |
 | `SEARXNG_URL` | *(none)* | SearXNG base URL for web-search grounding |
+| `SAGE_PASSWORD` | *(none)* | If set, the web app asks for this password before it opens |
 | `HOST` | `0.0.0.0` | Bind address |
 | `PORT` | `8000` | Bind port (compose maps `${PORT:-8000}`) |
 | `DATA_DIR` | `~/.local/share/sage` | SQLite DB + uploads (container forces `/data`) |

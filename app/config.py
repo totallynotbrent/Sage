@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     api_key: str = Field(default="", validation_alias="API_KEY")
     model: str = Field(default="gemma4:31b-cloud", validation_alias="MODEL")
     searxng_url: str = Field(default="", validation_alias="SEARXNG_URL")
+    sage_password: str = Field(default="", validation_alias="SAGE_PASSWORD")
     ollama_num_ctx: int = Field(default=131072, validation_alias="OLLAMA_NUM_CTX")
     ollama_keep_alive: int = Field(default=-1, validation_alias="OLLAMA_KEEP_ALIVE")
     ollama_thinking: bool = Field(default=True, validation_alias="OLLAMA_THINKING")
