@@ -247,7 +247,7 @@ sequenceDiagram
     LLM-->>SVC: raw JSON text (one value)
     SVC->>VAL: parse_exact_json(text)
     VAL->>VAL: validate_output — kind dispatch
-    Note over VAL: chat: non-empty content<br/>mermaid: title+source<br/>todo: title+items<br/>quiz: questions+distinct options<br/>teach: content + latex_blocks + actions<br/>  - duplicate_action_ids rejected<br/>latex: title + latex<br/>  - script_content rejected (</script)
+    Note over VAL: chat: non-empty content<br/>mermaid: title+source<br/>todo: title+items<br/>quiz: questions+distinct options<br/>teach: content + latex_blocks + actions<br/>  - duplicate_action_ids rejected<br/>latex: title + latex<br/>  - script_content rejected (raw html forbidden)
     VAL-->>SVC: TeachOutputDraft / LatexOutputDraft<br/>or Chat/Mermaid/Todo/Quiz draft
     alt validation fails
         VAL-->>SVC: ModelOutputError {issue_codes}
@@ -261,7 +261,7 @@ sequenceDiagram
     SVC-->>API: envelope
     API-->>C: 200 {kind: teach, content, actions}<br/>or {kind: latex, title, latex}
     Note over C: renders one-step lesson<br/>buttons: Continue / Ask question / Practice<br/>Example / Deeper / Next topic<br/>latex rendered as standalone snippet
-    Note over C,API: Web search grounding — when configured,<br/>grounded turns inject [WEB] blocks;<br/>strict never uses web; failures → file-only
+    Note over C,API: Web search grounding — when configured,<br/>grounded turns inject WEB blocks,<br/>strict never uses web search, failures fall back to file-only
 ```
 
 ### SQLite data model
