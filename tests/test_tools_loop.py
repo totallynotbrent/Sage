@@ -155,6 +155,26 @@ def test_available_tools_gates_web_search_on_searxng():
     assert len(names_without) == 10
 
 
+def test_available_tools_strict_drops_web_search_keeps_teaching():
+    settings = SimpleNamespace(searxng_url="http://searx.test")
+    strict = {t["function"]["name"] for t in available_tools(settings, mode="strict")}
+    grounded = {t["function"]["name"] for t in available_tools(settings, mode="grounded")}
+    assert "web_search" in grounded
+    assert "web_search" not in strict
+    assert {"run_probe", "build_plan", "advance_lesson", "run_final_quiz", "grade_answer"} <= strict
+
+
+def test_strict_prompt_is_pdf_first_and_no_web():
+    from app.llm.messages import make_system_prompt
+
+    session = {"goal": "learn calculus", "phase": "teach", "current_node_id": "n1"}
+    strict = make_system_prompt(session, "strict", "")
+    grounded = make_system_prompt(session, "grounded", "")
+    assert "Teach from the uploaded PDF first" in strict
+    assert "cannot search the web" in strict
+    assert "Teach from the uploaded PDF first" not in grounded
+
+
 def test_execute_tool_start_review_returns_due_cards(conn, settings, fake_llm):
     # Issue #3: review is model-triggered via the start_review tool. It must
     # return this session's due cards (with their original question) so the UI

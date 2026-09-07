@@ -157,8 +157,10 @@ def make_system_prompt(
 
     if mode == "strict":
         grounding_rules = (
-            "Answer ONLY from the attached source material. If the excerpts do not "
-            "support an answer, say so plainly and do not guess."
+            "Teach from the uploaded PDF first: the plan, taught content, "
+            "examples, and quiz questions come from the document and are cited. "
+            "You may use occasional general knowledge where the PDF is thin, but "
+            "never drift from it. You cannot search the web in this mode."
         )
     else:
         grounding_rules = (
