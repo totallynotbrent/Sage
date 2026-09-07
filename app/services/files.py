@@ -301,6 +301,20 @@ class FileService:
             "text": text,
         }
 
+    def download(self, file_id: str):
+        """The original uploaded bytes, for rendering the source file."""
+
+        row = self.conn.execute(
+            "SELECT storage_name, mime_type, display_name FROM files WHERE id = ?",
+            (file_id,),
+        ).fetchone()
+        if row is None:
+            raise NotFoundError("file", file_id)
+        blob = self.uploads_dir / row["storage_name"]
+        if not blob.is_file():
+            raise NotFoundError("file blob", file_id)
+        return blob, row["mime_type"] or "application/octet-stream", row["display_name"]
+
     def delete(self, file_id: str) -> None:
         row = self.conn.execute(
             "SELECT storage_name, paired_file_id FROM files WHERE id = ?",
