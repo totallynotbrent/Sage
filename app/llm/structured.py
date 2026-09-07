@@ -226,6 +226,7 @@ async def request_plan(
     mastery_summary: str,
     mode: str,
     focus: str | None = None,
+    outline: list[dict] | None = None,
 ) -> Plan | None:
     system = make_system_prompt(session, mode, mastery_summary)
     user = (
@@ -236,6 +237,19 @@ async def request_plan(
         "depends_on must reference node_keys that exist in the same plan.\n\n"
         f"{_context_block(chunks)}"
     )
+    if outline:
+        titles = [
+            entry["title"]
+            for entry in outline
+            if isinstance(entry.get("title"), str) and entry["title"].strip()
+        ]
+        if titles:
+            user += (
+                "\n\nStrict mode: build the plan strictly from the document's "
+                "own sections below. Use those section titles as the node topics, "
+                "in the order they appear, and do not add external topics.\n"
+                "Document sections:\n- " + "\n- ".join(titles)
+            )
     if focus:
         user += f"\n\nFocus on: {focus}"
     messages = [

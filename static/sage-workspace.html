@@ -114,6 +114,9 @@
 .composer-toolbar{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2)}
 .composer-toolbar__btn:disabled{opacity:0.5;cursor:not-allowed}
 .input-bar__wrapper{display:flex;align-items:flex-end;gap:var(--space-2);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--space-3) var(--space-2) var(--space-2) var(--space-4);transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease)}
+.mode-btn{margin-left:auto;font-size:11px;font-family:var(--font-mono);letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);background:none;border:1px solid var(--border);border-radius:var(--r);padding:2px 8px;cursor:pointer;transition:color var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+.mode-btn:hover{color:var(--fg);border-color:var(--accent)}
+.mode-btn[data-mode="strict"]{color:var(--foam);border-color:var(--foam)}
 .composer-error{font-size:12px;color:var(--love);padding:var(--space-2) var(--space-4);font-family:var(--font-body);line-height:1.5}
 .composer-toast{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2) var(--space-3);background:var(--surface);border-left:3px solid var(--foam);padding:var(--space-3) var(--space-4);font-size:13px;color:var(--fg-2);font-family:var(--font-body);line-height:1.5;border-radius:0 var(--r) var(--r) 0;margin-top:var(--space-2)}
 .phase-badge[data-grounding="strict"]::after{content:" \00b7 strict";color:var(--foam)}
@@ -335,6 +338,7 @@
         <div class="input-bar">
           <div class="composer-toolbar" role="toolbar" aria-label="Composer">
             <span class="composer-toolbar__status" id="composer-status" aria-live="polite"></span>
+            <button class="mode-btn" id="mode-btn" data-mode="grounded" title="Toggle: strict keeps to your PDF, normal adds general knowledge and web search">mode: normal</button>
           </div>
           <div class="input-bar__wrapper">
             <textarea class="input-bar__textarea" id="message-input" placeholder="Reply to Sage..." rows="1" aria-label="Message"></textarea>
@@ -2250,6 +2254,11 @@ async function loadSession(id) {
      document.title = `Sage - ${session_title}`;
     document.getElementById('phase-badge').textContent = sess.phase;
     document.getElementById('phase-badge').dataset.phase = sess.phase;
+    const loaded_mode = sess.grounding_mode || 'grounded';
+    current_grounding = loaded_mode;
+    const mode_btn = document.getElementById('mode-btn');
+    if(mode_btn){ mode_btn.dataset.mode = loaded_mode; mode_btn.textContent = loaded_mode === 'strict' ? 'mode: strict' : 'mode: normal'; }
+    document.getElementById('phase-badge').dataset.grounding = loaded_mode;
     // Re-render from scratch: drop anything already in the chat (live-rendered or from a prior
     // load) so history never duplicates.
     box.innerHTML = '';
@@ -2389,25 +2398,36 @@ if (window.mermaid) window.mermaid.initialize({ startOnLoad: false, securityLeve
       }
       toast_timer = setTimeout(hide_link_toast, 8000);
     }
-    async function enable_strict_mode(){
+    let current_grounding = 'grounded';
+    async function set_grounding_mode(mode){
       if(!sessionId){
         setComposerError('Create a session first.');
         setTimeout(()=>{ clearComposerError(); },3000);
         return;
       }
       try{
-        const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({grounding_mode:'strict'})});
-        if(!r.ok) throw new Error(`Failed to switch to strict mode: ${r.status}`);
-        hide_link_toast();
+        const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({grounding_mode: mode})});
+        if(!r.ok) throw new Error(`Failed to switch mode: ${r.status}`);
+        current_grounding = mode;
+        const btn = document.getElementById('mode-btn');
+        if(btn){ btn.dataset.mode = mode; btn.textContent = mode === 'strict' ? 'mode: strict' : 'mode: normal'; }
         const badge = document.getElementById('phase-badge');
-        if(badge) badge.dataset.grounding = 'strict';
-        setComposerStatus('strict grounding on');
+        if(badge) badge.dataset.grounding = mode;
+        setComposerStatus(mode === 'strict' ? 'strict — PDF-first, no web' : 'normal — all + web search');
         setTimeout(()=>{ setComposerStatus(''); },2000);
       }catch(e){
-        setComposerError(e && e.message ? e.message : 'Could not switch to strict mode.');
+        setComposerError((e && e.message) ? e.message : 'Could not switch mode.');
         setTimeout(()=>{ clearComposerError(); },3000);
       }
     }
+    function toggle_grounding_mode(){
+      set_grounding_mode(current_grounding === 'strict' ? 'grounded' : 'strict');
+    }
+    function enable_strict_mode(){
+      hide_link_toast();
+      set_grounding_mode('strict');
+    }
+    document.getElementById('mode-btn')?.addEventListener('click', toggle_grounding_mode);
     async function link_files_to_session(uploaded){
       const records = Array.isArray(uploaded) ? uploaded : [];
       const ids = records.map(f => f && f.id).filter(Boolean);

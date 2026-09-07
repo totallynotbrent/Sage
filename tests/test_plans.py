@@ -7,6 +7,7 @@ import pytest
 
 from app.errors import ModelOutputError, NotFoundError, ProviderError
 from app.services.learning import LearningService
+from app.services.files import FileService
 from app.services.plans import PlansService
 from app.services.sessions import SessionService
 from app.services.teach import TeachService
@@ -55,6 +56,63 @@ def test_generate_plan_idempotent(conn, settings, fake_llm):
     second = asyncio.run(service.generate_plan(session.id, fake_llm))
     assert [n["id"] for n in second["plan"]] == [n["id"] for n in first_plan]
     assert len(fake_llm.calls) == 1
+
+
+def test_generate_plan_strict_passes_pdf_outline(conn, settings, fake_llm):
+    pymupdf = pytest.importorskip("pymupdf")
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "Intro body")
+    page.insert_text((72, 120), "Math body")
+    document.set_toc([[1, "Introduction", 1], [1, "Integrals", 1], [1, "Derivatives", 1]])
+    pdf = FileService(conn, settings).save_upload(
+        filename="textbook.pdf",
+        content=document.tobytes(),
+        content_type="application/pdf",
+    )
+    assert pdf.outline
+
+    session = SessionService(conn, settings).create(
+        "learn calculus", [pdf.id], grounding_mode="strict"
+    )
+    fake_llm.complete_json_responses = [json.dumps(_good_plan())]
+    asyncio.run(PlansService(conn, settings).generate_plan(session.id, fake_llm))
+
+    prompt = " ".join(
+        str(m.get("content", ""))
+        for call in fake_llm.calls
+        for m in call.get("messages", [])
+    )
+    assert "Document sections" in prompt
+    assert "Introduction" in prompt
+    assert "Integrals" in prompt
+    assert "Derivatives" in prompt
+
+
+def test_generate_plan_grounded_ignores_outline(conn, settings, fake_llm):
+    pymupdf = pytest.importorskip("pymupdf")
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "Intro body")
+    document.set_toc([[1, "Introduction", 1]])
+    pdf = FileService(conn, settings).save_upload(
+        filename="textbook.pdf",
+        content=document.tobytes(),
+        content_type="application/pdf",
+    )
+
+    session = SessionService(conn, settings).create(
+        "learn calculus", [pdf.id], grounding_mode="grounded"
+    )
+    fake_llm.complete_json_responses = [json.dumps(_good_plan())]
+    asyncio.run(PlansService(conn, settings).generate_plan(session.id, fake_llm))
+
+    prompt = " ".join(
+        str(m.get("content", ""))
+        for call in fake_llm.calls
+        for m in call.get("messages", [])
+    )
+    assert "Document sections" not in prompt
 
 
 def test_generate_plan_garbage_raises(conn, settings, fake_llm):

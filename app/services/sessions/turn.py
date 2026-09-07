@@ -209,9 +209,7 @@ class TurnMixin:
                     conn=self.conn,
                     session_id=session_id,
                 )
-                turn_tools = (
-                    None if mode == "strict" else available_tools(self.settings)
-                )
+                turn_tools = available_tools(self.settings, mode=mode)
                 stashed_actions: list[dict] = []
                 web_sources: list[dict] = []
                 step_actions_recorded = False

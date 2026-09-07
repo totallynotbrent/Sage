@@ -89,6 +89,64 @@ def test_pdf_image_only_warns():
     assert "OCR" in (result.error or "")
 
 
+def test_pdf_outline_from_toc():
+    pymupdf = pytest.importorskip("pymupdf")
+    from app.services.extraction.pdf import PDFExtractor
+
+    document = pymupdf.open()
+    page1 = document.new_page()
+    page1.insert_text((72, 72), "Intro body")
+    page2 = document.new_page()
+    page2.insert_text((72, 72), "Derivatives body")
+    document.set_toc(
+        [
+            [1, "Introduction", 1],
+            [2, "Integrals", 1],
+            [1, "Derivatives", 2],
+        ]
+    )
+    data = document.tobytes()
+
+    result = PDFExtractor().extract(data, filename="math.pdf")
+    assert result.ok
+    assert result.outline is not None
+    titles = [entry["title"] for entry in result.outline]
+    assert titles == ["Introduction", "Integrals", "Derivatives"]
+    assert result.outline[0]["page"] == 1
+    assert result.outline[2]["level"] == 1
+
+
+def test_pdf_outline_empty_without_toc():
+    pymupdf = pytest.importorskip("pymupdf")
+    from app.services.extraction.pdf import PDFExtractor
+
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "uniform body line one")
+    page.insert_text((72, 110), "uniform body line two")
+    data = document.tobytes()
+
+    result = PDFExtractor().extract(data, filename="plain.pdf")
+    assert result.ok
+    assert result.outline == []  # no toc and no size-delta spans to detect
+
+
+def test_pdf_outline_size_fallback():
+    pymupdf = pytest.importorskip("pymupdf")
+    from app.services.extraction.pdf import PDFExtractor
+
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((72, 72), "Big Section Heading", fontsize=24)
+    page.insert_text((72, 120), "body line one", fontsize=11)
+    page.insert_text((72, 150), "body line two", fontsize=11)
+    data = document.tobytes()
+
+    result = PDFExtractor().extract(data, filename="fallback.pdf")
+    assert result.ok
+    assert result.outline and result.outline[0]["title"] == "Big Section Heading"
+
+
 def test_docx_sections():
     docx = pytest.importorskip("docx")
     from app.services.extraction.docx import DocxExtractor

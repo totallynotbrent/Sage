@@ -44,6 +44,7 @@ class ExtractionResult:
     units: list[ExtractedUnit] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     error: str | None = None
+    outline: list[dict] | None = None
 
     @property
     def ok(self) -> bool:

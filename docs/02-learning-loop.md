@@ -42,6 +42,13 @@ flowchart TB
 - **Final quiz** — the probe questions plus fresh ones spanning every topic, never repeated.
 - **Complete** — on a pass it summarizes; on a miss it re-teaches just those points and re-quizzes.
 
+## Modes
+
+- **Normal** (default) — your files as primary context, plus general knowledge and the web-search tool.
+- **Strict** — teaches from your uploaded PDF: the plan mirrors the document's own sections, content and quiz stay in it, web search is off.
+
+Toggle the mode with the button above the reply box (see [[ui|Using the web UI]]).
+
 ## See also
 - [[index|Sage]]
 - [[ui|Using the web UI]]
