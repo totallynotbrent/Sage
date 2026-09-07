@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+
+# tests must never inherit the local .env password; force the gate off
+os.environ["SAGE_PASSWORD"] = ""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -26,6 +30,7 @@ def settings(tmp_path) -> Settings:
         chunk_chars=100,
         chunk_overlap=20,
         context_chunk_budget=8,
+        sage_password="",
     )
 
 
