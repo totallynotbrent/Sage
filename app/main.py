@@ -15,6 +15,8 @@ from app.db import init_db
 from app.errors import register_exception_handlers
 from app.llm.client import reset_llm_client
 from app.logging_setup import setup_logging
+from app.api.auth import router as auth_router
+from app.security import AuthMiddleware
 from app.services.watcher import watcher_loop
 
 logger = logging.getLogger("app")
@@ -50,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="Sage", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
+    app.add_middleware(AuthMiddleware, password=settings.sage_password)
 
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
@@ -76,6 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         watch,
     )
 
+    app.include_router(auth_router)
     app.include_router(system.router)
     app.include_router(files.router)
     app.include_router(sessions.router)
@@ -94,6 +98,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         @app.get("/", include_in_schema=False)
         async def serve_ui():
             return FileResponse(str(static_dir / "index.html"))
+
+        @app.get("/login", include_in_schema=False)
+        async def serve_login():
+            return FileResponse(str(static_dir / "login.html"))
 
         app.mount("/", _WebsocketSafeStatic(directory=str(static_dir)), name="static")
 

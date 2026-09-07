@@ -3,9 +3,19 @@ title: Security
 ---
 # Security
 
-**Trusted network only.** Sage has no authentication. Anyone who can reach the
-port can use it, so only run it on a network you trust. See
-[[setup|Setup]] for access.
+**Trusted network only.** By default Sage has no authentication — anyone who can
+reach the port can use it. Set `SAGE_PASSWORD` (in `.env` or the container
+environment) to require a simple password before the app opens: the web UI and
+API are gated behind a login screen until the password matches. See
+[[environment|Environment]] and [[setup|Setup]].
+
+```mermaid
+flowchart LR
+    U[Visitor] -->|GET /login| L[Login page]
+    L -->|correct password| C[HttpOnly cookie set]
+    C --> A[Web app + API unlocked]
+    L -.->|wrong password| X[401 · try again]
+```
 
 - The API key stays server-side, never sent to the browser.
 - SearXNG, when configured, is queried server-side only.
