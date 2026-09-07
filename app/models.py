@@ -22,6 +22,7 @@ class FileRecord(BaseModel):
     paired_file_id: str | None = None
     subject: str | None = None
     source_path: str | None = None
+    outline: list[dict] | None = None
     created_at: str
     updated_at: str
 

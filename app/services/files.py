@@ -198,8 +198,15 @@ class FileService:
         )
         status = "partial" if result.warnings else "ready"
         self.conn.execute(
-            "UPDATE files SET status=?, warnings=?, num_chunks=?, updated_at=? WHERE id=?",
-            (status, json.dumps(result.warnings), len(chunks), utc_now(), file_id),
+            "UPDATE files SET status=?, warnings=?, num_chunks=?, outline=?, updated_at=? WHERE id=?",
+            (
+                status,
+                json.dumps(result.warnings),
+                len(chunks),
+                json.dumps(result.outline or []),
+                utc_now(),
+                file_id,
+            ),
         )
         self.conn.commit()
         self._pair(file_id)
@@ -428,6 +435,11 @@ class FileService:
             )
         except (json.JSONDecodeError, TypeError):
             warnings_list = []
+        outline = record.get("outline") or "[]"
+        try:
+            outline_list = json.loads(outline) if isinstance(outline, str) else outline
+        except (json.JSONDecodeError, TypeError):
+            outline_list = []
         return FileRecord(
             id=record["id"],
             display_name=record["display_name"],
@@ -439,6 +451,7 @@ class FileService:
             error=record.get("error"),
             num_chunks=record.get("num_chunks", 0),
             paired_file_id=record.get("paired_file_id"),
+            outline=outline_list or None,
             subject=record.get("subject"),
             source_path=record.get("source_path"),
             created_at=record["created_at"],
