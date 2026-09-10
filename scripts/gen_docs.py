@@ -18,7 +18,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
-OUT = DOCS  # pages are emitted alongside the .mmd sources (Quartz builds -d ../docs)
+OUT = DOCS  # pages are emitted into docs/ (Quartz builds -d ../docs)
+INTERNAL = ROOT / "docs-internal"  # .mmd diagram sources + dev-only notes
 
 DIAGRAMS = [
     {
@@ -65,7 +66,7 @@ def wrap(title: str, desc: str, code: str, see_also: list[str]) -> str:
 
 def main() -> None:
     for d in DIAGRAMS:
-        code = (DOCS / d["mmd"]).read_text()
+        code = (INTERNAL / d["mmd"]).read_text()
         page = wrap(d["title"], d["desc"], code, d["see_also"])
         (OUT / f"{d['slug']}.md").write_text(page)
         print(f"wrote {d['slug']}.md")
