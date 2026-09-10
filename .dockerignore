@@ -22,10 +22,8 @@ docs-site/public/
 .git/
 .gitignore
 .env
-.agents/
 .mypy_cache/
 .pytest_cache/
-hermes-verify-*
 *.mmd
 
 # Repo-local scratch

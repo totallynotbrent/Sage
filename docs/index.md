@@ -1,6 +1,6 @@
 ---
 title: Sage
-description: "Sage — an adaptive AI tutoring assistant"
+description: "Sage, an adaptive AI tutoring assistant"
 ---
 # Sage
 
@@ -8,12 +8,12 @@ Sage is an adaptive AI tutor. It ingests your study files, teaches you clearly, 
 
 ## Learning
 
-- [[02-learning-loop|How Sage teaches]] — The tutoring arc: probe, planning, dense teaching, a comprehensive final quiz, and re-teaching what didn't stick.
-- [[08-latex-notes|LaTeX notes]] — Point Sage at a LaTeX notes folder and it ingests, pairs, and quizzes over your notes.
+- [[02-learning-loop|How Sage teaches]]: the tutoring arc of probe, planning, dense teaching, a full final quiz, and re-teaching what didn't stick.
+- [[08-latex-notes|LaTeX notes]]: point Sage at a LaTeX notes folder and it ingests, pairs, and quizzes over your notes.
 
 ## Run & operate
 
-- [[setup|Setup & deployment]] — Requirements, the .env file, one-command start, and LAN & Tailscale access.
-- [[environment|Environment variables]] — API_URL / API_KEY / MODEL, SEARXNG_URL, HOST, PORT, and the limits.
-- [[ui|Using the web UI]] — Streaming chat, answer buttons, and the artifacts rail.
-- [[security|Security]] — Trusted-network-only deployment, the watch API, and study-file prompt injection.
+- [[setup|Setup & deployment]]: requirements, the .env file, one-command start, and LAN & Tailscale access.
+- [[environment|Environment variables]]: API_URL / API_KEY / MODEL, SEARXNG_URL, HOST, PORT, and the limits.
+- [[ui|Using the web UI]]: streaming chat, answer buttons, and the artifacts rail.
+- [[security|Security]]: trusted-network-only deployment and the password gate.

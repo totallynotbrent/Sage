@@ -1,5 +1,5 @@
 /* ────────────────────────────────────────────────────────────────────
-   Sage — Rosé Pine × Claude (Anthropic) Style
+   Sage — Rosé Pine theme
    Rosé Pine palette · Editorial serif · Warm chrome · Ring shadows
    ──────────────────────────────────────────────────────────────────── */
 
@@ -19,7 +19,7 @@
   --gold: #f6c177;
   --rose: #ebbcba;
 
-  /* ─── Derived surfaces (Claude-style layering) ──────────────────── */
+  /* ─── Derived surfaces (layered surfaces) ──────────────────── */
   --surface-raised: #232136;
   --surface-sunken: #13111e;
   --surface-warm: #2a2740;
@@ -91,7 +91,7 @@ a:hover { text-decoration: underline; }
   overflow: hidden;
 }
 
-/* ── Header (Claude-style: clean, minimal, warm) ──────────────────── */
+/* ── Header (clean: clean, minimal, warm) ──────────────────── */
 .header {
   display: flex;
   align-items: center;
@@ -136,7 +136,7 @@ a:hover { text-decoration: underline; }
 .phase-badge[data-phase="check"]   { color: var(--rose); background: rgba(235, 187, 186, 0.12); }
 .phase-badge[data-phase="complete"]{ color: var(--foam); background: rgba(156, 207, 216, 0.12); }
 
-/* ── Icon button (Claude-style: subtle, ring-shadow) ──────────────── */
+/* ── Icon button (clean: subtle, ring-shadow) ──────────────── */
 .icon-btn {
   display: grid;
   place-items: center;
@@ -153,7 +153,7 @@ a:hover { text-decoration: underline; }
 .icon-btn--subtle { color: var(--faint); }
 .icon-btn--subtle:hover { color: var(--muted); background: transparent; }
 
-/* ── Buttons (Claude-style: warm sand + ring shadows) ─────────────── */
+/* ── Buttons (clean: warm sand + ring shadows) ─────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -186,7 +186,7 @@ a:hover { text-decoration: underline; }
 
 .btn--sm { padding: 5px 12px; font-size: 12px; }
 
-/* ── Sidebar (Claude-style: editorial sections, generous spacing) ──── */
+/* ── Sidebar (clean: editorial sections, generous spacing) ──── */
 .sidebar {
   width: var(--sidebar-w);
   background: var(--surface);
@@ -299,7 +299,7 @@ a:hover { text-decoration: underline; }
   background: var(--bg);
 }
 
-/* ── Chat (Claude-style: centered, editorial, generous whitespace) ── */
+/* ── Chat (clean: centered, editorial, generous whitespace) ── */
 .chat {
   flex: 1;
   display: flex;
@@ -318,7 +318,7 @@ a:hover { text-decoration: underline; }
   scroll-behavior: smooth;
 }
 
-/* ── Empty state (Claude-style: warm greeting, serif heading) ──────── */
+/* ── Empty state (clean: warm greeting, serif heading) ──────── */
 .chat__empty {
   display: flex;
   flex-direction: column;
@@ -346,7 +346,7 @@ a:hover { text-decoration: underline; }
   color: var(--muted);
 }
 
-/* ── Messages (Claude-style: clean bubbles, no heavy borders) ─────── */
+/* ── Messages (clean: clean bubbles, no heavy borders) ─────── */
 .msg {
   display: flex;
   flex-direction: column;
@@ -386,7 +386,7 @@ a:hover { text-decoration: underline; }
   transition: background var(--duration) var(--ease);
 }
 
-/* Assistant messages: subtle, no border — Claude style */
+/* Assistant messages: subtle, no border — clean */
 .msg--assistant .msg__bubble {
   background: transparent;
   color: var(--fg);
@@ -448,7 +448,7 @@ a:hover { text-decoration: underline; }
   font-weight: 500;
 }
 
-/* Streaming cursor (Claude-style: subtle blink) */
+/* Streaming cursor (clean: subtle blink) */
 .msg--assistant .msg__bubble.streaming::after {
   content: '';
   display: inline-block;
@@ -461,7 +461,7 @@ a:hover { text-decoration: underline; }
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-/* ── Citation chip (Claude-style: ring shadow, soft) ──────────────── */
+/* ── Citation chip (clean: ring shadow, soft) ──────────────── */
 .cite {
   display: inline-flex;
   align-items: center;
@@ -483,7 +483,7 @@ a:hover { text-decoration: underline; }
 }
 .cite:active { transform: scale(0.95); }
 
-/* ── Quiz card (Claude-style: clean card, ring interactions) ───────── */
+/* ── Quiz card (clean: clean card, ring interactions) ───────── */
 .quiz {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -576,7 +576,7 @@ a:hover { text-decoration: underline; }
   background: var(--border);
 }
 
-/* ── Input bar (Claude-style: floating, rounded, warm focus) ───────── */
+/* ── Input bar (clean: floating, rounded, warm focus) ───────── */
 .input-bar {
   padding: var(--space-3) var(--space-4) var(--space-5);
 }
@@ -640,7 +640,7 @@ a:hover { text-decoration: underline; }
 }
 .input-bar__stop:hover { opacity: 0.85; }
 
-/* ── Viewer (Claude-style: clean panel, editorial) ────────────────── */
+/* ── Viewer (clean: clean panel, editorial) ────────────────── */
 .viewer {
   width: 40%;
   min-width: 320px;
@@ -705,7 +705,7 @@ a:hover { text-decoration: underline; }
   border-left-color: var(--accent);
 }
 
-/* ── Modal (Claude-style: warm overlay, soft shadow) ──────────────── */
+/* ── Modal (clean: warm overlay, soft shadow) ──────────────── */
 .modal {
   position: fixed;
   inset: 0;
@@ -759,7 +759,7 @@ a:hover { text-decoration: underline; }
   border-top: 1px solid var(--border);
 }
 
-/* ── Upload zone (Claude-style: dashed border, soft) ──────────────── */
+/* ── Upload zone (clean: dashed border, soft) ──────────────── */
 .upload-zone {
   display: flex;
   flex-direction: column;

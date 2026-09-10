@@ -2230,7 +2230,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cta-new')?.addEventListener('click', startNewLesson);
 });
 
-// Handoff from home: auto-send the first message once the session is loaded
+// Auto-send the first message that the home page carried over once the session loads
 (function(){
   const pending = sessionStorage.getItem('sage_pending_message');
   if (!pending) return;

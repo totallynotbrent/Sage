@@ -237,7 +237,7 @@ class TurnMixin:
                         event_type = item.get("type")
                         if event_type == "thinking":
                             # Model's private reasoning — surfaced for the UI's
-                            # collapsible "thinking" section (Claude-style).
+                            # collapsible "thinking" section.
                             yield {"type": "thinking", "thinking": item.get("thinking") or ""}
                             continue
                         if event_type == "tool_call":

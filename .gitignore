@@ -34,39 +34,22 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Project harness state (never committed)
+# Scratch and local notes
 oc-issues.txt
 oc-wants.txt
 .pytest_cache/
-.agents/shared/
-docs/.agents/
-# Debug artifacts / screenshots — never commit
+script.txt
+/ISSUES.md
+
+# Screenshots and debug artifacts
 *.png
 *.jpeg
 *.jpg
-.playwright-mcp/
-.agents/jobs/evidence/
 verify_*.py
-script.txt
 
 # Quartz docs site
 docs-site/node_modules/
 docs-site/public/
 docs-site/**/.quartz-cache/
-/ISSUES.md
-
-# Agent-only / push-gate exclusions (canonical list in ~/Bots/AGENT_README.md)
-.agents/
-job/
-*.goals.*
-CODING.md
-kanban*.md
-docs/kanban*
-AGENT_HANDOFF.md
-WORKLOG.md
-WORK.md
-*_plan.md
-audit*.md
-spike*/
-research/
-CODING_RULES.md
+# Design-tool output (scratch, not user-facing)
+opendesign/

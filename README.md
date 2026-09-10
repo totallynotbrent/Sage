@@ -9,7 +9,7 @@
 
 ## Summary
 
-Sage is a local-first web application that acts as a personalized AI tutor: attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches automatically, and Sage chunks them, probes what you already know, builds a learning plan, teaches each node, checks understanding with quiz questions — including questions grounded in your LaTeX theorem/definition environments — and remediates weak spots, all through a grounded, streaming chat that cites the exact excerpts it used. The Python 3.11 FastAPI service serves the static web UI from `/` alongside JSON/SSE endpoints, talks to Ollama cloud at `https://ollama.com/v1` with `gemma4:31b-cloud` (any OpenAI-compatible endpoint), can search the web via SearXNG when `SEARXNG_URL` is configured for grounded turns, provides structured outputs for chat/mermaid/todo/quiz plus new teach (Socratic one-step lesson + follow-up actions: continue/ask_question/practice/example/deeper/next_topic) and latex (standalone LaTeX snippet), and stores everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads kept outside any served path.
+Sage is a local-first web app that works as a personal AI tutor. Attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches on its own, and Sage chunks them, figures out what you already know, builds a learning plan, teaches each topic, and checks understanding with quiz questions, including ones grounded in your LaTeX theorem and definition environments. It then re-teaches whatever did not stick. All of this happens through a grounded, streaming chat that cites the exact excerpts it used. The Python 3.11 FastAPI service serves the static UI from `/` alongside JSON and SSE endpoints, talks to an OpenAI-compatible endpoint (default Ollama cloud with `gemma4:31b-cloud`), can search the web via SearXNG when `SEARXNG_URL` is set, returns structured outputs for chat, mermaid, to-do lists, and quizzes, plus a Socratic teach step and LaTeX snippets, and keeps everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads stored outside any served path.
 
 ## Project structure
 
@@ -17,11 +17,11 @@ Sage is a local-first web application that acts as a personalized AI tutor: atta
 sage/
 ├── app/
 │   ├── main.py                      # FastAPI app factory · init_db · 10 routers
-│   ├── config.py                    # Settings — BROT_* + SEARXNG_URL / HOST / PORT / limits, read from .env
+│   ├── config.py                    # Settings (API_URL / API_KEY / MODEL + SEARXNG_URL / HOST / PORT / limits, read from .env)
 │   ├── db.py                        # SQLite schema v2 · connection helpers
 │   ├── models.py                    # Pydantic request/response models
 │   ├── errors.py                    # error envelope + exception handlers
-│   ├── sse.py                       # SSE helper — 15s heartbeat · sse_response
+│   ├── sse.py                       # SSE helper (15s heartbeat · sse_response)
 │   ├── logging_setup.py             # logging configuration
 │   ├── util.py                      # id / utc_now helpers
 │   ├── api/                         # HTTP routers
@@ -39,7 +39,7 @@ sage/
 │   ├── llm/
 │   │   ├── client/                # Ollama client package (split from client.py)
 │   │   │   ├── core.py            # SageOllamaClient · degradation ladder · stream/chat paths
-│   │   │   ├── config.py          # OllamaClientConfig + BROT_* settings mapping
+│   │   │   ├── config.py          # OllamaClientConfig + API_URL/API_KEY/MODEL mapping
 │   │   │   ├── attempt.py         # ChatAttempt (bread-parity)
 │   │   │   ├── leak_guard.py      # _strip_leaked_calls (gemma leaked-call guard)
 │   │   │   ├── utils.py           # SDK value coercion · unsupported-feature detection
@@ -89,21 +89,21 @@ sage/
 │   ├── fakes/fake_llm.py
 │   └── test_*.py                    # API, chunking, retrieval, plans, teach, mastery,
 │                                    #   extraction_tex, math_tokens, watcher, notes_quiz…
-├── docs/                            # operational docs + mermaid diagram sources
-│   ├── README.md                    #   index
-│   ├── setup.md                     #   install · run · LAN access · notes watch
-│   ├── security.md                  #   trusted-network-only warning
+├── docs/                            # user-facing docs (built into the Quartz site)
+│   ├── index.md                     #   landing page
+│   ├── setup.md                     #   install · run · LAN access
 │   ├── environment.md               #   env var reference
-│   ├── testing.md                   #   tests · wheel preflight · smoke test
-│   └── *.mmd                        #   UI notes diagrams (01-system-architecture … 08-latex-notes)
+│   ├── ui.md                        #   using the web UI
+│   ├── security.md                  #   trusted-network-only + password gate
+│   ├── 02-learning-loop.md          #   how Sage teaches
+│   └── 08-latex-notes.md            #   LaTeX notes integration
+***REMOVED***
 ├── run.sh                           # one-command start (Linux/Pi)
 ├── run.bat                          # one-command start (Windows)
-├── oc.bat                           # opencode web launcher (SMB-safe)
-├── ui.txt                           # web UI notes
 ├── requirements.txt
 ├── package.json                     # Node deps for the Mermaid validator
 ├── package-lock.json                # pinned npm dependency tree
-└── .env.example                     # copy to .env, fill in BROT_API_KEY
+└── .env.example                     # copy to .env, fill in API_KEY (and MODEL)
 ```
 
 ## Architecture
@@ -120,7 +120,7 @@ flowchart LR
         MAIN["app/main.py<br/>create_app · init_db · 10 routers"]
         UI["static/<br/>index.html · sage-workspace.html · sage-health.html<br/>sage-library.html · sage-sessions.html · sage-settings.html"]
         API["app/api/<br/>system · files · sessions · chat · outputs<br/>learning · plans · teach · preferences · watch"]
-        DEPS["app/api/deps.py<br/>require_configured<br/>BROT_API_KEY / BROT_BASE_URL validation"]
+        DEPS["app/api/deps.py<br/>require_configured<br/>API_KEY / API_URL validation"]
         SVC["app/services/<br/>sessions · files · chunking · retrieval · math_tokens<br/>learning · plans · teach · mastery · extraction · watcher"]
         WATCH["app/services/watcher.py<br/>watcher_loop · scan_once · sync_watch_sources"]
         DB[("SQLite<br/>DATA_DIR/sage.db · 11 tables")]
@@ -182,7 +182,7 @@ sequenceDiagram
     participant T as SessionService (turn.py)
     participant DB as SQLite
     participant LLM as LLMClient
-    participant B as BROT endpoint
+    participant B as LLM endpoint
 
     C->>CH: POST /api/sessions/{id}/turns {message, client_msg_id}
     CH->>T: turn(session_id, message, llm)
@@ -266,7 +266,7 @@ sequenceDiagram
 
 ### SQLite data model
 
-Schema in `app/db.py` (SCHEMA_VERSION 2). Sessions reference files by JSON array in `file_ids_json` — there is no `session_files` join table. `mastery_topics` and `preferences` are global (not per-session). `watch_sources` records the notes folders the watcher scans.
+Schema in `app/db.py` (SCHEMA_VERSION 2). Sessions reference files by JSON array in `file_ids_json`; there is no `session_files` join table. `mastery_topics` and `preferences` are global (not per-session). `watch_sources` records the notes folders the watcher scans.
 
 ```mermaid
 erDiagram
@@ -368,13 +368,13 @@ erDiagram
     }
 ```
 
-## Homepage background experiment (feature/homepage-dither)
+## Homepage background
 
-Served from `static/index.html` on the `feature/homepage-dither` branch (NOT
-on main). Adds a full-bleed ordered-dither wallpaper behind the home hero,
-rendering inline via the vendored engine `static/dither.js` +
-`static/RgbQuant.js` (MIT), with a color-count (1→50) + resolution intro,
-edge vignette, and slowed text entrance. Rollback = `git checkout main`.
+The homepage uses a full-bleed ordered-dither wallpaper behind the hero,
+rendered inline by the vendored engine `static/dither.js` and
+`static/RgbQuant.js` (MIT), with a color-count and resolution intro, an edge
+vignette, and a slowed text entrance. The exploration variants that led to it
+***REMOVED***
 
 Notes:
 - Default dither config lives as `dither_base` in the inline renderer

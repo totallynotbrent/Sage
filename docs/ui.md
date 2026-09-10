@@ -36,7 +36,7 @@ flowchart TB
 ```
 
 - Streams answers as they generate; sources cited inline when web search is on.
-- Understanding questions render as buttons — tap one.
+- Understanding questions render as buttons; tap one.
 - Quizzes and diagrams land in a side rail; the chat stays prose.
 - Upload a file and it opens the workspace, where the source pane renders the PDF itself (not its raw text).
 - The mode toggle (strict / normal) sits in the chat composer on both the home page and the workspace.
