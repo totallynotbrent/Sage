@@ -58,12 +58,6 @@
 /* Collapsed repeat counter for identical consecutive user messages */
 .repeat-counter{margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--accent-dim);color:var(--accent);font-size:10px;font-weight:600}
 
-/* Probe section inside the right rail */
-.rail-probe{display:none;flex-direction:column;gap:var(--space-3);padding:var(--space-3);border-bottom:1px solid var(--border);overflow-y:auto;flex-shrink:0}
-.rail-probe.active{display:flex}
-.rail-probe__title{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:var(--meta);padding-bottom:var(--space-1)}
-.rail-probe .artifact-card{padding:var(--space-3)}
-.rail-probe .probe-actions{justify-content:center}
 /* Continue gate (issue #6): a single Continue button that reveals the question
    cards only once pressed, so reading precedes the question and the per-question
    latency timer starts at reveal. */
@@ -127,10 +121,6 @@
 .diagram-panel__title{font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--fg);display:flex;align-items:baseline;gap:var(--space-2);flex:1;min-width:0}
 .diagram-panel__count{font-family:var(--font-mono);font-size:11px;color:var(--meta);letter-spacing:0.04em}
 .diagram-panel__body{flex:1;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4)}
-.rail-tabs{display:flex;gap:var(--space-1);padding:var(--space-2) var(--space-4) 0;border-bottom:1px solid var(--border);flex-shrink:0}
-.rail-tab{font-family:var(--font-display);font-size:13px;font-weight:500;color:var(--meta);padding:var(--space-2) var(--space-3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;border-radius:var(--r) var(--r) 0 0}
-.rail-tab:hover{color:var(--fg)}
-.rail-tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
 .file-viewer{flex:1;overflow:auto;padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
 .file-viewer__empty{color:var(--meta);font-size:13px;text-align:center;padding:var(--space-8) var(--space-4)}
 .file-viewer__item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:none;color:inherit;font-family:inherit;font-size:13px;text-align:left}
@@ -140,7 +130,7 @@
 .file-viewer__chips{font-family:var(--font-mono);font-size:10px;color:var(--meta);letter-spacing:0.04em;text-transform:lowercase}
 .file-viewer__doc{background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-4);font-family:var(--font-mono);font-size:12px;color:var(--muted);line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:100%;overflow:auto}
 .file-viewer__doc:empty{color:var(--meta);font-style:italic}
-.file-viewer__pdf{width:100%;height:62vh;border:1px solid var(--border);border-radius:var(--r);background:#fff;display:block}
+.file-viewer__pdf{width:100%;height:78vh;border:1px solid var(--border);border-radius:var(--r);background:#fff;display:block}
 .diagram-panel__empty{color:var(--meta);font-size:13px;text-align:center;padding:var(--space-8) var(--space-4)}
 .artifact-card{position:relative;background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3)}
 .artifact-card[data-kind="mermaid"]{border-left-color:var(--foam)}
@@ -355,23 +345,14 @@
       </div>
     </main>
 
-    <aside class="diagram-panel" id="diagramPanel" aria-label="Artifacts and support">
+    <aside class="diagram-panel" id="diagramPanel" aria-label="File viewer">
       <div class="diagram-panel__header">
         <div class="diagram-panel__title">
-          <span>Artifacts</span>
-          <span class="diagram-panel__count" id="artifacts-count">0</span>
+          <span>File</span>
         </div>
-        <button class="icon-btn" id="closeDiagram" aria-label="Close artifacts" style="width:28px;height:28px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
+        <button class="icon-btn" id="closeDiagram" aria-label="Close file viewer" style="width:28px;height:28px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4L4 12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       </div>
-      <div class="rail-tabs" role="tablist" aria-label="Right rail">
-        <button class="rail-tab" role="tab" aria-selected="true" data-rail-tab="artifacts" type="button">Artifacts</button>
-        <button class="rail-tab" role="tab" aria-selected="false" data-rail-tab="file" type="button">File</button>
-      </div>
-      <div class="rail-probe" id="rail-probe"></div>
-      <div class="diagram-panel__body" id="diagramBody">
-        <div class="diagram-panel__empty">Diagrams, quizzes, and checklists Sage generates will appear here.</div>
-      </div>
-      <div class="file-viewer" id="fileViewer" hidden>
+      <div class="file-viewer" id="fileViewer">
         <div class="file-viewer__empty">No files in this session. Upload a file and Sage will teach from it here.</div>
       </div>
     </aside>
@@ -458,8 +439,15 @@ function esc(s){const d=document.createElement('div');d.textContent=s;return d.i
 const box = document.getElementById('messages');
 const chatEl = document.getElementById('chat');
 const diagramPanel = document.getElementById('diagramPanel');
-const diagramBody = document.getElementById('diagramBody');
-const artifactsCount = document.getElementById('artifacts-count');
+// artifacts rail removed; a harmless shim so legacy artifact card functions no-op
+const diagramBody = {
+  querySelector: () => null,
+  querySelectorAll: () => [],
+  appendChild: () => {},
+  prepend: () => {},
+  innerHTML: '',
+  scrollTop: 0,
+};
 const input = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
 const stopBtn = document.getElementById('stop-btn');
@@ -514,22 +502,16 @@ try{ reconcile_sidebar(); }catch(e){}
     if(!railEl) return;
     if(mq.matches){ railEl.classList.add('closed'); }
     else if (railEl.dataset.userClosed) { railEl.classList.add('closed'); }
-    else if (
-      !diagramBody.querySelector('.artifact-card') &&
-      !diagramBody.querySelector('.summary-card')
-    ) {
-      // Auto-hide an empty artifacts rail so the chat centers. It reopens when
-      // the model generates something (appendArtifact → openArtifactsRail).
-      railEl.classList.add('closed');
+    else {
+      railEl.classList.add('closed');  // file viewer stays closed until a file is opened
     }
   }
   applyRailDefault();
   mq.addEventListener('change', e => {
-    if(e.matches) railEl.classList.add('closed');
-    else if (
-      !railEl.dataset.userClosed &&
-      (diagramBody.querySelector('.artifact-card') || diagramBody.querySelector('.summary-card'))
-    ) railEl.classList.remove('closed');
+    if(e.matches){ railEl.classList.add('closed'); }
+    else if (!railEl.dataset.userClosed && fileViewerEl && fileViewerEl.innerHTML.trim()) {
+      railEl.classList.remove('closed');
+    }
   });
 })();
 mobile_query.addEventListener('change', reconcile_sidebar);
@@ -745,19 +727,8 @@ function closeArtifactsRail() { diagramPanel.classList.add('closed'); }
 /* Right-rail chrome tabs: Artifacts (existing diagram body) vs File (viewer). */
 const fileViewerEl = document.getElementById('fileViewer');
 let selectedFileId = null;
-function railTab(name) {
-  const tabs = document.querySelectorAll('.rail-tab');
-  tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.railTab === name)));
-  const showArtifacts = name === 'artifacts';
-  diagramBody.style.display = showArtifacts ? '' : 'none';
-  fileViewerEl.hidden = showArtifacts;
-  if (!showArtifacts) { openArtifactsRail(); renderFileTab(); }
-}
-document.querySelectorAll('.rail-tab').forEach(t => {
-  t.addEventListener('click', () => railTab(t.dataset.railTab));
-});
 
-/* File viewer: list the session's files; click one to load its text content. */
+/* File viewer: list the session's files; click one to load its source. */
 function renderFileTab() {
   fileViewerEl.innerHTML = '';
   const files = (currentSessionFiles || []).filter(f => f && f.id);
@@ -821,20 +792,7 @@ function focusPlanArtifact(card) {
 function show_card(card) { setTimeout(() => { card.classList.add('visible'); wrapQuizWords(card); }, 60); }
 
 function updateArtifactsCount() {
-  const summaryCards = diagramBody.querySelectorAll('.summary-card').length;
-  const supportArtifacts = artifacts.filter(artifact => artifact.kind !== ARTIFACT_KIND.QUIZ && artifact.kind !== ARTIFACT_KIND.TODO);
-  artifactsCount.textContent = String(supportArtifacts.length + summaryCards);
-  if (
-    supportArtifacts.length === 0 &&
-    !diagramBody.querySelector('.artifact-card') &&
-    !diagramBody.querySelector('.summary-card')
-  ) {
-    diagramBody.innerHTML = '<div class="diagram-panel__empty">Diagrams, quizzes, and checklists Sage generates will appear here.</div>';
-    // Auto-hide the artifacts sidebar while it has nothing generated (issue:
-    // empty rail pushed the chat off-center). It reopens when an artifact is
-    // appended (appendArtifact → openArtifactsRail).
-    diagramPanel.classList.add('closed');
-  }
+  // artifacts rail removed; nothing to count
 }
 
 function formatMarker(n) {
@@ -2176,31 +2134,25 @@ function continueChatAfterLesson() {
   if (input) input.focus();
 }
 function reviewLessonSummary() {
-  openArtifactsRail();
   buildLessonSummary();
-  const card = document.getElementById('diagramBody').querySelector('.summary-card');
-  if (card) { document.getElementById('diagramBody').scrollTop = 0; card.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
 }
 function startNewLesson() {
   location.href = '/sage-workspace.html';
 }
 async function buildLessonSummary() {
-  // Only build once
-  if (document.getElementById('diagramBody').querySelector('.summary-card')) return;
+  // render the summary once, inline in the chat
+  if (box.querySelector('.summary-card')) return;
   try {
     const res = await fetch(`${API}/sessions/${sessionId}`);
     const data = await res.json();
     const plan = data.plan || [];
     const doneNodes = plan.filter(n => n.status === 'done').map(n => n.title);
     if (!doneNodes.length) return;
-    openArtifactsRail();
     const card = document.createElement('div');
-    card.className = 'summary-card';
-    card.innerHTML = `<h4>What you learned</h4><ul>${doneNodes.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
-    const emptyEl = document.getElementById('diagramBody').querySelector('.diagram-panel__empty');
-    if (emptyEl) emptyEl.remove();
-    document.getElementById('diagramBody').prepend(card);
-    updateArtifactsCount();
+    card.className = 'summary-card msg';
+    card.innerHTML = `<div class="msg__role">Sage</div><h4>What you learned</h4><ul>${doneNodes.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    box.appendChild(card);
+    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   } catch(e) {}
 }
 document.addEventListener('DOMContentLoaded', () => setTimeout(updateCompletionState, 500));
@@ -2281,6 +2233,15 @@ async function loadSession(id) {
     if (data.selected_files) {
       currentSessionFiles = data.selected_files;
       document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
+      // open the file-viewer rail and show the first file so a fresh upload is visible
+      if (currentSessionFiles.length) {
+        selectedFileId = currentSessionFiles[0].id;
+        renderFileTab();
+        loadFileContent(currentSessionFiles[0]);
+        openArtifactsRail();
+      } else {
+        renderFileTab();
+      }
     } else { currentSessionFiles = []; }
     if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
     // Persist pending questions across a page refresh (issue #7): the server

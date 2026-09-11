@@ -20,10 +20,10 @@ flowchart TB
         G --> D
         H --> D
     end
-    subgraph A2["Artifacts rail"]
-        D --> I["Quizzes & generated diagrams land beside the chat"]
-        I --> J["Final quiz renders as interactive cards — select options to answer"]
-        J --> K["Answers graded against your mastery"]
+    subgraph A2["Source viewer"]
+        D --> I["Uploaded files open in a collapsible side rail"]
+        I --> J["PDFs render natively — scroll and read the original"]
+        J --> K["Probe and final-quiz questions appear as cards in the chat"]
     end
     subgraph A3["Resolve"]
         K -->|"mastered"| L["Session complete · summary + read-only history"]
@@ -36,9 +36,8 @@ flowchart TB
 ```
 
 - Streams answers as they generate; sources cited inline when web search is on.
-- Understanding questions render as buttons; tap one.
-- Quizzes and diagrams land in a side rail; the chat stays prose.
-- Upload a file and it opens the workspace, where the source pane renders the PDF itself (not its raw text).
+- Understanding questions and the final quiz render as answer cards in the chat.
+- Uploaded files open in a collapsible side rail; PDFs render there natively.
 - The mode toggle (strict / normal) sits in the chat composer on both the home page and the workspace.
 
 The probe and the final quiz are the two question rounds. See
