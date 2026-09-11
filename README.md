@@ -1,15 +1,14 @@
-```
-   _____         _____ ______ 
-  / ____|  /\   / ____|  ____|
- | (___   /  \ | |  __| |__   
-  \___ \ / /\ \| | |_ |  __|  
-  ____) / ____ \ |__| | |____ 
- |_____/_/    \_\_____|______|
-```
+> **This project is not complete.** Sage is under active development and has rough
+> edges. Things that are still being built or are known to be unfinished include:
+> the PDF source viewer (currently a collapsible side rail, still being polished),
+> in-text citation rendering, the automatic diagnostic probe that opens a session,
+> the plan-building and re-teaching flow, LaTeX rendering in every card, and the
+> final-quiz and grading loop. The UI changes often and the learning arc is still
+> being tuned. Expect breaking changes.
 
 ## Summary
 
-Sage is a local-first web app that works as a personal AI tutor. Attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches on its own, and Sage chunks them, figures out what you already know, builds a learning plan, teaches each topic, and checks understanding with quiz questions, including ones grounded in your LaTeX theorem and definition environments. It then re-teaches whatever did not stick. All of this happens through a grounded, streaming chat that cites the exact excerpts it used. The Python 3.11 FastAPI service serves the static UI from `/` alongside JSON and SSE endpoints, talks to an OpenAI-compatible endpoint (default Ollama cloud with `gemma4:31b-cloud`), can search the web via SearXNG when `SEARXNG_URL` is set, returns structured outputs for chat, mermaid, to-do lists, and quizzes, plus a Socratic teach step and LaTeX snippets, and keeps everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads stored outside any served path.
+Sage is a local-first web app that works as a personal AI tutor. Attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches on its own, and Sage chunks them, probes what you already know, builds a learning plan, teaches each topic, then runs a final quiz and re-teaches whatever did not stick. All of this happens through a grounded, streaming chat that cites the exact excerpts it used. The Python 3.11 FastAPI service serves the static UI from `/` alongside JSON and SSE endpoints, talks to an OpenAI-compatible endpoint (default Ollama cloud with `gemma4:31b-cloud`), can search the web via SearXNG when `SEARXNG_URL` is set, and keeps everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads stored outside any served path.
 
 ## Project structure
 
@@ -97,7 +96,6 @@ sage/
 │   ├── security.md                  #   trusted-network-only + password gate
 │   ├── 02-learning-loop.md          #   how Sage teaches
 │   └── 08-latex-notes.md            #   LaTeX notes integration
-***REMOVED***
 ├── run.sh                           # one-command start (Linux/Pi)
 ├── run.bat                          # one-command start (Windows)
 ├── requirements.txt
@@ -373,8 +371,7 @@ erDiagram
 The homepage uses a full-bleed ordered-dither wallpaper behind the hero,
 rendered inline by the vendored engine `static/dither.js` and
 `static/RgbQuant.js` (MIT), with a color-count and resolution intro, an edge
-vignette, and a slowed text entrance. The exploration variants that led to it
-***REMOVED***
+vignette, and a slowed text entrance.
 
 Notes:
 - Default dither config lives as `dither_base` in the inline renderer

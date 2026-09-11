@@ -10,6 +10,9 @@ node_modules/
 dist/
 build/
 out/
+# the vendored quartz footer plugin ships its compiled dist
+!docs-site/plugins/footer/dist/
+!docs-site/plugins/footer/dist/**
 
 # Local application data (uploads, extracted text, sessions, mastery data)
 data/
@@ -51,5 +54,6 @@ verify_*.py
 docs-site/node_modules/
 docs-site/public/
 docs-site/**/.quartz-cache/
+docs-site/**/.quartz/
 # Design-tool output (scratch, not user-facing)
 opendesign/
