@@ -55,6 +55,7 @@
 .artifact-card__quiz-option.correct{border-color:var(--foam);background:var(--surface-warm)}
 .artifact-card__quiz-option.wrong{border-color:var(--love)}
 .artifact-card__quiz-option:disabled{cursor:default;opacity:.85}
+.artifact-card__quiz-outcome{font-family:var(--font-mono);font-size:11px;margin-top:var(--space-2);color:var(--meta)}
 .cite{display:inline-block;font-size:11px;font-weight:500;font-family:var(--font-mono);background:var(--accent-dim);color:var(--accent);border:1px solid var(--border);border-radius:999px;padding:1px 8px;margin:0 2px;cursor:default}
 .cite--inline{vertical-align:baseline}
 .cite--inline:hover{border-color:var(--accent)}
@@ -1523,7 +1524,7 @@ function start_probe_batch(items, kind_label) {
   box.appendChild(wrap);
   box.scrollTop = box.scrollHeight;
   entries.forEach(entry => show_card(entry.card));
-  rail.scrollTop = 0;
+  render_math(false);
 }
 
 function queue_probe_reply(text) {
@@ -2352,7 +2353,6 @@ function render_answered_questions(questions) {
     const outcome = document.createElement('div');
     outcome.className = 'artifact-card__quiz-outcome';
     outcome.textContent = q.status === 'skipped' ? 'skipped' : (q.outcome === 'correct' ? '\u2713 correct' : q.outcome === 'incorrect' ? '\u2717 incorrect' : q.outcome || 'answered');
-    outcome.style.cssText = 'font-family:var(--font-mono);font-size:11px;margin-top:var(--space-2);color:var(--meta)';
     content.appendChild(outcome);
     card.appendChild(header);
     card.appendChild(content);
@@ -2364,6 +2364,7 @@ function render_answered_questions(questions) {
     role.textContent = 'Sage';
     box.appendChild(role);
     box.appendChild(wrap);
+    render_math(false);
   }
 }
 
