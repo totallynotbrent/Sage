@@ -49,7 +49,15 @@
 .tool-status-line{font-family:var(--font-mono);font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent);padding:var(--space-1) 0}
 
 /* Yes/No inline answer buttons under assistant check questions */
-.probe-wrap{max-width:min(920px,92%);width:100%;margin:0 auto var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3) 0}
+.probe-wrap{max-width:min(920px,92%);width:100%;margin:0 auto var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3) 0;position:relative}
+.probe-close{position:absolute;top:0;right:0;width:26px;height:26px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--meta);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:2}
+.probe-close:hover{color:var(--fg);border-color:var(--accent)}
+.artifact-card__quiz-option.correct{border-color:var(--foam);background:var(--surface-warm)}
+.artifact-card__quiz-option.wrong{border-color:var(--love)}
+.artifact-card__quiz-option:disabled{cursor:default;opacity:.85}
+.cite{display:inline-block;font-size:11px;font-weight:500;font-family:var(--font-mono);background:var(--accent-dim);color:var(--accent);border:1px solid var(--border);border-radius:999px;padding:1px 8px;margin:0 2px;cursor:default}
+.cite--inline{vertical-align:baseline}
+.cite--inline:hover{border-color:var(--accent)}
 .probe-wrap .artifact-card{opacity:1;transform:none}
 
 .yesno-row{display:flex;gap:var(--space-2);margin-top:var(--space-2)}
@@ -536,6 +544,23 @@ function sync_nav_workspace() {
 }
 
 function renderMd(t) { return marked.parse(t, { breaks: true, gfm: true }); }
+
+// convert inline [cit:chunk_id:start:end] markers the model writes into citation
+// chips (linking to the source file) instead of leaking raw cit text.
+function render_inline_citations(text) {
+  if (!text || typeof text !== 'string') return text;
+  const chips = [];
+  // swap markers for placeholders so markdown/sanitize leave them alone, then
+  // restore the rendered chip after markdown has run.
+  const out = text.replace(/\[cit:([a-zA-Z0-9-]+)(?::([0-9]+))?(?::([0-9]+))?\]/g, (m, id) => {
+    const file = (currentSessionFiles || []).find(f => id && f.display_name);
+    const label = file ? file.display_name : id;
+    const token = `@@CIT${chips.length}@@`;
+    chips.push(`<span class="cite cite--inline" title="${esc(label)}">&#128279; ${esc(label)}</span>`);
+    return token;
+  });
+  return { text, out, chips };
+}
 function sanitize_html(html) {
   const template = document.createElement('template');
   template.innerHTML = html;
@@ -686,7 +711,16 @@ function addMessage(role, content, options = {}) {
   if (options.thinking) {
      html += `<div style="margin:var(--space-2) 0;padding:var(--space-3) var(--space-4);background:var(--surface);border-radius:var(--r);font-size:13px;color:var(--meta);font-style:italic;line-height:1.6"><strong style="color:var(--muted);font-weight:500;font-style:normal">Thinking\u2026</strong> ${esc(options.thinking)}</div>`;
   }
-   html += `${role === 'assistant' ? sanitize_html(renderMd(content)) : esc(content)}</div>`;
+   let rendered_html;
+  if (role === 'assistant') {
+    const cit = render_inline_citations(content);
+    let md = renderMd(cit.out);
+    cit.chips.forEach((chip, i) => { md = md.split(`@@CIT${i}@@`).join(chip); });
+    rendered_html = sanitize_html(md);
+  } else {
+    rendered_html = esc(content);
+  }
+  html += `${rendered_html}</div>`;
    d.innerHTML = html;
   if (options._raw) d.querySelector('.msg__bubble').dataset.rawContent = options._raw;
   box.appendChild(d);
@@ -1450,6 +1484,13 @@ function start_probe_batch(items, kind_label) {
   };
   const wrap = document.createElement('div');
   wrap.className = 'probe-wrap';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'probe-close';
+  close.setAttribute('aria-label', 'Dismiss questions');
+  close.textContent = '×';
+  close.onclick = () => { wrap.remove(); };
+  wrap.appendChild(close);
   items.forEach((question, qi) => {
     const marker_text = kind_label === 'check'
           ? 'CHECK'
@@ -2254,9 +2295,76 @@ async function loadSession(id) {
         pending.forEach(q => { (byKind[q.kind] = byKind[q.kind] || []).push(q); });
         Object.keys(byKind).forEach(kind => start_probe_batch(byKind[kind], kind));
       }
+      // persisted answered/skipped questions render as locked result cards so a
+      // refresh keeps the whole question history, not just the streamed prose.
+      const done = data.quiz.filter(q => q && q.status !== 'pending');
+      if (done.length) render_answered_questions(done);
     }
     loadSessionsList();
   } catch (e) { console.error('Failed to load session:', e); }
+}
+
+// render previously answered/skipped questions as locked cards with the chosen
+// answer and its outcome, so interactive history survives a page refresh.
+function render_answered_questions(questions) {
+  const wrap = document.createElement('div');
+  wrap.className = 'probe-wrap';
+  questions.forEach(q => {
+    const card = document.createElement('article');
+    card.className = 'artifact-card';
+    card.dataset.kind = 'quiz';
+    card.dataset.sent = '1';
+    const marker = document.createElement('span');
+    marker.className = 'artifact-card__marker';
+    marker.textContent = String(q.kind === 'probe' ? 'PROBE' : q.kind === 'final' ? 'FINAL QUIZ' : 'CHECK').toUpperCase();
+    const title = document.createElement('h3');
+    title.className = 'artifact-card__title';
+    title.textContent = q.question || '';
+    const header = document.createElement('header');
+    header.className = 'artifact-card__header';
+    header.appendChild(marker);
+    header.appendChild(title);
+    const content = document.createElement('div');
+    content.className = 'artifact-card__content';
+    const opts = document.createElement('div');
+    opts.className = 'artifact-card__quiz-options';
+    opts.setAttribute('role', 'radiogroup');
+    (Array.isArray(q.options) ? q.options : []).forEach((opt, oi) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'artifact-card__quiz-option';
+      b.disabled = true;
+      const isCorrect = oi === q.correct_index;
+      const isChosen = oi === q.user_choice;
+      if (isCorrect) b.classList.add('correct');
+      if (isChosen) b.classList.add('selected');
+      if (isChosen && !isCorrect) b.classList.add('wrong');
+      const radio = document.createElement('span');
+      radio.className = 'artifact-card__quiz-radio';
+      radio.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('span');
+      label.textContent = `${String.fromCharCode(65 + oi)}) ${opt}`;
+      b.appendChild(radio);
+      b.appendChild(label);
+      opts.appendChild(b);
+    });
+    content.appendChild(opts);
+    const outcome = document.createElement('div');
+    outcome.className = 'artifact-card__quiz-outcome';
+    outcome.textContent = q.status === 'skipped' ? 'skipped' : (q.outcome === 'correct' ? '\u2713 correct' : q.outcome === 'incorrect' ? '\u2717 incorrect' : q.outcome || 'answered');
+    outcome.style.cssText = 'font-family:var(--font-mono);font-size:11px;margin-top:var(--space-2);color:var(--meta)';
+    content.appendChild(outcome);
+    card.appendChild(header);
+    card.appendChild(content);
+    wrap.appendChild(card);
+  });
+  if (wrap.children.length) {
+    const role = document.createElement('div');
+    role.className = 'msg__role';
+    role.textContent = 'Sage';
+    box.appendChild(role);
+    box.appendChild(wrap);
+  }
 }
 
 async function loadSessionsList() {
