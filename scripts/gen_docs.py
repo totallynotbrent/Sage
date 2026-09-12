@@ -24,7 +24,7 @@ DIAGRAMS = [
         "title": "LaTeX notes",
         "desc": "LaTeX-notes integration: folder watch, same-stem pairing, notes quiz.",
         "see_also": ["02-learning-loop"],
-        "mmd": """%% LaTeX-notes integration — 1. folder watch
+        "mmd": """%% LaTeX-notes integration, part 1: folder watch
 flowchart LR
     NOTES["Notes folders (SAGE_WATCH_DIRS)<br/>subject/ subfolders · .tex + .pdf"]
     W["app/services/watcher.py<br/>watcher_loop (lifespan, every SAGE_WATCH_SCAN_SECONDS)<br/>scan_once · sync_watch_sources"]
@@ -41,14 +41,14 @@ flowchart LR
     NOTES -->|"new / changed / missing"| W
     W -->|"last_scan_at · last_error"| FILES
 
-%% LaTeX-notes integration — 2. same-stem pairing (.tex source + .pdf pages)
+%% LaTeX-notes integration, part 2: same-stem pairing (.tex source + .pdf pages)
 flowchart LR
     A["calc.tex ingested"] --> P{"same-stem candidate?<br/>stem equal · suffix differs"}
     P -->|"yes"| B["paired_file_id set both ways<br/>expand_pairings pulls the pair's chunks<br/>pair=calc.pdf on DOC blocks"]
     P -->|"no"| C["paired_file_id = NULL"]
     D["delete one file"] --> E["survivor's paired_file_id nulled"]
 
-%% LaTeX-notes integration — 3. notes quiz (grounded MCQ)
+%% LaTeX-notes integration, part 3: notes quiz (grounded MCQ)
 sequenceDiagram
     autonumber
     participant C as Client
@@ -73,13 +73,13 @@ sequenceDiagram
         end
     end
     L->>DB: insert quiz_questions (kind notes · source_ref JSON)
-    L-->>C: {session, questions} — phase untouched
+    L-->>C: {session, questions}, phase untouched
 
     C->>A: POST /api/sessions/{id}/quiz/{qid}/answer
     A->>L: answer_quiz (kind notes accepted)
     L->>DB: mastery evidence source "notes"
     Note over L: notes answers never change session phase
-    L-->>C: {result, session} — phase unchanged""",
+    L-->>C: {result, session}, phase unchanged""",
     },
 ]
 

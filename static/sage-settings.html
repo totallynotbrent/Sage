@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sage — Settings</title>
+<title>Sage, settings</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- shared design system -->
   <link rel="stylesheet" href="style.css">
@@ -65,31 +65,31 @@
 <h1 class="page_title">Settings</h1>
 <div class="settings_section" data-sage-stagger="60">
 <div class="settings_section_title">Teaching Preferences</div>
-<div class="settings_section_desc">Control how Sage teaches — depth, pacing, and style of explanations.</div>
+<div class="settings_section_desc">Control how Sage teaches: depth, pacing, and style of explanations.</div>
 <div class="field">
 <label class="field_label" for="pref-depth">Depth</label>
 <select class="field_select" id="pref-depth">
-<option value="brief">Brief — concise explanations</option>
-<option value="standard">Standard — balanced detail</option>
-<option value="deep">Deep — thorough explanations</option>
+<option value="brief">Brief. concise explanations</option>
+<option value="standard">Standard. balanced detail</option>
+<option value="deep">Deep. thorough explanations</option>
 </select>
 <div class="field_help">How detailed should explanations be? Standard covers key ideas with enough context to follow.</div>
 </div>
 <div class="field">
 <label class="field_label" for="pref-pacing">Pacing</label>
 <select class="field_select" id="pref-pacing">
-<option value="slow">Slow — more repetition and practice</option>
-<option value="normal">Normal — standard progression</option>
-<option value="fast">Fast — skip ahead when you're confident</option>
+<option value="slow">Slow. more repetition and practice</option>
+<option value="normal">Normal. standard progression</option>
+<option value="fast">Fast. skip ahead when you're confident</option>
 </select>
 <div class="field_help">How quickly does Sage introduce new concepts? Normal assumes basic familiarity with prerequisites.</div>
 </div>
 <div class="field">
 <label class="field_label" for="pref-style">Teaching Style</label>
 <select class="field_select" id="pref-style">
-<option value="analogy-first">Analogy-first — start with intuitive examples</option>
-<option value="examples-first">Examples-first — concrete examples first</option>
-<option value="formal-first">Formal-first — definitions and theorems first</option>
+<option value="analogy-first">Analogy-first. start with intuitive examples</option>
+<option value="examples-first">Examples-first. concrete examples first</option>
+<option value="formal-first">Formal-first. definitions and theorems first</option>
 </select>
 <div class="field_help">Analogy-first leads with intuitive comparisons before formal definitions.</div>
 </div>
@@ -104,39 +104,27 @@
 <div class="settings_section_title">Model & Context</div>
 <div class="settings_section_desc">Choose the language model and its context window. Smaller models and tighter context fit comfortably on modest GPUs.</div>
 <div class="field">
-<label class="field_label" for="model-select">Model</label>
-<select class="field_select" id="model-select">
-<option value="qwen3.5:4b">qwen3.5:4b (recommended)</option>
-<option value="qwen3.5:0.8b">qwen3.5:0.8b</option>
-<option value="qwen3.5:2b">qwen3.5:2b</option>
-<option value="qwen3.5:9b">qwen3.5:9b</option>
-<option value="gemma4:31b-cloud">gemma4:31b-cloud</option>
-<option value="__custom__">Custom…</option>
-</select>
-<div class="field_help" id="model-help"></div>
-</div>
-<div class="field" id="custom-model-field" style="display:none">
-<label class="field_label" for="custom-model">Custom model tag</label>
-<input class="field_select" id="custom-model" type="text" placeholder="e.g. llama3.1:8b" />
-<div class="field_help">Any Ollama model tag will work, as long as the model supports tool calling.</div>
+<label class="field_label" for="model-input">Model</label>
+<input class="field_select" id="model-input" type="text" placeholder="your model tag, e.g. a 4b or 8b model your endpoint serves" />
+<div class="field_help">Any model tag your endpoint serves. The model needs to support tool calling.</div>
 </div>
 <div class="field">
 <label class="field_label" for="context-select">Context limit</label>
 <select class="field_select" id="context-select">
-<option value="4096">4096 tokens (tightest)</option>
+<option value="4096">4096 tokens</option>
 <option value="8192">8192 tokens</option>
-<option value="16384">16384 tokens (recommended)</option>
+<option value="16384">16384 tokens</option>
 <option value="32768">32768 tokens</option>
 </select>
-<div class="field_help">Longer context uses more VRAM. 16384 is a good balance on an 8GB GPU with qwen3.5:4b.</div>
+<div class="field_help">Longer context uses more VRAM. Pick a smaller window if the model runs on a small GPU.</div>
 </div>
 <div class="field">
 <label class="field_label" for="lite-toggle">Prompt profile</label>
 <select class="field_select" id="lite-toggle">
-<option value="light">Lite — slim prompt & tool schemas for small models (≤8B)</option>
-<option value="full">Full — complete tutoring prompt for cloud/served models</option>
+<option value="light">Lite, for smaller models</option>
+<option value="full">Full, for larger or cloud models</option>
 </select>
-<div class="field_help">Lite cuts the fixed prompt+tool overhead by roughly half so an 8B-or-smaller model fits and follows instructions.</div>
+<div class="field_help">Lite swaps in a shorter prompt and slimmer tool list so a small model fits and follows instructions.</div>
 </div>
 <button class="btn btn_primary" id="save-model">Save Model & Context</button>
 <div class="field_help" style="margin-top:var(--space-2)" id="model-status"></div>
@@ -192,7 +180,7 @@ save_btn?.addEventListener('click', async()=>{
     save_btn.textContent='Saved ✓';
     setTimeout(()=>{save_btn.textContent=orig; save_btn.disabled=false;},1500);
   }catch(e){
-    save_btn.textContent='Save failed — try again';
+    save_btn.textContent='Save failed. try again';
     setTimeout(()=>{save_btn.textContent=orig; save_btn.disabled=false;},2500);
     console.error(e);
   }
@@ -209,7 +197,7 @@ reset_btn?.addEventListener('click', async()=>{
     reset_btn.textContent='Mastery reset';
     setTimeout(()=>{reset_btn.textContent=orig; reset_btn.disabled=false;},1500);
   }catch(e){
-    reset_btn.textContent='Reset failed — try again';
+    reset_btn.textContent='Reset failed. try again';
     setTimeout(()=>{reset_btn.textContent=orig; reset_btn.disabled=false;},2500);
     console.error(e);
   }
@@ -231,33 +219,14 @@ document.getElementById('save-prefs')?.setAttribute('aria-label','Save preferenc
 document.getElementById('reset-mastery')?.setAttribute('aria-label','Reset mastery data');
 loadPrefs();
 
-const model_select=document.getElementById('model-select');
-const custom_field=document.getElementById('custom-model-field');
-const custom_input=document.getElementById('custom-model');
-function sync_custom_visibility(){
-  if(!model_select||!custom_field)return;
-  const is_custom=model_select.value==='__custom__';
-  custom_field.style.display=is_custom?'':'none';
-}
-model_select?.addEventListener('change',sync_custom_visibility);
-sync_custom_visibility();
-
-function selected_model(){
-  if(model_select?.value==='__custom__')return (custom_input?.value||'').trim();
-  return model_select?.value||'qwen3.5:4b';
-}
+const model_input=document.getElementById('model-input');
 
 async function loadModelConfig(){
   try{
     const r=await fetch('/api/model-config');
     if(!r.ok) throw new Error(`load failed: ${r.status}`);
     const d=await r.json();
-    const sel=document.getElementById('model-select');
-    if(d.model){
-      const known=Array.from(sel.options).some(o=>o.value===d.model);
-      if(known){sel.value=d.model;}
-      else{sel.value='__custom__';custom_input.value=d.model;}
-    }
+    if(d.model){model_input.value=d.model;}
     if(d.num_ctx){
       const ctx=document.getElementById('context-select');
       const vals=Array.from(ctx.options).map(o=>o.value);
@@ -265,7 +234,6 @@ async function loadModelConfig(){
     }
     const lite=document.getElementById('lite-toggle');
     if(lite){lite.value=d.lightweight?'light':'full';}
-    sync_custom_visibility();
     const help=document.getElementById('model-status');
     if(help)help.textContent='Active: '+d.model+' · '+d.num_ctx+' tokens · '+(d.lightweight?'Lite':'Full')+' profile';
   }catch(e){console.error(e)}
@@ -273,8 +241,8 @@ async function loadModelConfig(){
 
 const save_model_btn=document.getElementById('save-model');
 save_model_btn?.addEventListener('click', async()=>{
-  const model=selected_model();
-  if(!model){custom_input?.focus();return;}
+  const model=(model_input?.value||'').trim();
+  if(!model){model_input?.focus();return;}
   const num_ctx=Number(document.getElementById('context-select')?.value||16384);
   const lightweight=document.getElementById('lite-toggle')?.value==='light';
   const payload={model:model, num_ctx:num_ctx, lightweight:lightweight};

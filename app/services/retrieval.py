@@ -99,7 +99,7 @@ class Retriever:
             )
             # Section headings live only in location metadata (markdown
             # headers, docx heading styles, slide titles) and are the
-            # names users naturally query by — index them into scoring.
+            # names users naturally query by. index them into scoring.
             + tokenize(chunk.get("section") or "")
             for chunk in chunks
         ]

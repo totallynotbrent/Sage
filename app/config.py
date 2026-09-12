@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     api_url: str = Field(default="https://ollama.com/v1", validation_alias="API_URL")
     api_key: str = Field(default="", validation_alias="API_KEY")
-    model: str = Field(default="gemma4:31b-cloud", validation_alias="MODEL")
+    model: str = Field(default="", validation_alias="MODEL")
     searxng_url: str = Field(default="", validation_alias="SEARXNG_URL")
     sage_password: str = Field(default="", validation_alias="SAGE_PASSWORD")
     ollama_num_ctx: int = Field(default=16384, validation_alias="OLLAMA_NUM_CTX")

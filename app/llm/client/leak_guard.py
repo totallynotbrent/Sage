@@ -3,7 +3,7 @@ import re
 
 # Leaked tool-call text some models emit as visible content even though they
 # also emitted structured tool_calls (e.g. "Please pick ... call:run_probe/").
-# Bread's model doesn't leak, but Sage's gemma4:31b-cloud does. Strip it only
+# Bread's model doesn't leak, but some smaller served models do. Strip it only
 # from chunks that actually carry tool_calls, so normal prose mentioning
 # "call:" is preserved.
 _LEAKED_CALL_RE = re.compile(r"<call:\w+\b[^>]*>?")

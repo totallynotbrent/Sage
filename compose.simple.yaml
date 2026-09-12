@@ -1,4 +1,4 @@
-# Sage — self-bootstrapping single-service compose (drop into CasaOS / ZimaOS).
+# Sage. self-bootstrapping single-service compose (drop into CasaOS / ZimaOS).
 # Pulls the latest code from GitHub, installs deps, and serves the tutor UI.
 # Serves on port 8000 (host) -> 8000 (container). Data persists in ./data.
 name: sage
@@ -29,7 +29,7 @@ services:
         apt-get update -qq && apt-get install -y -qq git nodejs npm curl >/dev/null 2>&1
         if [ ! -f /app/requirements.txt ]; then
           # Clone into /tmp first, then cp -rn into /app so this works even when
-          # /app is an existing (non-empty) bind mount — a direct `git clone /app`
+          # /app is an existing (non-empty) bind mount, a direct `git clone /app`
           # would fail on an existing dir, leaving the app missing at first boot.
           [ -d /app/.git ] || (rm -rf /tmp/sage && git clone https://github.com/totallynotbrent/sage.git /tmp/sage && cp -rn /tmp/sage/. /app/ && rm -rf /tmp/sage)
         fi

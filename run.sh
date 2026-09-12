@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sage — one-command start for Linux / Raspberry Pi OS.
+# Sage. one-command start for Linux / Raspberry Pi OS.
 # Creates a virtualenv if absent, installs requirements, then serves the app.
 set -euo pipefail
 

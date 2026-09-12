@@ -1,4 +1,4 @@
-/* Sage shared animation module — loaded by every page via sage.js or directly.
+/* Sage shared animation module. loaded by every page via sage.js or directly.
  *
  * Auto mode: add data-sage-animate to <body> and headings/list items/cards get
  * entrance animations with zero per-page code:

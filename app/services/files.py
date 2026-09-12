@@ -283,7 +283,7 @@ class FileService:
     def get_content(self, file_id: str) -> dict:
         """The extracted (chunked) text of an ingested file, in chunk order.
 
-        This is the same text Sage retrieves from to teach — good for a
+        This is the same text Sage retrieves from to teach. good for a
         source-viewer tab. Raises NotFoundError if the file is unknown.
         """
         record = self.get(file_id)

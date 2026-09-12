@@ -14,17 +14,17 @@ flowchart TB
 
     subgraph LLM["LLM backend"]
         G{"Which endpoint?"}
-        G -->|"local Ollama container"| H["http://ollama:11434 — on the compose network"]
+        G -->|"local Ollama container"| H["http://ollama:11434, on the compose network"]
         G -->|"Ollama cloud"| I["https://ollama.com/v1"]
         G -->|"any OpenAI-compatible"| J["your endpoint base URL"]
     end
     subgraph NET["Networking & access"]
-        K["http://localhost:8000 — local (PORT override)"]
-        L["http://HOST-IP:8000 — LAN, open the port in the firewall"]
-        M["http://TAILSCALE-IP:8000 — remote over Tailscale"]
+        K["http://localhost:8000. local (PORT override)"]
+        L["http://HOST-IP:8000. LAN, open the port in the firewall"]
+        M["http://TAILSCALE-IP:8000. remote over Tailscale"]
     end
     subgraph DATA["Persistence"]
-        F["./data volume — SQLite · uploads · watch state (/data)"]
+        F["./data volume. SQLite · uploads · watch state (/data)"]
     end
     subgraph GROUND["Optional web grounding"]
         N["SEARXNG_URL instance → grounded web results"]

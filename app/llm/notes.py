@@ -19,7 +19,7 @@ NOTES_QUESTION_PROMPT = (
     "conditions, or common errors that tempt a reader who misread the source. "
     'Keep every option short and distinct. Do not include an "I don\'t know" '
     "option (the server adds it). In the question, options, and explanation, "
-    "write math in unicode only (e.g. α, ∫, √) — never raw LaTeX such as "
+    "write math in unicode only (e.g. α, ∫, √), never raw LaTeX such as "
     "\\alpha, \\int, or \\frac. "
     "Return ONLY a JSON object with: question (string), options (array of 2-6 "
     "strings), correct_index (integer index into options), explanation (string), "

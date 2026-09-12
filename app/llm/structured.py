@@ -392,7 +392,7 @@ async def request_learner_review(
         "hits the key facts of the material. Return ONLY a JSON array, one object "
         "per learner question, each with: question (the learner's question "
         "verbatim), answer (string), coverage (exactly one of: hit / partial / "
-        "miss — hit if it targets a key fact, partial if it touches it loosely, "
+        "miss: hit if it targets a key fact, partial if it touches it loosely, "
         "miss if it's off-topic or trivial), feedback (string, 1-2 sentences "
         "encouraging what was good and what a stronger question would probe).\n\n"
         f"Learner questions:\n{bullet}\n\n"

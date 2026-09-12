@@ -1,11 +1,9 @@
-/* ────────────────────────────────────────────────────────────────────
-   Sage — Client App
-   ──────────────────────────────────────────────────────────────────── */
+// sage client app
 
 (function () {
   'use strict';
 
-  // ── State ──────────────────────────────────────────────────────
+  // state
   const state = {
     sessionId: null,
     sessions: [],
@@ -23,7 +21,7 @@
     pendingFiles: [],
   };
 
-  // ── DOM refs ───────────────────────────────────────────────────
+  // dom refs
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -62,7 +60,7 @@
     uploadSubmit: $('#upload-submit'),
   };
 
-  // ── API ────────────────────────────────────────────────────────
+  // api
   const api = {
     base: '/api',
 
@@ -151,7 +149,7 @@
     },
   };
 
-  // ── Markdown + Math + Mermaid ──────────────────────────────────
+  // markdown, math, and mermaid
   function renderMarkdown(text) {
     if (!text) return '';
     let html = marked.parse(text, { breaks: true, gfm: true });
@@ -192,7 +190,7 @@
     renderMermaid(el);
   }
 
-  // ── Mermaid init ───────────────────────────────────────────────
+  // mermaid init
   function initMermaid() {
     if (window.mermaid) {
       mermaid.initialize({
@@ -211,7 +209,7 @@
     }
   }
 
-  // ── Render: Sessions ───────────────────────────────────────────
+  // render sessions
   function renderSessions() {
     const el = dom.sessionsList;
     if (!state.sessions.length) {
@@ -230,7 +228,7 @@
     }).join('');
   }
 
-  // ── Render: Files ──────────────────────────────────────────────
+  // render files
   function renderFiles() {
     const el = dom.filesList;
     if (!state.files.length) {
@@ -247,7 +245,7 @@
     }).join('');
   }
 
-  // ── Render: Plan ───────────────────────────────────────────────
+  // render plan
   function renderPlan() {
     const el = dom.planNodes;
     if (!state.planNodes.length) {
@@ -264,7 +262,7 @@
     }).join('');
   }
 
-  // ── Render: Watch ──────────────────────────────────────────────
+  // render watch
   function renderWatch() {
     const el = dom.watchList;
     if (!state.watchDirs.length) {
@@ -280,7 +278,7 @@
     }).join('');
   }
 
-  // ── Render: Messages ───────────────────────────────────────────
+  // render messages
   function renderMessages() {
     const el = dom.messages;
     el.innerHTML = '';
@@ -349,7 +347,7 @@
     });
   }
 
-  // ── Viewer ─────────────────────────────────────────────────────
+  // viewer
   function openViewer(fileId, fileName) {
     state.viewerOpen = true;
     state.viewerFileId = fileId;
@@ -380,7 +378,7 @@
     }
   }
 
-  // ── Upload modal ───────────────────────────────────────────────
+  // upload modal
   function openUploadModal() {
     state.pendingFiles = [];
     dom.uploadModal.style.display = '';
@@ -433,7 +431,7 @@
     await loadFiles();
   }
 
-  // ── Data loaders ───────────────────────────────────────────────
+  // data loaders
   async function loadSessions() {
     try {
       const data = await api.get('/sessions');
@@ -481,7 +479,7 @@
     }
   }
 
-  // ── Actions ────────────────────────────────────────────────────
+  // actions
   async function createSession() {
     try {
       const data = await api.post('/sessions', { goal: '' });
@@ -561,7 +559,7 @@
     dom.phaseBadge.dataset.phase = phase;
   }
 
-  // ── Event handlers ─────────────────────────────────────────────
+  // event handlers
   function initEvents() {
     dom.menuBtn.addEventListener('click', () => {
       state.sidebarOpen = !state.sidebarOpen;
@@ -668,7 +666,7 @@
     });
   }
 
-  // ── Helpers ────────────────────────────────────────────────────
+  // helpers
   function esc(str) {
     const div = document.createElement('div');
     div.textContent = str;
@@ -697,7 +695,7 @@
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
   }
 
-  // ── Init ───────────────────────────────────────────────────────
+  // init
   async function init() {
     initMermaid();
     initEvents();

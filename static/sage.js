@@ -1,4 +1,4 @@
-/* Sage shared JS helpers — auto-extracted. Loaded before page scripts. */
+/* Sage shared JS helpers. auto-extracted. Loaded before page scripts. */
 
 // HTML escape (pages may define their own; this is the canonical one)
 if (!window.esc) {

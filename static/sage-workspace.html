@@ -99,7 +99,7 @@
 .summary-card ul{margin:0;padding-left:var(--space-5);font-size:12.5px;color:var(--fg);line-height:1.9;list-style:none;padding-left:var(--space-2)}
 .summary-card li::before{content:'✓ ';color:var(--foam);font-weight:600;margin-right:4px}
 /* Thinking block: collapsible model reasoning */
-/* Thinking line: darker, slightly smaller — model reasoning inline while streaming */
+/* Thinking line: darker, slightly smaller, model reasoning inline while streaming */
 .thinking-line{font-size:13px;line-height:1.6;color:var(--meta);background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2)}
 
 .thinking-body{padding:var(--space-3);font-size:12.5px;line-height:1.6;color:var(--meta);white-space:pre-wrap;max-height:220px;overflow-y:auto}
@@ -379,7 +379,7 @@
     <p class="modal_hint">PDF, DOCX, PPTX, MD, TEX, TXT. Drag and drop or click to select. Multiple files allowed.</p>
     <div class="upload_zone" id="upload-zone" role="button" tabindex="0" aria-label="Upload drop zone">
       <div class="upload_zone_title">Drag and drop files here</div>
-      <div class="upload_zone_hint">or click to browse — PDF, DOCX, PPTX, MD, TEX, TXT</div>
+      <div class="upload_zone_hint">or click to browse. PDF, DOCX, PPTX, MD, TEX, TXT</div>
     </div>
     <div class="upload_list" id="upload-list" aria-live="polite"></div>
     <div class="modal_actions">
@@ -666,7 +666,7 @@ function animateWords(element){try{wrapWords(element)}catch(e){}}
 function wrapQuizWords(card){
   try{
     if(!card||reduced_motion.matches)return;
-    // qtext uses the typewriter animation — skip word-wrapping to avoid double animation
+    // qtext uses the typewriter animation, skip word-wrapping to avoid double animation
     card.querySelectorAll('.artifact-card__quiz-question').forEach(qtext=>{
       if(qtext.dataset.wordWrapped==='1')return;
       if(qtext.querySelector('.word'))return;
@@ -1739,7 +1739,7 @@ async function sendMessage() {
         if (ev.type === 'delta') {
           if (!bubble_started) {
             removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true;
-            // Real answer streaming now — drop the transient thinking line
+            // Real answer streaming now, drop the transient thinking line
             const tl = bubble.querySelector('.thinking-line'); if (tl) tl.remove();
             const sl = bubble.querySelector('.tool-status-line'); if (sl) sl.remove();
           }
@@ -1754,7 +1754,7 @@ async function sendMessage() {
           const cid = ev.chunk_id !== undefined ? ev.chunk_id : ev.id;
           if (cid !== undefined && cid !== null && !citation_ids.some(existing => existing === cid)) citation_ids.push(cid);
         } else if (ev.type === 'thinking') {
-          // Thinking is intentionally NOT displayed — single clean output per turn.
+          // Thinking is intentionally NOT displayed. single clean output per turn.
           void ev;
         } else if (ev.type === 'tool_call') {
           setComposerStatus(tool_status_text(ev));
@@ -1794,7 +1794,7 @@ async function sendMessage() {
           }
         } else if (ev.type === 'buffered_text') {
           // Buffered mode (SAGE_STREAMING=false): the full reply arrives as one
-          // event. Render it immediately — NOT as a word-by-word fake-typing
+          // event. Render it immediately, NOT as a word-by-word fake-typing
           // stream. That simple per-word typer doubled up with the polished
           // .word cascade on the final message (two streaming animations). The
           // polished word-entrance on the persisted message still plays below.
@@ -1853,7 +1853,7 @@ async function sendMessage() {
   });
   let assistant_msg = null;
   if (fullText) {
-    // Drop any check/probe question the model restated in prose — the card
+    // Drop any check/probe question the model restated in prose. the card
     // below renders it once. Also covers the streaming path (where deltas are
     // appended raw), not just buffered_text.
     fullText = dedupeCheckQuestion(fullText);
@@ -2085,7 +2085,7 @@ async function renderMasteryPanel() {
       row.className = 'mastery-row' + (t.fading ? ' fading' : '');
       const retr = t.retrievability != null ? Math.round(t.retrievability * 100) : null;
       const meta = t.fading
-        ? '<span class="mastery-fade-dot" title="fading — review soon"></span> fading'
+        ? '<span class="mastery-fade-dot" title="fading, review soon"></span> fading'
         : (retr != null ? `${retr}% retention` : `${pct}%`);
       row.innerHTML =
         `<div class="mastery-row__head">` +
@@ -2143,7 +2143,7 @@ function chipsFromActions(actions) {
   }));
 }
 function refreshChipsForPhase() {
-  // Chips are bot-driven only — nothing hardcoded by phase. Cleared after each turn
+  // Chips are bot-driven only, nothing hardcoded by phase. Cleared after each turn
   // until the model emits new record_step_actions.
   setQuickChips([]);
   // "You ask the questions" entry: always available once a lesson is underway.
@@ -2376,7 +2376,7 @@ async function loadSessionsList() {
     const shown = sessions.slice(0, SIDEBAR_CAP);
     const overflow = sessions.length - shown.length;
     document.getElementById('sessions-list').innerHTML = shown.map(s => `<div class="sidebar__item${s.id === sessionId ? ' active' : ''}" onclick="window.location.href='?session=${encodeURIComponent(s.id)}'" role="link" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='?session=${encodeURIComponent(s.id)}'}"><span class="sidebar__item-badge" data-phase="${esc(s.phase)}">${esc(s.phase)}</span><span class="sidebar__item-text">${esc(s.title || s.goal || 'Untitled')}</span></div>`).join('')
-      + (overflow > 0 ? `<a href="sage-sessions.html" class="sidebar__item" style="color:var(--meta);font-style:italic">+${overflow} more — view all</a>` : '');
+      + (overflow > 0 ? `<a href="sage-sessions.html" class="sidebar__item" style="color:var(--meta);font-style:italic">+${overflow} more. view all</a>` : '');
   } catch (e) {}
 }
 function loadSessionList_safe() { return loadSessionsList(); }
@@ -2494,7 +2494,7 @@ if (window.mermaid) window.mermaid.initialize({ startOnLoad: false, securityLeve
         if(btn){ btn.dataset.mode = mode; btn.textContent = mode === 'strict' ? 'mode: strict' : 'mode: normal'; }
         const badge = document.getElementById('phase-badge');
         if(badge) badge.dataset.grounding = mode;
-        setComposerStatus(mode === 'strict' ? 'strict — PDF-first, no web' : 'normal — all + web search');
+        setComposerStatus(mode === 'strict' ? 'strict. PDF-first, no web' : 'normal. all + web search');
         setTimeout(()=>{ setComposerStatus(''); },2000);
       }catch(e){
         setComposerError((e && e.message) ? e.message : 'Could not switch mode.');

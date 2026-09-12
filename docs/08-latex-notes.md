@@ -57,13 +57,13 @@ sequenceDiagram
         end
     end
     L->>DB: insert quiz_questions (kind notes · source_ref JSON)
-    L-->>C: {session, questions} — phase untouched
+    L-->>C: {session, questions}, phase untouched
 
     C->>A: POST /api/sessions/{id}/quiz/{qid}/answer
     A->>L: answer_quiz (kind notes accepted)
     L->>DB: mastery evidence source "notes"
     Note over L: notes answers never change session phase
-    L-->>C: {result, session} — phase unchanged
+    L-->>C: {result, session}, phase unchanged
 ```
 
 ## See also

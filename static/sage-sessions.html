@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sage — Sessions</title>
+<title>Sage, sessions</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- shared design system -->
   <link rel="stylesheet" href="style.css">
@@ -109,8 +109,8 @@
     <div class="modal_field">
       <label class="modal_label" for="session-mode">Grounding Mode</label>
       <select class="modal_select" id="session-mode">
-        <option value="grounded">Grounded — sources + general knowledge</option>
-        <option value="strict">Strict — only from your files</option>
+        <option value="grounded">Grounded: sources and general knowledge</option>
+        <option value="strict">Strict: only your files</option>
       </select>
     </div>
     <div class="modal_actions">
@@ -180,7 +180,7 @@ async function loadSessions(){
           <div class="session_card_title">${esc(s.title||s.goal||'Untitled')}</div>
           <span class="session_card_phase" data-phase="${esc(s.phase)}">${esc(s.phase)}</span>
         </div>
-        <div class="session_card_desc">${s.grounding_mode==='strict'?'Strict grounding — only from your files':'Grounded — sources + general knowledge'}</div>
+        <div class="session_card_desc">${s.grounding_mode==='strict'?'Strict grounding: only your files':'Grounded: sources and general knowledge'}</div>
         <div class="session_card_meta">
           <span>${s.file_ids?s.file_ids.length:0} files</span>
           <span>updated ${fmtTime(s.updated_at)}</span>
@@ -245,7 +245,7 @@ document.getElementById('keep-recent')?.addEventListener('click',()=>{
   const all=Array.from(document.querySelectorAll('#session-list .session_checkbox')).map(c=>c.dataset.id);
   const keep=all.slice(0,10);
   const toDelete=all.slice(10);
-  if(!toDelete.length){alert('You have 10 or fewer sessions — nothing to delete.');return}
+  if(!toDelete.length){alert('You have 10 or fewer sessions. nothing to delete.');return}
   bulkDelete(toDelete);
 });
 

@@ -1,4 +1,4 @@
-# Sage — Docker Compose (single service)
+# Sage. Docker Compose (single service)
 # https://totallynotbrent.github.io/sage/
 services:
   sage:

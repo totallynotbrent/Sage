@@ -1,4 +1,4 @@
-# Sage — single-service container (uvicorn + Node for mermaid validation)
+# Sage. single-service container (uvicorn + Node for mermaid validation)
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \

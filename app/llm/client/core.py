@@ -1,4 +1,4 @@
-"""Sage LLM client core — SageOllamaClient, a bread-parity Ollama transport plus Sage SSE inflight bookkeeping and compat wrappers.
+"""Sage LLM client core. SageOllamaClient, a bread-parity Ollama transport plus Sage SSE inflight bookkeeping and compat wrappers.
 
 Splitting note: ChatAttempt/OllamaClientConfig are kept verbatim in attempt.py/config.py for easy bread parity diffs; helpers live in utils.py; leaked-call stripping in leak_guard.py."
 """
@@ -70,7 +70,7 @@ class SageOllamaClient(LLMClient):
         self._status_cache: dict[str, Any] | None = None
         self._status_cache_at = 0.0
         self.bot: Any = None
-        # Sage SSE inflight (session_id → {event, active}) — kept here so turn.py
+        # Sage SSE inflight (session_id → {event, active}), kept here so turn.py
         # can call llm.begin_inflight / is_inflight even though bread has no such concept.
         self._inflight: dict[str, dict] = {}
         self._probe_cache: tuple[float, tuple[bool, str]] | None = None
@@ -312,7 +312,7 @@ class SageOllamaClient(LLMClient):
         # Hybrid mode (SAGE_STREAMING=false + thinking on): ALWAYS talk to ollama
         # with stream=True, but only relay `thinking` deltas live. Content and
         # tool_calls are buffered until the final chunk so structured tool calls
-        # are caught intact — the UI fake-types the finished text afterwards.
+        # are caught intact. the UI fake-types the finished text afterwards.
         hybrid_thinking = not getattr(self.config, "streaming", True) and attempt.use_think
         if hybrid_thinking:
             request_kwargs["stream"] = True
@@ -371,7 +371,7 @@ class SageOllamaClient(LLMClient):
             message = _get(response, "message")
             think_delta = _get(message, "thinking", "") or ""
             if think_delta:
-                # Buffer reasoning — no live thinking chunks. The UI gets exactly
+                # Buffer reasoning, no live thinking chunks. The UI gets exactly
                 # one stream animation (the final answer's fake typing).
                 thinking_parts.append(think_delta)
             content_delta = _get(message, "content", "") or ""
@@ -389,7 +389,7 @@ class SageOllamaClient(LLMClient):
             final_content = _strip_leaked_calls(final_content)
         buffered_thinking = "".join(thinking_parts)
         if buffered_thinking:
-            # Single consolidated reasoning chunk — no live streaming of thoughts
+            # Single consolidated reasoning chunk, no live streaming of thoughts
             yield StreamChunk(
                 content="",
                 thinking=buffered_thinking,
@@ -722,6 +722,6 @@ class SageOllamaClient(LLMClient):
         return result
 
 
-# Back-compat alias — turn.py and tests import LLMClient
+# Back-compat alias. turn.py and tests import LLMClient
 LLMClient = SageOllamaClient
 

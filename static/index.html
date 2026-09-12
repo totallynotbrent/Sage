@@ -666,7 +666,7 @@ async function setHomeMode(mode){
   try{
     const r = await fetch(`${API}/sessions/${encodeURIComponent(sessionId)}`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({grounding_mode: mode})});
     if(!r.ok) throw new Error(`Failed to switch mode: ${r.status}`);
-    set_status(mode === 'strict' ? 'strict grounding on' : 'normal — all + web');
+    set_status(mode === 'strict' ? 'strict grounding on' : 'normal, all + web');
     setTimeout(()=> set_status(''),2000);
   }catch(e){ set_status(e.message || 'Could not switch mode.'); setTimeout(()=> set_status(''),3000); }
 }
@@ -688,7 +688,7 @@ async function sendMessage(){
   }catch(e){
     streaming=false;
     if(sendBtn)sendBtn.style.display='';
-    set_status('Could not start a session — please try again.');
+    set_status('Could not start a session. please try again.');
   }
 }
 
@@ -707,8 +707,8 @@ async function loadSessionsList(){
 
 loadSessionsList();
 
-const resultsEl = null; // artifacts section removed — bot-driven in workspace now
-const resultsEyebrow = null; // artifacts section removed — bot-driven in workspace now
+const resultsEl = null; // artifacts section removed, bot-driven in workspace now
+const resultsEyebrow = null; // artifacts section removed, bot-driven in workspace now
 const artifactBtns = document.querySelectorAll('.composer-toolbar__btn[data-artifact-kind]');
 let firstArtifactShown = false;
 let artifactCounter = 0;
@@ -761,7 +761,7 @@ function artifact_error_message(status, body){
   if(codes.indexOf('mermaid_validator_unavailable') !== -1){
     return {
       title: 'Mermaid validator is unavailable',
-      hint: 'The diagram adapter could not run on this host, so the diagram could not be validated. Quiz and Todo still work — try the other buttons. To enable diagrams, provision the Mermaid adapter under node_modules and reload.'
+      hint: 'The diagram adapter could not run on this host, so the diagram could not be validated. Quiz and Todo still work. try the other buttons. To enable diagrams, provision the Mermaid adapter under node_modules and reload.'
     };
   }
   if(codes.indexOf('mermaid_invalid') !== -1){

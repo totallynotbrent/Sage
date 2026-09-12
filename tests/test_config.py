@@ -7,7 +7,7 @@ def test_defaults():
     settings = Settings(_env_file=None)
     assert settings.api_url == "https://ollama.com/v1"
     assert settings.api_key == ""
-    assert settings.model == "gemma4:31b-cloud"
+    assert settings.model == ""
     assert settings.searxng_url == ""
     assert settings.host == "0.0.0.0"
     assert settings.port == 8000

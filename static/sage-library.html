@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sage — Library</title>
+<title>Sage, library</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- shared design system -->
   <link rel="stylesheet" href="style.css">
@@ -178,9 +178,9 @@ async function loadFiles(){
       const err=cls==='error'&&f.error?`<div class="file_error">${esc(f.error)}</div>`:'';
       const clickable=cls==='ready'?' row_ready':'';
       const retry=cls==='error'?`<button class="btn_small" type="button" data-retry="${esc(f.id)}">retry</button>`:'';
-      return `<tr class="${clickable}" data-open="${cls==='ready'?esc(f.id):''}" data-delete="${esc(f.id)}"><td><div class="file_name">${esc(f.display_name)}</div>${err}</td><td class="file_size">${fmt(f.size_bytes)}</td><td class="file_chunks">${f.num_chunks||'—'}</td><td><span class="status_pill ${cls}"><span class="dot"></span>${esc(f.status)}</span></td><td><div class="actions">${retry}<button class="btn_small danger" type="button" data-delete-btn="${esc(f.id)}">delete</button></div></td></tr>`;
+      return `<tr class="${clickable}" data-open="${cls==='ready'?esc(f.id):''}" data-delete="${esc(f.id)}"><td><div class="file_name">${esc(f.display_name)}</div>${err}</td><td class="file_size">${fmt(f.size_bytes)}</td><td class="file_chunks">${f.num_chunks||'-'}</td><td><span class="status_pill ${cls}"><span class="dot"></span>${esc(f.status)}</span></td><td><div class="actions">${retry}<button class="btn_small danger" type="button" data-delete-btn="${esc(f.id)}">delete</button></div></td></tr>`;
     }).join('');
-    document.getElementById('files-list').innerHTML=d.map(f=>`<div class="sidebar__item"><span class="sidebar__item-dot ${status_class(f.status)}"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks||'—'}</span></div>`).join('');
+    document.getElementById('files-list').innerHTML=d.map(f=>`<div class="sidebar__item"><span class="sidebar__item-dot ${status_class(f.status)}"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks||'-'}</span></div>`).join('');
   }catch(e){console.error(e)}
 }
 document.getElementById('file-list')?.addEventListener('click',e=>{
@@ -200,7 +200,7 @@ function openExcerpts(id){
   const rec=files_cache.find(f=>f.id===id);
   excerpts_file_id=id;
   const title_el=document.getElementById('excerpts-title');
-  if(title_el) title_el.textContent=`Excerpts — ${rec?rec.display_name:'file'}`;
+  if(title_el) title_el.textContent=`Excerpts, ${rec?rec.display_name:'file'}`;
   const inp=document.getElementById('excerpts-chunk-input');
   if(inp) inp.value='';
   const err_el=document.getElementById('excerpts-error');

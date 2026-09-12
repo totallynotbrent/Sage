@@ -2,9 +2,9 @@
 
 The app keeps two retrievers that rank the same chunks differently:
 
-- ``Retriever`` (lexical, TF-IDF over words *and* math tokens) — great for
+- ``Retriever`` (lexical, TF-IDF over words *and* math tokens), great for
   exact terminology, variable/math-symbol matches, and section headings.
-- ``EmbedFallback`` (cosine similarity over a local embedding model) — great
+- ``EmbedFallback`` (cosine similarity over a local embedding model), great
   for paraphrases and vocabulary mismatch the lexical pass would miss.
 
 Instead of treating embeddings as a last-resort rescue (keyword wins, semantic

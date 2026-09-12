@@ -1,5 +1,5 @@
 /*
- * dither.js — ordered/error-diffusion dithering with image-palette extraction
+ * dither.js. ordered/error-diffusion dithering with image-palette extraction
  * Spike for the Sage home re-think. New in this revision:
  *   - extract a color palette from the image (k-means), drive # of colors
  *   - dither modes: bayer (2/4/8 matrix), floyd-steinberg, none
@@ -250,7 +250,7 @@
           out.data[j] = c[0]; out.data[j + 1] = c[1]; out.data[j + 2] = c[2]; out.data[j + 3] = 255;
         }
       }
-    } else { // none — plain quantization
+    } else { // none, plain quantization
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
           let idx = Math.round(val[y * W + x]);
@@ -314,7 +314,7 @@
     if (opt.kind === 'none' || !opt.amount) return;
     // 'subtract' etches the noise into the image (difference blend) instead of
     // laying it on top (source-over). Pure black/white noise difference will
-    // only ever darken/invert toward the ink — never lighten past the base.
+    // only ever darken/invert toward the ink, never lighten past the base.
     const comp = opt.blend === 'subtract' ? 'difference' : 'source-over';
     if (opt.kind === 'grain') {
       const svg =

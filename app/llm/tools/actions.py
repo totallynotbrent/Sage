@@ -222,7 +222,7 @@ async def _run_advance_lesson(arguments: dict, ctx) -> dict:
     service = TeachService(ctx.conn, ctx.settings)
     current_phase = service.sessions.get(ctx.session_id).phase
     if current_phase == "final_quiz":
-        # Final quiz graded and the learner did well — resume advancing so the
+        # Final quiz graded and the learner did well. resume advancing so the
         # remaining node(s) finish and the lesson reaches 'complete'.
         service.sessions.set_phase(ctx.session_id, "teach")
     if current_phase == "plan":

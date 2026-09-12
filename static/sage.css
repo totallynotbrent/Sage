@@ -1,4 +1,4 @@
-/* Sage shared design system — auto-extracted from page styles.
+/* Sage shared design system. auto-extracted from page styles.
    Single source of truth: edit here, applies everywhere. */
 
 .session_card:hover{border-color:var(--border-soft);background:var(--surface-raised);box-shadow:0 0 0 1px var(--border-soft)}

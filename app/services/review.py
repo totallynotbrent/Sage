@@ -12,9 +12,9 @@ from app.util import new_id, utc_now
 
 # Map Sage quiz outcomes to FSRS ratings.
 OUTCOME_TO_RATING = {
-    "correct": Rating.Good,   # recalled it — schedule out
-    "incorrect": Rating.Again,  # wrong — review again soon
-    "idk": Rating.Again,       # didn't know — review again soon
+    "correct": Rating.Good,   # recalled it, schedule out
+    "incorrect": Rating.Again,  # wrong, review again soon
+    "idk": Rating.Again,       # didn't know, review again soon
 }
 
 # A slow-but-correct first recall is weaker than a fast one: scale the seeded

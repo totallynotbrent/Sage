@@ -1,10 +1,7 @@
-/* ────────────────────────────────────────────────────────────────────
-   Sage — Rosé Pine theme
-   Rosé Pine palette · Editorial serif · Warm chrome · Ring shadows
-   ──────────────────────────────────────────────────────────────────── */
+/* rosé pine theme */
 
 :root {
-  /* ─── Rosé Pine palette ─────────────────────────────────────────── */
+  /* rosé pine palette */
   --bg: #191724;
   --surface: #1f1d2e;
   --overlay: #26233a;
@@ -19,17 +16,17 @@
   --gold: #f6c177;
   --rose: #ebbcba;
 
-  /* ─── Derived surfaces (layered surfaces) ──────────────────── */
+  /* derived surfaces (layered surfaces) */
   --surface-raised: #232136;
   --surface-sunken: #13111e;
   --surface-warm: #2a2740;
 
-  /* ─── Typography ────────────────────────────────────────────────── */
+  /* typography */
   --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* ─── Spacing ───────────────────────────────────────────────────── */
+  /* spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -40,14 +37,14 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /* ─── Radius — equal everywhere ──────────────────────────────────── */
+  /* radius */
   --r: 8px;
 
-  /* ─── Motion ────────────────────────────────────────────────────── */
+  /* motion */
   --ease: cubic-bezier(0.33, 1, 0.68, 1);
   --duration: 1120ms;
 
-  /* ─── Layout ────────────────────────────────────────────────────── */
+  /* layout */
   --sidebar-w: 260px;
   --header-h: 52px;
 }
@@ -71,13 +68,13 @@ textarea { font: inherit; color: inherit; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* ── Scrollbar ────────────────────────────────────────────────────── */
+/* scrollbar */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--r); }
 ::-webkit-scrollbar-thumb:hover { background: var(--faint); }
 
-/* ── App shell ────────────────────────────────────────────────────── */
+/* app shell */
 .app {
   display: flex;
   flex-direction: column;
@@ -91,7 +88,7 @@ a:hover { text-decoration: underline; }
   overflow: hidden;
 }
 
-/* ── Header (clean: clean, minimal, warm) ──────────────────── */
+/* header */
 .header {
   display: flex;
   align-items: center;
@@ -118,7 +115,7 @@ a:hover { text-decoration: underline; }
   color: var(--fg);
 }
 
-/* ── Phase badge ──────────────────────────────────────────────────── */
+/* phase badge */
 .phase-badge {
   font-size: 11px;
   font-weight: 500;
@@ -136,7 +133,7 @@ a:hover { text-decoration: underline; }
 .phase-badge[data-phase="check"]   { color: var(--rose); background: rgba(235, 187, 186, 0.12); }
 .phase-badge[data-phase="complete"]{ color: var(--foam); background: rgba(156, 207, 216, 0.12); }
 
-/* ── Icon button (clean: subtle, ring-shadow) ──────────────── */
+/* icon button */
 .icon-btn {
   display: grid;
   place-items: center;
@@ -153,7 +150,7 @@ a:hover { text-decoration: underline; }
 .icon-btn--subtle { color: var(--faint); }
 .icon-btn--subtle:hover { color: var(--muted); background: transparent; }
 
-/* ── Buttons (clean: warm sand + ring shadows) ─────────────── */
+/* buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -186,7 +183,7 @@ a:hover { text-decoration: underline; }
 
 .btn--sm { padding: 5px 12px; font-size: 12px; }
 
-/* ── Sidebar (clean: editorial sections, generous spacing) ──── */
+/* sidebar */
 .sidebar {
   width: var(--sidebar-w);
   background: var(--surface);
@@ -290,7 +287,7 @@ a:hover { text-decoration: underline; }
 }
 .sidebar__action:hover { color: var(--accent); }
 
-/* ── Main ─────────────────────────────────────────────────────────── */
+/* main */
 .main {
   flex: 1;
   display: flex;
@@ -299,7 +296,7 @@ a:hover { text-decoration: underline; }
   background: var(--bg);
 }
 
-/* ── Chat (clean: centered, editorial, generous whitespace) ── */
+/* chat */
 .chat {
   flex: 1;
   display: flex;
@@ -318,7 +315,7 @@ a:hover { text-decoration: underline; }
   scroll-behavior: smooth;
 }
 
-/* ── Empty state (clean: warm greeting, serif heading) ──────── */
+/* empty state */
 .chat__empty {
   display: flex;
   flex-direction: column;
@@ -346,7 +343,7 @@ a:hover { text-decoration: underline; }
   color: var(--muted);
 }
 
-/* ── Messages (clean: clean bubbles, no heavy borders) ─────── */
+/* messages */
 .msg {
   display: flex;
   flex-direction: column;
@@ -386,7 +383,7 @@ a:hover { text-decoration: underline; }
   transition: background var(--duration) var(--ease);
 }
 
-/* Assistant messages: subtle, no border — clean */
+/* Assistant messages: subtle, no border, clean */
 .msg--assistant .msg__bubble {
   background: transparent;
   color: var(--fg);
@@ -461,7 +458,7 @@ a:hover { text-decoration: underline; }
 }
 @keyframes blink { 50% { opacity: 0; } }
 
-/* ── Citation chip (clean: ring shadow, soft) ──────────────── */
+/* citation chip */
 .cite {
   display: inline-flex;
   align-items: center;
@@ -483,7 +480,7 @@ a:hover { text-decoration: underline; }
 }
 .cite:active { transform: scale(0.95); }
 
-/* ── Quiz card (clean: clean card, ring interactions) ───────── */
+/* quiz card */
 .quiz {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -545,7 +542,7 @@ a:hover { text-decoration: underline; }
   margin-top: var(--space-4);
 }
 
-/* ── Mermaid diagram ──────────────────────────────────────────────── */
+/* mermaid diagram */
 .mermaid-wrap {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -556,7 +553,7 @@ a:hover { text-decoration: underline; }
 }
 .mermaid-wrap svg { max-width: 100%; height: auto; }
 
-/* ── Phase divider ────────────────────────────────────────────────── */
+/* phase divider */
 .phase-divider {
   display: flex;
   align-items: center;
@@ -576,7 +573,7 @@ a:hover { text-decoration: underline; }
   background: var(--border);
 }
 
-/* ── Input bar (clean: floating, rounded, warm focus) ───────── */
+/* input bar */
 .input-bar {
   padding: var(--space-3) var(--space-4) var(--space-5);
 }
@@ -640,7 +637,7 @@ a:hover { text-decoration: underline; }
 }
 .input-bar__stop:hover { opacity: 0.85; }
 
-/* ── Viewer (clean: clean panel, editorial) ────────────────── */
+/* viewer */
 .viewer {
   width: 40%;
   min-width: 320px;
@@ -705,7 +702,7 @@ a:hover { text-decoration: underline; }
   border-left-color: var(--accent);
 }
 
-/* ── Modal (clean: warm overlay, soft shadow) ──────────────── */
+/* modal */
 .modal {
   position: fixed;
   inset: 0;
@@ -759,7 +756,7 @@ a:hover { text-decoration: underline; }
   border-top: 1px solid var(--border);
 }
 
-/* ── Upload zone (clean: dashed border, soft) ──────────────── */
+/* upload zone */
 .upload-zone {
   display: flex;
   flex-direction: column;
@@ -800,7 +797,7 @@ a:hover { text-decoration: underline; }
 }
 .upload-item__remove:hover { color: var(--love); }
 
-/* ── Responsive ───────────────────────────────────────────────────── */
+/* responsive */
 @media (max-width: 1023px) {
   .sidebar { position: absolute; left: 0; top: 0; bottom: 0; z-index: 30; }
   .sidebar.collapsed { width: 0; }
@@ -816,6 +813,6 @@ a:hover { text-decoration: underline; }
   .input-bar { padding: var(--space-2) var(--space-3) var(--space-3); }
 }
 
-/* ── MathJax overrides ────────────────────────────────────────────── */
+/* mathJax overrides */
 mjx-container { display: inline !important; }
 mjx-container[display="true"] { display: block !important; overflow-x: auto; }

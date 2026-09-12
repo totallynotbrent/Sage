@@ -8,7 +8,7 @@
 
 ## Summary
 
-Sage is a local-first web app that works as a personal AI tutor. Attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches on its own, and Sage chunks them, probes what you already know, builds a learning plan, teaches each topic, then runs a final quiz and re-teaches whatever did not stick. All of this happens through a grounded, streaming chat that cites the exact excerpts it used. The Python 3.11 FastAPI service serves the static UI from `/` alongside JSON and SSE endpoints, talks to an OpenAI-compatible endpoint (default Ollama cloud with `gemma4:31b-cloud`), can search the web via SearXNG when `SEARXNG_URL` is set, and keeps everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads stored outside any served path.
+Sage is a local-first web app that works as a personal AI tutor. Attach study files (PDF, DOCX, PPTX, Markdown, LaTeX, text) or point it at a notes folder it watches on its own, and Sage chunks them, probes what you already know, builds a learning plan, teaches each topic, then runs a final quiz and re-teaches whatever did not stick. All of this happens through a grounded, streaming chat that cites the exact excerpts it used. The Python 3.11 FastAPI service serves the static UI from `/` alongside JSON and SSE endpoints, talks to an OpenAI-compatible endpoint (any Ollama model set via `MODEL`), can search the web via SearXNG when `SEARXNG_URL` is set, and keeps everything in SQLite plus files under `DATA_DIR` (default `~/.local/share/sage`), with uploads stored outside any served path.
 
 ## Project structure
 
@@ -111,10 +111,10 @@ sage/
 ```mermaid
 flowchart LR
     CLIENT["Browser / API client"] -->|"GET / serves static UI<br/>JSON + SSE + structured JSON"| API
-    B["Ollama cloud — OpenAI-compatible endpoint<br/>https://ollama.com/v1 · POST /chat/completions<br/>model gemma4:31b-cloud"]
+    B["Ollama cloud, an OpenAI-compatible endpoint<br/>https://ollama.com/v1 · POST /chat/completions<br/>model set via MODEL in .env"]
     SEARXNG["SearXNG<br/>http://192.168.1.57:8080/ · /search?q=&format=json"]
 
-    subgraph APP["Sage — FastAPI service · uvicorn app.main:app"]
+    subgraph APP["Sage. FastAPI service · uvicorn app.main:app"]
         MAIN["app/main.py<br/>create_app · init_db · 10 routers"]
         UI["static/<br/>index.html · sage-workspace.html · sage-health.html<br/>sage-library.html · sage-sessions.html · sage-settings.html"]
         API["app/api/<br/>system · files · sessions · chat · outputs<br/>learning · plans · teach · preferences · watch"]
@@ -209,7 +209,7 @@ sequenceDiagram
         T-->>C: SSE error {code, message, detail, retryable}
     end
 
-    Note over C,CH: POST /api/sessions/{id}/retry — replays last user message with the same client_msg_id
+    Note over C,CH: POST /api/sessions/{id}/retry. replays last user message with the same client_msg_id
 ```
 
 ### Structured outputs and Socratic teaching (teach/latex + actions)
@@ -228,7 +228,7 @@ sequenceDiagram
     participant VAL as app/llm/structured_outputs.py<br/>parse_exact_json + validate_output
     participant ENV as Envelope<br/>server-owned metadata
 
-    C->>API: POST /outputs {kind: teach} — POST /api/sessions/{id}/outputs
+    C->>API: POST /outputs {kind: teach}. POST /api/sessions/{id}/outputs
     API->>SVC: generate(session_id, request, llm)
     SVC->>SVC: _select_chunks (context budget, grounding_mode)
     alt grounded and SEARXNG_URL set
@@ -238,13 +238,13 @@ sequenceDiagram
         WS-->>SVC: web_results
         Note over SVC,WS: web results become [WEB] blocks<br/>in build_chat_messages
     else strict mode or no SEARXNG_URL
-        Note over SVC: file-only — no web search<br/>strict remains citations-only
+        Note over SVC: file-only, no web search<br/>strict remains citations-only
     end
     SVC->>LLM: build_chat_messages([DOC] + [WEB]) → complete_json
-    LLM->>LLM: POST https://ollama.com/v1/chat/completions<br/>model gemma4:31b-cloud · thought filtering
+    LLM->>LLM: POST https://ollama.com/v1/chat/completions<br/>model from MODEL env · thought filtering
     LLM-->>SVC: raw JSON text (one value)
     SVC->>VAL: parse_exact_json(text)
-    VAL->>VAL: validate_output — kind dispatch
+    VAL->>VAL: validate_output. kind dispatch
     Note over VAL: chat: non-empty content<br/>mermaid: title+source<br/>todo: title+items<br/>quiz: questions+distinct options<br/>teach: content + latex_blocks + actions<br/>  - duplicate_action_ids rejected<br/>latex: title + latex<br/>  - script_content rejected (raw html forbidden)
     VAL-->>SVC: TeachOutputDraft / LatexOutputDraft<br/>or Chat/Mermaid/Todo/Quiz draft
     alt validation fails
@@ -259,7 +259,7 @@ sequenceDiagram
     SVC-->>API: envelope
     API-->>C: 200 {kind: teach, content, actions}<br/>or {kind: latex, title, latex}
     Note over C: renders one-step lesson<br/>buttons: Continue / Ask question / Practice<br/>Example / Deeper / Next topic<br/>latex rendered as standalone snippet
-    Note over C,API: Web search grounding — when configured,<br/>grounded turns inject WEB blocks,<br/>strict never uses web search, failures fall back to file-only
+    Note over C,API: Web search grounding, when configured,<br/>grounded turns inject WEB blocks,<br/>strict never uses web search, failures fall back to file-only
 ```
 
 ### SQLite data model

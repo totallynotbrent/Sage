@@ -237,7 +237,7 @@ class TurnMixin:
                             item = {"type": "delta", "delta": item}
                         event_type = item.get("type")
                         if event_type == "thinking":
-                            # Model's private reasoning — surfaced for the UI's
+                            # Model's private reasoning, surfaced for the UI's
                             # collapsible "thinking" section.
                             yield {"type": "thinking", "thinking": item.get("thinking") or ""}
                             continue
@@ -374,7 +374,7 @@ class TurnMixin:
 
 
                 # Defense in depth: strip any leaked call: fragments that slipped through (e.g. gemma's "call:run_probe/")
-                # Bread's native /api/chat never hits this path, but Sage's model does — ensure storage is clean even if
+                # Bread's native /api/chat never hits this path, but Sage's model does. ensure storage is clean even if
                 # the guard in app/llm/client.py regresses. Also keeps history used for next-turn context leak-free.
                 import re as _re
                 full_text = "".join(buffer)
@@ -382,7 +382,7 @@ class TurnMixin:
                 full_text = _re.sub(r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t.:;,!?)(\\\"'-]))\[?call:\w+\b/?\]?(?:\s*status\s*=\s*[\"'][^\"']*[\"'])?(?:\s*\([^)\"']*\))?", "", full_text)
                 full_text = _re.sub(r"<call:\w+\b[^<]*$", "", full_text)
                 # If the model ran tools but never produced a closing reply (a
-                # tool-only turn — gemma sometimes stops right after the last
+                # tool-only turn. gemma sometimes stops right after the last
                 # tool_result), force one no-tools completion so the learner
                 # always gets a prose response instead of a dead end.
                 if ran_tool and not full_text.strip():
@@ -402,7 +402,7 @@ class TurnMixin:
                     if marker in sent_ids
                 ]
                 # Skip persisting empty assistant turns (tool-only responses like
-                # advance_lesson with no prose) — they add blank bubbles in the UI
+                # advance_lesson with no prose), they add blank bubbles in the UI
                 # and noise in history.
                 if full_text.strip():
                     message = self.persist_message(
