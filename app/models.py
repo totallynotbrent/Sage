@@ -199,6 +199,18 @@ class Preferences(BaseModel):
     updated_at: str
 
 
+class ModelConfigBody(BaseModel):
+    model: str | None = None
+    num_ctx: int | None = None
+    lightweight: bool | None = None
+
+
+class ModelConfig(BaseModel):
+    model: str
+    num_ctx: int
+    lightweight: bool
+
+
 class StructuredOutputRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

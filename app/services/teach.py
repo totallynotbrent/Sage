@@ -160,6 +160,7 @@ class TeachService:
                     session.model_dump(),
                     session.grounding_mode,
                     self.sessions._mastery_summary(session_id),
+                    lightweight=self.settings.lightweight,
                 ),
             },
             {"role": "user", "content": user},

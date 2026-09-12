@@ -155,7 +155,7 @@ TOOL_SCHEMAS = [
 ]
 
 
-def available_tools(settings, mode: str | None = None) -> list[dict]:
+def available_tools(settings, mode: str | None = None, lightweight: bool = False) -> list[dict]:
     enabled = (
         {f"generate_{kind}" for kind in _KINDS}
         | {"record_step_actions"}
@@ -163,4 +163,34 @@ def available_tools(settings, mode: str | None = None) -> list[dict]:
     )
     if mode != "strict" and getattr(settings, "searxng_url", ""):
         enabled.add("web_search")
-    return [t for t in TOOL_SCHEMAS if t["function"]["name"] in enabled]
+    tools = [t for t in TOOL_SCHEMAS if t["function"]["name"] in enabled]
+    if not lightweight:
+        return tools
+
+    def _slim(tool: dict) -> dict:
+        fn = tool["function"]
+        short_desc = {
+            "web_search": "Search the web.",
+            "generate_quiz": "Generate a quiz about a topic.",
+            "generate_todo": "Generate a study checklist for a topic.",
+            "generate_latex": "Generate a LaTeX document on a topic.",
+            "record_step_actions": "Record follow-up teaching-step actions.",
+            "run_probe": "Start the diagnostic probe before teaching.",
+            "start_review": "Start spaced-repetition review of due cards.",
+            "grade_answer": "Grade an answer to a probe or final-quiz question.",
+            "build_plan": "Build and persist the lesson plan.",
+            "advance_lesson": "Advance to the next plan node.",
+            "run_final_quiz": "Generate the comprehensive final quiz.",
+        }.get(fn["name"], fn["description"])
+        slim_fn = dict(fn)
+        slim_fn["description"] = short_desc
+        props = dict(slim_fn.get("parameters", {}).get("properties", {}))
+        props.pop("status", None)
+        slim_fn["parameters"] = {
+            "type": "object",
+            "properties": props,
+            "required": slim_fn.get("parameters", {}).get("required", []),
+        }
+        return {"type": tool["type"], "function": slim_fn}
+
+    return [_slim(t) for t in tools]

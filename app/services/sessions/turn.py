@@ -198,6 +198,7 @@ class TurnMixin:
                     self._mastery_summary(session_id),
                     mode,
                     lesson_state=lesson_state,
+                    lightweight=self.settings.lightweight,
                 )
                 tool_ctx = ToolContext(
                     settings=self.settings,
@@ -209,7 +210,7 @@ class TurnMixin:
                     conn=self.conn,
                     session_id=session_id,
                 )
-                turn_tools = available_tools(self.settings, mode=mode)
+                turn_tools = available_tools(self.settings, mode=mode, lightweight=self.settings.lightweight)
                 stashed_actions: list[dict] = []
                 web_sources: list[dict] = []
                 step_actions_recorded = False

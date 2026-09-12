@@ -227,8 +227,9 @@ async def request_plan(
     mode: str,
     focus: str | None = None,
     outline: list[dict] | None = None,
+    lightweight: bool = False,
 ) -> Plan | None:
-    system = make_system_prompt(session, mode, mastery_summary)
+    system = make_system_prompt(session, mode, mastery_summary, lightweight=lightweight)
     user = (
         "Based on the learner goal and the source excerpts, propose a "
         "dependency-aware learning plan. Return ONLY a JSON object:\n"
@@ -291,8 +292,9 @@ async def request_questions(
     count: int = 3,
     focus: str | None = None,
     avoid: list[str] | None = None,
+    lightweight: bool = False,
 ) -> list[QuizQuestionInput]:
-    system = make_system_prompt(session, mode, mastery_summary)
+    system = make_system_prompt(session, mode, mastery_summary, lightweight=lightweight)
     user = (
         f"Write {count} multiple-choice questions relevant to the learner goal "
         "and the source excerpts. Vary difficulty. Return ONLY a JSON array of "
@@ -379,9 +381,10 @@ async def request_learner_review(
     mode: str,
     questions: list[str],
     topic: str | None = None,
+    lightweight: bool = False,
 ) -> list[dict]:
     """Sage answers the learner's own questions and grades fact coverage."""
-    system = make_system_prompt(session, mode, mastery_summary)
+    system = make_system_prompt(session, mode, mastery_summary, lightweight=lightweight)
     bullet = "\n".join(f"{i + 1}. {q}" for i, q in enumerate(questions))
     user = (
         "The learner just studied the material and wrote TWO questions of their "

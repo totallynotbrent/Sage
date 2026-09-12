@@ -164,6 +164,9 @@ CREATE TABLE IF NOT EXISTS preferences (
     pacing     TEXT NOT NULL DEFAULT 'normal',
     style      TEXT NOT NULL DEFAULT 'analogy-first',
     notes      TEXT,
+    model      TEXT,
+    num_ctx    INTEGER,
+    lightweight INTEGER,
     updated_at TEXT NOT NULL
 );
 
@@ -197,6 +200,9 @@ _MIGRATED_COLUMNS = (
     ("quiz_questions", "latency_ms", "latency_ms INTEGER"),
     ("mastery_topics", "overconfident_count", "overconfident_count INTEGER NOT NULL DEFAULT 0"),
     ("mastery_topics", "underconfident_count", "underconfident_count INTEGER NOT NULL DEFAULT 0"),
+    ("preferences", "model", "model TEXT"),
+    ("preferences", "num_ctx", "num_ctx INTEGER"),
+    ("preferences", "lightweight", "lightweight INTEGER"),
 )
 
 

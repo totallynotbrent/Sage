@@ -69,6 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         chat,
         files,
         learning,
+        model_config,
         outputs,
         plans,
         preferences,
@@ -90,6 +91,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(plans.router)
     app.include_router(teach.router)
     app.include_router(preferences.router)
+    app.include_router(model_config.router)
     app.include_router(watch.router)
 
     static_dir = Path(__file__).parent.parent / "static"

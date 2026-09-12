@@ -18,6 +18,8 @@ Set in `.env` (copy `.env.example`).
 | `MAX_UPLOAD_MB` / `MAX_TOTAL_MB` | `30` / `500` | Upload / library limits |
 | `CHUNK_CHARS` / `CHUNK_OVERLAP` | `1500` / `200` | Chunk size / overlap |
 | `CONTEXT_CHUNK_BUDGET` | `8` | Max chunks sent per turn |
+| `OLLAMA_NUM_CTX` | `16384` | Context window in tokens — lower it to fit a small GPU (<8GB VRAM) |
+| `SAGE_LIGHTWEIGHT` | `false` | `true` swaps in a slim small-model prompt + trimmed tool schemas for ≤8B models |
 | `SAGE_WATCH_DIRS` | *(none)* | JSON array of note folders to auto-scan |
 | `SAGE_WATCH_SCAN_SECONDS` | `300` | Seconds between watch scans |
 

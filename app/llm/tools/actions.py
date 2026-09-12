@@ -61,7 +61,10 @@ async def _run_generate(kind: str, arguments: dict, ctx) -> dict:
         topic = str(getattr(ctx, "recent_user_text", "") or "").strip()
     if not topic:
         topic = goal_topic
-    system = make_system_prompt(ctx.session_dict, ctx.mode, ctx.mastery_summary)
+    system = make_system_prompt(
+        ctx.session_dict, ctx.mode, ctx.mastery_summary,
+        lightweight=getattr(ctx.settings, "lightweight", False),
+    )
     shape = _SCHEMA_HINTS.get(kind, "{}")
     user = (
         f"Generate ONLY the JSON for output_kind={kind} about: {topic}. "

@@ -72,6 +72,7 @@ class StructuredOutputService:
             self.sessions._mastery_summary(session_id),
             session.grounding_mode,
             web_results=web_results,
+            lightweight=self.sessions.settings.lightweight,
         )
         validator = self._validate_mermaid if request.output_kind == "mermaid" else None
         draft, attempts, diagram_type = await request_output(

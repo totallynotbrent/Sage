@@ -32,6 +32,7 @@ class PlansService:
             mode=session.grounding_mode,
             focus=session.goal,
             outline=self._session_outline(session) if session.grounding_mode == "strict" else None,
+            lightweight=self.settings.lightweight,
         )
         if plan is None:
             error = ModelOutputError("The model returned no usable learning plan.")
@@ -140,6 +141,7 @@ class PlansService:
             mode=session.grounding_mode,
             focus=focus,
             outline=self._session_outline(session) if session.grounding_mode == "strict" else None,
+            lightweight=self.settings.lightweight,
         )
         if plan is None:
             error = ModelOutputError("The model returned no usable plan expansion.")

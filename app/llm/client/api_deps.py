@@ -11,8 +11,9 @@ def get_llm_client(request: _Request) -> SageOllamaClient:
     return client
 
 
-def reset_llm_client() -> None:
-    return None
+def reset_llm_client(app=None) -> None:
+    if app is not None:
+        app.state.llm_client = None
 
 # Compat for tests that import the old helper (bread's client has no _strip_thought;
 # sage kept it. Re-export here so tests still pass.)

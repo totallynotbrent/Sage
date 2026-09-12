@@ -101,6 +101,47 @@
 <button class="btn btn_primary" id="save-prefs">Save Preferences</button>
 </div>
 <div class="settings_section" data-sage-stagger="60">
+<div class="settings_section_title">Model & Context</div>
+<div class="settings_section_desc">Choose the language model and its context window. Smaller models and tighter context fit comfortably on modest GPUs.</div>
+<div class="field">
+<label class="field_label" for="model-select">Model</label>
+<select class="field_select" id="model-select">
+<option value="qwen3.5:4b">qwen3.5:4b (recommended)</option>
+<option value="qwen3.5:0.8b">qwen3.5:0.8b</option>
+<option value="qwen3.5:2b">qwen3.5:2b</option>
+<option value="qwen3.5:9b">qwen3.5:9b</option>
+<option value="gemma4:31b-cloud">gemma4:31b-cloud</option>
+<option value="__custom__">Custom…</option>
+</select>
+<div class="field_help" id="model-help"></div>
+</div>
+<div class="field" id="custom-model-field" style="display:none">
+<label class="field_label" for="custom-model">Custom model tag</label>
+<input class="field_select" id="custom-model" type="text" placeholder="e.g. llama3.1:8b" />
+<div class="field_help">Any Ollama model tag will work, as long as the model supports tool calling.</div>
+</div>
+<div class="field">
+<label class="field_label" for="context-select">Context limit</label>
+<select class="field_select" id="context-select">
+<option value="4096">4096 tokens (tightest)</option>
+<option value="8192">8192 tokens</option>
+<option value="16384">16384 tokens (recommended)</option>
+<option value="32768">32768 tokens</option>
+</select>
+<div class="field_help">Longer context uses more VRAM. 16384 is a good balance on an 8GB GPU with qwen3.5:4b.</div>
+</div>
+<div class="field">
+<label class="field_label" for="lite-toggle">Prompt profile</label>
+<select class="field_select" id="lite-toggle">
+<option value="light">Lite — slim prompt & tool schemas for small models (≤8B)</option>
+<option value="full">Full — complete tutoring prompt for cloud/served models</option>
+</select>
+<div class="field_help">Lite cuts the fixed prompt+tool overhead by roughly half so an 8B-or-smaller model fits and follows instructions.</div>
+</div>
+<button class="btn btn_primary" id="save-model">Save Model & Context</button>
+<div class="field_help" style="margin-top:var(--space-2)" id="model-status"></div>
+</div>
+<div class="settings_section" data-sage-stagger="60">
 <div class="settings_section_title">Mastery</div>
 <div class="settings_section_desc">Manage your learning progress and concept mastery data.</div>
 <button class="btn btn_danger" id="reset-mastery">Reset Mastery Data</button>
@@ -189,6 +230,73 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')close_sidebar()});
 document.getElementById('save-prefs')?.setAttribute('aria-label','Save preferences');
 document.getElementById('reset-mastery')?.setAttribute('aria-label','Reset mastery data');
 loadPrefs();
+
+const model_select=document.getElementById('model-select');
+const custom_field=document.getElementById('custom-model-field');
+const custom_input=document.getElementById('custom-model');
+function sync_custom_visibility(){
+  if(!model_select||!custom_field)return;
+  const is_custom=model_select.value==='__custom__';
+  custom_field.style.display=is_custom?'':'none';
+}
+model_select?.addEventListener('change',sync_custom_visibility);
+sync_custom_visibility();
+
+function selected_model(){
+  if(model_select?.value==='__custom__')return (custom_input?.value||'').trim();
+  return model_select?.value||'qwen3.5:4b';
+}
+
+async function loadModelConfig(){
+  try{
+    const r=await fetch('/api/model-config');
+    if(!r.ok) throw new Error(`load failed: ${r.status}`);
+    const d=await r.json();
+    const sel=document.getElementById('model-select');
+    if(d.model){
+      const known=Array.from(sel.options).some(o=>o.value===d.model);
+      if(known){sel.value=d.model;}
+      else{sel.value='__custom__';custom_input.value=d.model;}
+    }
+    if(d.num_ctx){
+      const ctx=document.getElementById('context-select');
+      const vals=Array.from(ctx.options).map(o=>o.value);
+      if(vals.includes(String(d.num_ctx))){ctx.value=String(d.num_ctx);}
+    }
+    const lite=document.getElementById('lite-toggle');
+    if(lite){lite.value=d.lightweight?'light':'full';}
+    sync_custom_visibility();
+    const help=document.getElementById('model-status');
+    if(help)help.textContent='Active: '+d.model+' · '+d.num_ctx+' tokens · '+(d.lightweight?'Lite':'Full')+' profile';
+  }catch(e){console.error(e)}
+}
+
+const save_model_btn=document.getElementById('save-model');
+save_model_btn?.addEventListener('click', async()=>{
+  const model=selected_model();
+  if(!model){custom_input?.focus();return;}
+  const num_ctx=Number(document.getElementById('context-select')?.value||16384);
+  const lightweight=document.getElementById('lite-toggle')?.value==='light';
+  const payload={model:model, num_ctx:num_ctx, lightweight:lightweight};
+  const orig=save_model_btn.textContent;
+  save_model_btn.disabled=true;
+  save_model_btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/model-config',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error(`Save failed: ${r.status}`);
+    const d=await r.json();
+    const help=document.getElementById('model-status');
+    if(help)help.textContent='Saved · Active: '+d.model+' · '+d.num_ctx+' tokens · '+(d.lightweight?'Lite':'Full')+' profile';
+    save_model_btn.textContent='Saved';
+    setTimeout(()=>{save_model_btn.textContent=orig; save_model_btn.disabled=false;},1500);
+  }catch(e){
+    save_model_btn.textContent='Save failed';
+    setTimeout(()=>{save_model_btn.textContent=orig; save_model_btn.disabled=false;},2500);
+    console.error(e);
+  }
+});
+
+loadModelConfig();
 </script>
 </body>
 </html>

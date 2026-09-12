@@ -99,6 +99,7 @@ class LearningService:
             count=count,
             focus=session.goal,
             avoid=self._recent_question_stems(session_id),
+            lightweight=self.settings.lightweight,
         )
         if not questions:
             error = ModelOutputError("The model returned no usable probe questions.")
@@ -142,6 +143,7 @@ class LearningService:
             count=count,
             focus=focus,
             avoid=self._recent_question_stems(session_id),
+            lightweight=self.settings.lightweight,
         )
         if not generated:
             error = ModelOutputError(
@@ -207,6 +209,7 @@ class LearningService:
             count=count,
             focus=topic,
             avoid=self._recent_question_stems(session_id),
+            lightweight=self.settings.lightweight,
         )
         if not questions:
             error = ModelOutputError("The model returned no usable check question.")
@@ -243,6 +246,7 @@ class LearningService:
             mode=session.grounding_mode,
             count=1,
             focus=topic,
+            lightweight=self.settings.lightweight,
         )
         if not questions:
             error = ModelOutputError("The model returned no usable pretest question.")
@@ -279,6 +283,7 @@ class LearningService:
             mode=session.grounding_mode,
             questions=questions,
             topic=topic,
+            lightweight=self.settings.lightweight,
         )
         now = utc_now()
         for entry in review:

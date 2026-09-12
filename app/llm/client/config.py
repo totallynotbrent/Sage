@@ -16,7 +16,7 @@ class OllamaClientConfig:
     api_keys: list[str] = field(default_factory=list)
     backends: list[tuple[str, str]] = field(default_factory=list)
     model: str = ""
-    num_ctx: int = 131072
+    num_ctx: int = 16384
     num_threads: int = 5
     temperature: float = 0.67
     keep_alive: int = -1
@@ -43,7 +43,7 @@ class OllamaClientConfig:
             api_keys=[],
             backends=[],
             model=(getattr(settings, "model", "") or "").strip(),
-            num_ctx=int(getattr(settings, "ollama_num_ctx", 32768) or 32768),
+            num_ctx=int(getattr(settings, "ollama_num_ctx", 16384) or 16384),
             num_threads=5,
             temperature=0.67,
             keep_alive=int(getattr(settings, "ollama_keep_alive", -1)),
