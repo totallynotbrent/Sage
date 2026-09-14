@@ -48,7 +48,6 @@
 /* Inline tool-activity status shown where Sage types */
 .tool-status-line{font-family:var(--font-mono);font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent);padding:var(--space-1) 0}
 
-/* Yes/No inline answer buttons under assistant check questions */
 .probe-wrap{max-width:min(920px,92%);width:100%;margin:0 auto var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3) 0;position:relative}
 .probe-close{position:absolute;top:0;right:0;width:26px;height:26px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--meta);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:2}
 .probe-close:hover{color:var(--fg);border-color:var(--accent)}
@@ -59,10 +58,10 @@
 .cite{display:inline-block;font-size:11px;font-weight:500;font-family:var(--font-mono);background:var(--accent-dim);color:var(--accent);border:1px solid var(--border);border-radius:999px;padding:1px 8px;margin:0 2px;cursor:default}
 .cite--inline{vertical-align:baseline}
 .cite--inline:hover{border-color:var(--accent)}
+.msg-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.action-btn{background:var(--accent);color:#1a1a19;border:none;border-radius:14px;padding:9px 18px;font-size:14px;font-weight:600;font-family:var(--font-body,inherit);cursor:pointer;transition:opacity var(--dur) var(--ease)}
+.action-btn:hover{opacity:0.85}
 .probe-wrap .artifact-card{opacity:1;transform:none}
-
-.yesno-row{display:flex;gap:var(--space-2);margin-top:var(--space-2)}
-.yesno-row .quick-chip{padding:7px 18px}
 
 /* Collapsed repeat counter for identical consecutive user messages */
 .repeat-counter{margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--accent-dim);color:var(--accent);font-size:10px;font-weight:600}
@@ -157,12 +156,6 @@
 .artifact-card__source-toggle[aria-expanded="true"] .artifact-card__source-toggle-chevron{transform:rotate(90deg)}
 .artifact-card__source{display:none;background:var(--surface-sunken);border-radius:var(--r);padding:var(--space-3);font-family:var(--font-mono);font-size:12px;color:var(--muted);overflow-x:auto;white-space:pre;max-height:200px;line-height:1.5}
 .artifact-card__source.open{display:block}
-.artifact-card__confidence{display:flex;align-items:center;gap:var(--space-2);padding-top:var(--space-2);border-top:1px solid var(--border-soft);flex-wrap:wrap}
-.artifact-card__confidence-label{font-family:var(--font-mono);font-size:10px;letter-spacing:0.05em;text-transform:uppercase;color:var(--meta);margin-right:var(--space-1)}
-.artifact-card__confidence-row{display:flex;gap:var(--space-1);flex-wrap:wrap}
-.artifact-card__confidence-btn{font-family:var(--font-mono);font-size:11px;text-transform:capitalize;padding:4px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer}
-.artifact-card__confidence-btn:hover{color:var(--fg);border-color:var(--accent)}
-.artifact-card__confidence-btn.selected{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
 .ask-card__input{width:100%;min-height:52px;background:var(--surface-sunken);border:1px solid var(--border);border-radius:var(--r);color:var(--fg);font-family:var(--font-body);font-size:14px;padding:var(--space-3);resize:vertical}
 .ask-card__input:focus{outline:none;border-color:var(--accent)}
 .ask-card__send{align-self:flex-end;margin-top:var(--space-2)}
@@ -1257,11 +1250,12 @@ function append_web_source_chips(message_el, sources) {
 
 function append_action_chips(message_el, actions) {
   if (!message_el || !(actions || []).length) return;
-  const row = append_chips_row(message_el);
+  const row = document.createElement('div');
+  row.className = 'msg-actions';
   actions.forEach(action => {
     if (!action) return;
     const btn = document.createElement('button');
-    btn.className = 'cite';
+    btn.className = 'cite action-btn';
     btn.type = 'button';
     const label = action.label || action.id || 'continue';
     btn.textContent = label;
@@ -1273,7 +1267,7 @@ function append_action_chips(message_el, actions) {
     };
     row.appendChild(btn);
   });
-  if (!row.children.length) row.remove();
+  if (row.children.length) message_el.appendChild(row);
 }
 
 function build_probe_card(question, ordinal, marker_text, on_select) {
@@ -1333,35 +1327,6 @@ function build_probe_card(question, ordinal, marker_text, on_select) {
   });
   wrap.appendChild(qtext);
   wrap.appendChild(options_el);
-  // Confidence calibration: learner rates how sure they are before it's graded
-  // (Guess/Confident/Know). Fed into mastery so overconfident topics schedule harder.
-  const conf_el = document.createElement('div');
-  conf_el.className = 'artifact-card__confidence';
-  const conf_label = document.createElement('span');
-  conf_label.className = 'artifact-card__confidence-label';
-  conf_label.textContent = 'Confidence';
-  const conf_row = document.createElement('div');
-  conf_row.className = 'artifact-card__confidence-row';
-  card.dataset.confidence = '';
-  ['guess', 'confident', 'know'].forEach((c) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'artifact-card__confidence-btn';
-    b.textContent = c;
-    b.dataset.level = c;
-    b.onclick = () => {
-      card.dataset.confidence = c;
-      conf_row.querySelectorAll('.artifact-card__confidence-btn').forEach(x => {
-        x.classList.toggle('selected', x === b);
-        x.setAttribute('aria-pressed', String(x === b));
-      });
-      on_select();
-    };
-    conf_row.appendChild(b);
-  });
-  conf_el.appendChild(conf_label);
-  conf_el.appendChild(conf_row);
-  wrap.appendChild(conf_el);
   content.appendChild(wrap);
   card.appendChild(header);
   card.appendChild(content);
@@ -1374,6 +1339,13 @@ function openAskMode() {
   if (!sessionId) { setComposerError('Select a session first.'); return; }
   const wrap = document.createElement('div');
   wrap.className = 'probe-wrap';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'probe-close';
+  close.setAttribute('aria-label', 'Dismiss');
+  close.textContent = '×';
+  close.onclick = () => { wrap.remove(); };
+  wrap.appendChild(close);
   const card = document.createElement('article');
   card.className = 'artifact-card';
   card.dataset.kind = 'quiz';
@@ -1435,10 +1407,6 @@ function openAskMode() {
     send.textContent = 'Done';
     box.scrollTop = box.scrollHeight;
   };
-  if (!box.querySelector('.probe-wrap')) {
-    const role = document.createElement('div'); role.className = 'msg__role'; role.textContent = 'Sage';
-    box.appendChild(role);
-  }
   box.appendChild(wrap);
   box.scrollTop = box.scrollHeight;
   show_card(card);
@@ -1454,17 +1422,13 @@ function start_probe_batch(items, kind_label) {
     entries.forEach(entry => {
       const sel = entry.card.dataset.selected;
       if (sel === '') return;
-      const conf = entry.card.dataset.confidence || 'confident';
-      // Per-question latency (issue #2): time from the card being revealed
-      // (Continue pressed -> rendered_at) to THIS card being answered
-      // (answered_at). Each question reports its own retrieval time.
-      const answered_at = entry.card.dataset.answered_at
-        ? Number(entry.card.dataset.answered_at)
-        : performance.now();
-      const latency_ms = entry.card.dataset.rendered_at
-        ? Math.round(answered_at - Number(entry.card.dataset.rendered_at))
-        : 0;
-      parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))} [${conf}] [${latency_ms}ms]`);
+      parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))}`);
+      if (entry.question_id && sessionId) {
+        fetch(`${API}/sessions/${sessionId}/check-question/${entry.question_id}/answer`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ choice_index: Number(sel) }),
+        }).catch(() => {});
+      }
     });
     if (!parts.length) return;
     entries.forEach(entry => entry.card.classList.add('sent'));
@@ -1474,7 +1438,7 @@ function start_probe_batch(items, kind_label) {
   const update_state = () => {
     if (!send_btn) return;
     const open = entries.filter(entry => !entry.card.classList.contains('sent'));
-    const answered = open.filter(entry => entry.card.dataset.selected !== '' && entry.card.dataset.confidence !== '');
+    const answered = open.filter(entry => entry.card.dataset.selected !== '');
     answered.forEach(entry => {
       if (!entry.card.dataset.answered_at) {
         entry.card.dataset.answered_at = String(Math.round(performance.now()));
@@ -1499,7 +1463,7 @@ function start_probe_batch(items, kind_label) {
             ? `FINAL QUIZ · ${String(qi + 1).padStart(2, '0')}`
             : `PROBE · ${String(qi + 1).padStart(2, '0')}`;
     const card = build_probe_card(question, qi + 1, marker_text, update_state);
-    entries.push({ card });
+    entries.push({ card, question_id: question && question.question_id });
     wrap.appendChild(card);
   });
   const actions = document.createElement('div');
@@ -1515,12 +1479,6 @@ function start_probe_batch(items, kind_label) {
   // Checks render inline in the chat as part of Sage's message flow.
   const streamEl = document.getElementById('streaming-msg');
   if (streamEl) streamEl.remove();
-  if (!box.querySelector('.probe-wrap')) {
-    const role = document.createElement('div');
-    role.className = 'msg__role';
-    role.textContent = 'Sage';
-    box.appendChild(role);
-  }
   box.appendChild(wrap);
   box.scrollTop = box.scrollHeight;
   entries.forEach(entry => show_card(entry.card));
@@ -1606,26 +1564,6 @@ function artifactContext() {
   return 'the current learning topic';
 }
 
-/* Turn a trailing yes/no question Sage writes in prose into a check-style card
-   (A) Yes / B) No), so it renders like the structured check cards instead of
-   inline buttons that can vanish. Only matches genuine yes/no questions
-   (explicit "yes/no" markers or a leading auxiliary verb); open-ended "What/How"
-   questions are left as prose. Returns {question, stripped} or null. */
-function extractYesNoQuestion(text) {
-  if (typeof text !== 'string' || !text) return null;
-  const trimmed = text.trimEnd();
-  if (!/\?\s*$/.test(trimmed)) return null;
-  const qIdx = trimmed.lastIndexOf('?');
-  let start = qIdx;
-  while (start > 0 && !/[\n.!?]/.test(trimmed[start - 1])) start--;
-  const question = trimmed.slice(start, qIdx + 1).trim();
-  const lower = question.toLowerCase();
-  const yesnoMarker = /yes\s*\/\s*no|yes or no|true or false|\(yes\/no\)|\by\/n\b/.test(lower);
-  const auxStart = /^(is|are|was|were|does|do|did|can|could|should|would|will|has|have|had)\b/.test(lower);
-  if (!yesnoMarker && !auxStart) return null;
-  return { question, stripped: trimmed.slice(0, start).trimEnd() };
-}
-
 let activeTyper = null, activeTyperDone = null; // (kept: reserved for future streaming tweaks)
 
 // Card render queue: check/probe questions arrive on tool_result events, whose
@@ -1638,40 +1576,49 @@ let pendingCards = [];
 // finalizes, then rendered through the review card UI.
 let pendingReviewCards = [];
 
-// Remove a check question (stem + lettered options) from reply prose. The model
-// restates the question inside its narration AND returns it as a structured
-// check_question; since the interactive card below now shows it once, strip the
-// duplicate so it doesn't render twice. Defensive: any failure returns the
-// original text untouched.
-function stripCheckQuestion(text, check_question) {
+// Remove a question (stem + lettered options) from reply prose. The model
+// restates questions inside its narration AND returns them as structured cards;
+// since the interactive card shows them once, strip the duplicate so they never
+// render twice. Handles optional "1." / "2." numbering prefixes. Defensive: any
+// failure returns the original text untouched.
+function stripQuestionText(text, item, index) {
   try {
-    if (!check_question || typeof text !== 'string' || !text) return text;
+    if (!item || typeof text !== 'string' || !text) return text;
     const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     let out = text;
-    const stem = check_question.question || '';
-    const opts = Array.isArray(check_question.options) ? check_question.options : [];
-    // Remove lettered option lines: "A) opt", "A. opt", "(A) opt", "- A) opt".
+    const stem = item.question || '';
+    const opts = Array.isArray(item.options) ? item.options : [];
     opts.forEach((opt, i) => {
       const letter = String.fromCharCode(65 + i);
       if (!opt) return;
       const re = new RegExp('(?:^|\\n)[ \\t]*(?:[\\-\\*•]\\s*)?\\(?' + letter + '\\)?[ .]?[ \\t]*' + esc(opt) + '(?=\\n|$)', 'g');
       out = out.replace(re, '');
     });
-    // Remove the question stem line.
-    if (stem) out = out.replace(new RegExp('(?:^|\\n)[ \\t]*' + esc(stem) + '\\s*(?:\\n|$)', 'g'), '\n');
-    // Collapse leftover blank runs caused by the removals.
-    out = out.replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '');
+    if (stem) {
+      const numPrefix = index != null && index >= 0 ? '(?:' + (index + 1) + '[.)]\\s*)?' : '';
+      out = out.replace(new RegExp('(?:^|\\n)[ \\t]*' + numPrefix + esc(stem) + '\\s*(?:\\n|$)', 'g'), '\n');
+    }
+    out = out.replace(/\\n{3,}/g, '\\n\\n').replace(/^\\s+|\\s+$/g, '');
     return out;
   } catch (_) { return text; }
 }
-function dedupeCheckQuestion(text) {
+function dedupeQuestionText(text) {
   if (!pendingCards.length) return text;
+  let out = text;
   for (const p of pendingCards) {
-    if (p.kind === 'check' && p.items && p.items[0]) {
-      return stripCheckQuestion(text, p.items[0]);
-    }
+    if (!p.items || !Array.isArray(p.items)) continue;
+    p.items.forEach((item, i) => { out = stripQuestionText(out, item, i); });
   }
-  return text;
+  return out;
+}
+// strip restated question stems + options from an arbitrary string, given the
+// quiz-question rows. used when re-rendering a session on load so the raw
+// question text the model restated in prose never leaks into the message bubble.
+function stripAllQuestions(text, quiz) {
+  if (!Array.isArray(quiz) || !quiz.length) return text;
+  let out = text;
+  quiz.forEach((q, i) => { if (q && q.question) out = stripQuestionText(out, q, i); });
+  return out;
 }
 
 async function sendMessage() {
@@ -1801,7 +1748,7 @@ async function sendMessage() {
           const text = String(ev.text || '');
           if (text) {
             if (!bubble_started) { removeTypingIndicator(); bubble = addStreamingMessage(); bubble_started = true; }
-            fullText = dedupeCheckQuestion(text);   // drop the check question restated in prose
+            fullText = dedupeQuestionText(text);   // drop the check question restated in prose
             bubble.innerHTML = sanitize_html(renderMd(fullText));
             render_math(false);
             box.scrollTop = box.scrollHeight;
@@ -1856,18 +1803,7 @@ async function sendMessage() {
     // Drop any check/probe question the model restated in prose. the card
     // below renders it once. Also covers the streaming path (where deltas are
     // appended raw), not just buffered_text.
-    fullText = dedupeCheckQuestion(fullText);
-    // Unify questions: a structured check_question card wins over any prose
-    // yes/no; otherwise turn a trailing yes/no into a check-style card so it
-    // never shows as raw inline buttons (or vanishes) and never doubles up.
-    const hasStructuredCheck = pendingCards.some(p => p.kind === 'check');
-    const yesno = extractYesNoQuestion(fullText);
-    if (yesno) {
-      fullText = yesno.stripped;
-      if (!hasStructuredCheck) {
-        pendingCards.push({ items: [{ question: yesno.question, options: ['Yes', 'No'] }], kind: 'check' });
-      }
-    }
+    fullText = dedupeQuestionText(fullText);
     assistant_msg = addMessage('assistant', fullText);
   } else if (was_aborted) {
   } else if (done_error_message) {
@@ -1878,10 +1814,10 @@ async function sendMessage() {
   if (assistant_msg) {
     append_citation_chips(assistant_msg, citation_ids, meta_chunks);
     append_web_source_chips(assistant_msg, done_web_sources);
-    append_action_chips(assistant_msg, done_actions);
-    // Button-first: when the model supplied record_step_actions, promote them to the pinned chip row
+    // Follow-up actions the model emitted render as buttons directly under the
+    // reply so a Continue stays close to the text it follows.
     if (Array.isArray(done_actions) && done_actions.length) {
-      setQuickChips(chipsFromActions(done_actions));
+      append_action_chips(assistant_msg, done_actions);
     }
     render_math(true);
   }
@@ -1932,6 +1868,7 @@ async function refreshSessionUI() {
       }
     }
     updateCompletionState();
+    renderMasteryPanel();
   } catch (e) {}
 }
 
@@ -1966,12 +1903,6 @@ function showContinueGate(on_continue) {
   btn.textContent = 'Continue';
   btn.onclick = () => { wrap.remove(); on_continue(); };
   wrap.appendChild(btn);
-  if (!box.querySelector('.probe-wrap')) {
-    const role = document.createElement('div');
-    role.className = 'msg__role';
-    role.textContent = 'Sage';
-    box.appendChild(role);
-  }
   box.appendChild(wrap);
   box.scrollTop = box.scrollHeight;
 }
@@ -2029,12 +1960,6 @@ function startReviewBatch(items, marker) {
   wrap.appendChild(actions);
   const streamEl = document.getElementById('streaming-msg');
   if (streamEl) streamEl.remove();
-  if (!box.querySelector('.probe-wrap')) {
-    const role = document.createElement('div');
-    role.className = 'msg__role';
-    role.textContent = 'Sage';
-    box.appendChild(role);
-  }
   box.appendChild(wrap);
   box.scrollTop = box.scrollHeight;
   entries.forEach(entry => show_card(entry.card));
@@ -2206,8 +2131,6 @@ sendMessage = async function () {
   try { await _origSendMessage.apply(this, arguments); }
   finally {
     QUICK_CHIPS_EL?.querySelectorAll('.quick-chip').forEach(b => b.disabled = false);
-    refreshChipsForPhase();
-    renderMasteryPanel();
   }
 };
 // initial chips once DOM ready
@@ -2271,7 +2194,7 @@ async function loadSession(id) {
     document.getElementById('plan-artifacts')?.querySelectorAll('.artifact-card').forEach(el => el.remove());
     diagramBody.querySelectorAll('.artifact-card').forEach(el => el.remove());
     updateArtifactsCount();
-    if (data.messages) data.messages.forEach(m => addMessage(m.role, m.content));
+    if (data.messages) data.messages.forEach(m => addMessage(m.role, m.role === 'assistant' ? stripAllQuestions(m.content, data.quiz) : m.content));
     if (data.selected_files) {
       currentSessionFiles = data.selected_files;
       document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
@@ -2302,67 +2225,45 @@ async function loadSession(id) {
       if (done.length) render_answered_questions(done);
     }
     loadSessionsList();
+    refreshChipsForPhase();
   } catch (e) { console.error('Failed to load session:', e); }
 }
 
-// render previously answered/skipped questions as locked cards with the chosen
-// answer and its outcome, so interactive history survives a page refresh.
+// render previously answered/skipped questions as interactive cards with the
+// chosen answer pre-selected and its outcome, so the clickable buttons a learner
+// already used survive a page refresh instead of collapsing into locked cards.
 function render_answered_questions(questions) {
   const wrap = document.createElement('div');
   wrap.className = 'probe-wrap';
-  questions.forEach(q => {
-    const card = document.createElement('article');
-    card.className = 'artifact-card';
-    card.dataset.kind = 'quiz';
-    card.dataset.sent = '1';
-    const marker = document.createElement('span');
-    marker.className = 'artifact-card__marker';
-    marker.textContent = String(q.kind === 'probe' ? 'PROBE' : q.kind === 'final' ? 'FINAL QUIZ' : 'CHECK').toUpperCase();
-    const title = document.createElement('h3');
-    title.className = 'artifact-card__title';
-    title.textContent = q.question || '';
-    const header = document.createElement('header');
-    header.className = 'artifact-card__header';
-    header.appendChild(marker);
-    header.appendChild(title);
-    const content = document.createElement('div');
-    content.className = 'artifact-card__content';
-    const opts = document.createElement('div');
-    opts.className = 'artifact-card__quiz-options';
-    opts.setAttribute('role', 'radiogroup');
-    (Array.isArray(q.options) ? q.options : []).forEach((opt, oi) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'artifact-card__quiz-option';
-      b.disabled = true;
-      const isCorrect = oi === q.correct_index;
-      const isChosen = oi === q.user_choice;
-      if (isCorrect) b.classList.add('correct');
-      if (isChosen) b.classList.add('selected');
-      if (isChosen && !isCorrect) b.classList.add('wrong');
-      const radio = document.createElement('span');
-      radio.className = 'artifact-card__quiz-radio';
-      radio.setAttribute('aria-hidden', 'true');
-      const label = document.createElement('span');
-      label.textContent = `${String.fromCharCode(65 + oi)}) ${opt}`;
-      b.appendChild(radio);
-      b.appendChild(label);
-      opts.appendChild(b);
+  questions.forEach((q, qi) => {
+    const marker = q.kind === 'probe' ? 'PROBE' : q.kind === 'final' ? 'FINAL QUIZ' : 'CHECK';
+    const card = build_probe_card(
+      { question: q.question, options: Array.isArray(q.options) ? q.options : [] },
+      qi + 1,
+      marker,
+      () => {}
+    );
+    card.classList.add('sent');
+    if (q.user_choice != null) {
+      card.dataset.selected = String(q.user_choice);
+    }
+    const hasCorrect = typeof q.correct_index === 'number' && q.correct_index >= 0;
+    const chosen = q.user_choice;
+    const option_buttons = [...card.querySelectorAll('.artifact-card__quiz-option')];
+    option_buttons.forEach((btn, oi) => {
+      if (hasCorrect && oi === q.correct_index) btn.classList.add('correct');
+      if (oi === chosen) btn.classList.add('selected');
+      if (hasCorrect && oi === chosen && oi !== q.correct_index) btn.classList.add('wrong');
+      btn.setAttribute('aria-checked', String(oi === chosen));
     });
-    content.appendChild(opts);
     const outcome = document.createElement('div');
     outcome.className = 'artifact-card__quiz-outcome';
     outcome.textContent = q.status === 'skipped' ? 'skipped' : (q.outcome === 'correct' ? '\u2713 correct' : q.outcome === 'incorrect' ? '\u2717 incorrect' : q.outcome || 'answered');
-    content.appendChild(outcome);
-    card.appendChild(header);
-    card.appendChild(content);
+    card.querySelector('.artifact-card__content').appendChild(outcome);
     wrap.appendChild(card);
+    show_card(card);
   });
   if (wrap.children.length) {
-    const role = document.createElement('div');
-    role.className = 'msg__role';
-    role.textContent = 'Sage';
-    box.appendChild(role);
     box.appendChild(wrap);
     render_math(false);
   }

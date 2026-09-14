@@ -126,8 +126,22 @@
 </select>
 <div class="field_help">Lite swaps in a shorter prompt and slimmer tool list so a small model fits and follows instructions.</div>
 </div>
+<div class="field">
+<label class="field_label" for="thinking-toggle">Thinking</label>
+<select class="field_select" id="thinking-toggle">
+<option value="on">On</option>
+<option value="off">Off</option>
+</select>
+<div class="field_help">Lets the model show its reasoning before answering. Turning it off is faster and uses less context.</div>
+</div>
 <button class="btn btn_primary" id="save-model">Save Model & Context</button>
 <div class="field_help" style="margin-top:var(--space-2)" id="model-status"></div>
+</div>
+<div class="settings_section" data-sage-stagger="60">
+<div class="settings_section_title">Updates</div>
+<div class="settings_section_desc">Pull the latest code from GitHub and restart the app without reinstalling the container.</div>
+<button class="btn btn_primary" id="check-updates">Check for Updates</button>
+<div class="field_help" style="margin-top:var(--space-2)" id="update-status"></div>
 </div>
 <div class="settings_section" data-sage-stagger="60">
 <div class="settings_section_title">Mastery</div>
@@ -234,8 +248,10 @@ async function loadModelConfig(){
     }
     const lite=document.getElementById('lite-toggle');
     if(lite){lite.value=d.lightweight?'light':'full';}
+    const think=document.getElementById('thinking-toggle');
+    if(think){think.value=d.thinking?'on':'off';}
     const help=document.getElementById('model-status');
-    if(help)help.textContent='Active: '+d.model+' · '+d.num_ctx+' tokens · '+(d.lightweight?'Lite':'Full')+' profile';
+    if(help)help.textContent='Active: '+d.model+' · '+d.num_ctx+' tokens · '+(d.lightweight?'Lite':'Full')+' · thinking '+(d.thinking?'on':'off');
   }catch(e){console.error(e)}
 }
 
@@ -245,7 +261,8 @@ save_model_btn?.addEventListener('click', async()=>{
   if(!model){model_input?.focus();return;}
   const num_ctx=Number(document.getElementById('context-select')?.value||16384);
   const lightweight=document.getElementById('lite-toggle')?.value==='light';
-  const payload={model:model, num_ctx:num_ctx, lightweight:lightweight};
+  const thinking=document.getElementById('thinking-toggle')?.value==='on';
+  const payload={model:model, num_ctx:num_ctx, lightweight:lightweight, thinking:thinking};
   const orig=save_model_btn.textContent;
   save_model_btn.disabled=true;
   save_model_btn.textContent='Saving…';
@@ -254,12 +271,34 @@ save_model_btn?.addEventListener('click', async()=>{
     if(!r.ok) throw new Error(`Save failed: ${r.status}`);
     const d=await r.json();
     const help=document.getElementById('model-status');
-    if(help)help.textContent='Saved · Active: '+d.model+' · '+d.num_ctx+' tokens · '+(d.lightweight?'Lite':'Full')+' profile';
+    if(help)help.textContent='Saved · Active: '+d.model+' · '+d.num_ctx+' tokens · '+(d.lightweight?'Lite':'Full')+' · thinking '+(d.thinking?'on':'off');
     save_model_btn.textContent='Saved';
     setTimeout(()=>{save_model_btn.textContent=orig; save_model_btn.disabled=false;},1500);
   }catch(e){
     save_model_btn.textContent='Save failed';
     setTimeout(()=>{save_model_btn.textContent=orig; save_model_btn.disabled=false;},2500);
+    console.error(e);
+  }
+});
+
+const update_btn=document.getElementById('check-updates');
+update_btn?.addEventListener('click', async()=>{
+  const status=document.getElementById('update-status');
+  const orig=update_btn.textContent;
+  update_btn.disabled=true;
+  update_btn.textContent='Checking…';
+  try{
+    const r=await fetch('/api/update',{method:'POST'});
+    const body=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(body.detail||`update failed: ${r.status}`);
+    if(status)status.textContent=body.message||'Updated and restarting';
+    update_btn.textContent='Updated';
+    setTimeout(()=>{update_btn.textContent=orig; update_btn.disabled=false;},2000);
+    setTimeout(()=>{location.reload();},3000);
+  }catch(e){
+    if(status)status.textContent=e.message||'Update failed';
+    update_btn.textContent='Update failed';
+    setTimeout(()=>{update_btn.textContent=orig; update_btn.disabled=false;},2500);
     console.error(e);
   }
 });

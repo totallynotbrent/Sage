@@ -593,6 +593,40 @@ class LearningService:
         self.conn.commit()
         return question_id
 
+    def persist_check_question(self, session_id: str, question: str, options: list[str]) -> str:
+        session = self.sessions.get(session_id)
+        self._delete_pending_questions(session_id, "check")
+        question_id = new_id()
+        self.conn.execute(
+            "INSERT INTO quiz_questions (id, session_id, kind, topic, difficulty, question, options_json, correct_index, status, created_at) VALUES (?, ?, 'check', ?, ?, ?, ?, -1, 'pending', ?)",
+            (
+                question_id,
+                session_id,
+                self._current_node_title(session) or session.goal,
+                None,
+                question,
+                json.dumps(options),
+                utc_now(),
+            ),
+        )
+        self.conn.commit()
+        return question_id
+
+    def answer_check_question(
+        self, session_id: str, question_id: str, choice_index: int
+    ) -> None:
+        row = self.conn.execute(
+            "SELECT * FROM quiz_questions WHERE id = ? AND session_id = ?",
+            (question_id, session_id),
+        ).fetchone()
+        if row is None:
+            raise NotFoundError("question", question_id)
+        self.conn.execute(
+            "UPDATE quiz_questions SET status = 'answered', user_choice = ?, answered_at = ? WHERE id = ? AND session_id = ?",
+            (choice_index, utc_now(), question_id, session_id),
+        )
+        self.conn.commit()
+
     def _current_node_title(self, session: Session) -> str | None:
         node_id = session.current_node_id
         if not node_id:

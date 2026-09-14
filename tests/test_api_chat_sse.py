@@ -558,6 +558,59 @@ def test_second_turn_system_prompt_carries_lesson_state(client, override_llm, se
     )
 
 
+def test_run_final_quiz_forwards_questions_to_tool_result(client, override_llm, settings):
+    session, _ = _ready_session(client, settings)
+
+    override_llm.complete_json_responses.append(
+        json.dumps(
+            [
+                {
+                    "question": "What is the closure property?",
+                    "options": ["Closed under the operation", "Open under the operation"],
+                    "correct_index": 0,
+                    "explanation": "Closure keeps results in the set.",
+                    "topic": "group theory",
+                    "difficulty": 2,
+                },
+                {
+                    "question": "Which axiom guarantees an identity?",
+                    "options": ["Identity", "Closure"],
+                    "correct_index": 0,
+                    "explanation": "The identity axiom.",
+                    "topic": "group theory",
+                    "difficulty": 2,
+                },
+            ]
+        )
+    )
+    override_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "run_final_quiz",
+                "arguments": {},
+                "id": "call_final",
+            }
+        ]
+    )
+    override_llm.script("final quiz", "The final quiz is ready.")
+
+    with client.stream(
+        "POST",
+        f"/api/sessions/{session['id']}/turns",
+        json={"message": "quiz me", "client_msg_id": "fq1"},
+    ) as response:
+        events = list(sse_events(response))
+
+    final_results = [e for e in events if e["type"] == "tool_result" and e["name"] == "run_final_quiz"]
+    assert final_results, "run_final_quiz tool_result event missing"
+    questions = final_results[0].get("questions")
+    assert isinstance(questions, list) and questions, "final-quiz questions not forwarded"
+    for question in questions:
+        assert set(question) == {"id", "question", "options", "difficulty"}
+        assert question["options"][-1] == "I don't know"
+
+
 def test_build_plan_tool_result_carries_plan_diagram(
     client, override_llm, settings, monkeypatch
 ):

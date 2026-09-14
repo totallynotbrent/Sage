@@ -77,6 +77,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         sessions,
         system,
         teach,
+        update,
         watch,
     )
 
@@ -92,6 +93,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(teach.router)
     app.include_router(preferences.router)
     app.include_router(model_config.router)
+    app.include_router(update.router)
     app.include_router(watch.router)
 
     static_dir = Path(__file__).parent.parent / "static"

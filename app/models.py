@@ -151,6 +151,11 @@ class CheckBody(BaseModel):
     pass
 
 
+class CheckQuestionBody(BaseModel):
+    question: str = Field(min_length=1)
+    options: list[str] = Field(min_length=2)
+
+
 class NotesQuizBody(BaseModel):
     count: int = 3
     subject: str | None = None
@@ -203,12 +208,14 @@ class ModelConfigBody(BaseModel):
     model: str | None = None
     num_ctx: int | None = None
     lightweight: bool | None = None
+    thinking: bool | None = None
 
 
 class ModelConfig(BaseModel):
     model: str
     num_ctx: int
     lightweight: bool
+    thinking: bool
 
 
 class StructuredOutputRequest(BaseModel):

@@ -88,6 +88,10 @@ class Settings(BaseSettings):
                     self.api_url = raw
         if self.searxng_url:
             self.searxng_url = self.searxng_url.strip().rstrip("/")
+        # strip the password so a trailing newline or space in the env var
+        # (common when set through a docker ui) can't break login.
+        if self.sage_password:
+            self.sage_password = self.sage_password.strip()
         return self
 
     @property

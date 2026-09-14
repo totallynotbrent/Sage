@@ -115,15 +115,6 @@ TOOL_SCHEMAS = [
             "question_id": _STR,
             "choice_index": {"type": "integer"},
             "idk": {"type": "boolean", "default": False},
-            "confidence": {
-                "type": "string",
-                "enum": ["guess", "confident", "know"],
-                "description": "Optional learner self-rating of confidence before answering.",
-            },
-            "latency_ms": {
-                "type": "integer",
-                "description": "Optional retrieval time reported by the UI as [<n>ms] badge in the learner reply; forward it verbatim.",
-            },
         },
         ["question_id"],
     ),

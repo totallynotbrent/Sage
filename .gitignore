@@ -48,6 +48,8 @@ script.txt
 *.png
 *.jpeg
 *.jpg
+!static/wallpaper.jpg
+!static/auth/wallpaper.jpg
 verify_*.py
 
 # Quartz docs site

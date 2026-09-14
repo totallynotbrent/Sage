@@ -14,10 +14,11 @@ router = APIRouter()
 
 
 def _effective(settings: Settings, conn: sqlite3.Connection) -> ModelConfig:
-    row = conn.execute("SELECT model, num_ctx, lightweight FROM preferences WHERE id = 1").fetchone()
+    row = conn.execute("SELECT model, num_ctx, lightweight, thinking FROM preferences WHERE id = 1").fetchone()
     model = str(getattr(settings, "model", "") or "")
     num_ctx = int(getattr(settings, "ollama_num_ctx", 16384) or 16384)
     lightweight = bool(getattr(settings, "lightweight", False))
+    thinking = bool(getattr(settings, "ollama_thinking", True))
     if row is not None:
         if row["model"]:
             model = row["model"]
@@ -25,7 +26,9 @@ def _effective(settings: Settings, conn: sqlite3.Connection) -> ModelConfig:
             num_ctx = int(row["num_ctx"])
         if row["lightweight"] is not None:
             lightweight = bool(row["lightweight"])
-    return ModelConfig(model=model, num_ctx=num_ctx, lightweight=lightweight)
+        if row["thinking"] is not None:
+            thinking = bool(row["thinking"])
+    return ModelConfig(model=model, num_ctx=num_ctx, lightweight=lightweight, thinking=thinking)
 
 
 @router.get("/api/model-config", response_model=ModelConfig)
@@ -64,6 +67,13 @@ async def update_model_config(
         conn.execute(
             "UPDATE preferences SET lightweight = ?, updated_at = ? WHERE id = 1",
             (int(body.lightweight), utc_now()),
+        )
+        conn.commit()
+    if body.thinking is not None:
+        settings.ollama_thinking = bool(body.thinking)
+        conn.execute(
+            "UPDATE preferences SET thinking = ?, updated_at = ? WHERE id = 1",
+            (int(body.thinking), utc_now()),
         )
         conn.commit()
     request.app.state.settings = settings

@@ -347,6 +347,8 @@ class TurnMixin:
                                 }
                             if name == "run_probe":
                                 tool_event["questions"] = result.get("questions", [])
+                            if name == "run_final_quiz":
+                                tool_event["questions"] = result.get("questions", [])
                             if name == "start_review":
                                 tool_event["review_cards"] = result.get("cards", [])
                             if name == "advance_lesson" and (
@@ -381,6 +383,39 @@ class TurnMixin:
                 full_text = _re.sub(r"<call:\w+\b[^>]*>?", "", full_text)
                 full_text = _re.sub(r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t.:;,!?)(\\\"'-]))\[?call:\w+\b/?\]?(?:\s*status\s*=\s*[\"'][^\"']*[\"'])?(?:\s*\([^)\"']*\))?", "", full_text)
                 full_text = _re.sub(r"<call:\w+\b[^<]*$", "", full_text)
+                # strip raw json tool payloads the model leaks as prose instead of
+                # calling the tool (e.g. a record_step_actions block rendered as text).
+                full_text = _re.sub(r"\{\s*\"actions\"\s*:\s*\[.*?\](?:\s*,\s*\"[^\"]+\"\s*:.*?)*\s*\}", "", full_text, flags=_re.S)
+                # Deterministic opening probe: the model sometimes greets ("let me
+                # check what you know") and stops without firing run_probe, leaving
+                # no questions behind. On a first turn where it ran no tool at all,
+                # generate the probe ourselves and queue its cards so they always
+                # render instead of depending on the model to make the call.
+                if (
+                    not ran_tool
+                    and assistant_count == 0
+                    and session.phase in ("setup", "probe")
+                    and not any(
+                        q["kind"] == "probe"
+                        for q in lesson_state.get("pending_questions", [])
+                    )
+                ):
+                    try:
+                        probe_result = await execute_tool("run_probe", {}, tool_ctx)
+                        probe_questions = (
+                            probe_result.get("questions")
+                            if isinstance(probe_result, dict)
+                            else []
+                        )
+                        if probe_questions:
+                            yield {
+                                "type": "tool_result",
+                                "name": "run_probe",
+                                "summary": _tool_result_summary("run_probe", probe_result),
+                                "questions": probe_questions,
+                            }
+                    except Exception:
+                        pass
                 # If the model ran tools but never produced a closing reply (a
                 # tool-only turn. gemma sometimes stops right after the last
                 # tool_result), force one no-tools completion so the learner

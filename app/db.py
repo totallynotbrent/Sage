@@ -167,6 +167,7 @@ CREATE TABLE IF NOT EXISTS preferences (
     model      TEXT,
     num_ctx    INTEGER,
     lightweight INTEGER,
+    thinking   INTEGER,
     updated_at TEXT NOT NULL
 );
 
@@ -203,6 +204,7 @@ _MIGRATED_COLUMNS = (
     ("preferences", "model", "model TEXT"),
     ("preferences", "num_ctx", "num_ctx INTEGER"),
     ("preferences", "lightweight", "lightweight INTEGER"),
+    ("preferences", "thinking", "thinking INTEGER"),
 )
 
 
