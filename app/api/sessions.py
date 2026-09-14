@@ -109,6 +109,30 @@ async def patch_session(
     )
 
 
+def _title_excerpt(chunks: list[dict], budget: int = 3000) -> str:
+    # first chunk of each file, labelled and capped, so the title reflects the subject
+    seen: set[str] = set()
+    parts: list[str] = []
+    used = 0
+    for chunk in chunks:
+        file_name = chunk.get("file_name") or ""
+        if file_name in seen:
+            continue
+        seen.add(file_name)
+        section = (chunk.get("section") or "").strip()
+        text = (chunk.get("unicode_text") or chunk.get("text") or "").strip()
+        if section:
+            text = f"{section}: {text}" if text else section
+        if not text:
+            continue
+        text = re.sub(r"\s+", " ", text)[:1500]
+        parts.append(f"[{file_name}] {text}")
+        used += len(text) + len(file_name)
+        if used >= budget:
+            break
+    return "\n".join(parts)
+
+
 @router.post("/api/sessions/{session_id}/title", response_model=Session)
 async def generate_session_title(
     session_id: str,
@@ -118,15 +142,21 @@ async def generate_session_title(
 ) -> Session:
     service = SessionService(conn, settings)
     session = service.get(session_id)
+    excerpt = _title_excerpt(service.files.get_chunks_for_files(session.file_ids))
+    user_content = f"Goal: {session.goal[:2000]}"
+    if excerpt:
+        user_content += f"\n\nDocument content:\n{excerpt}"
     prompt = [
         {
             "role": "system",
             "content": (
-                "Create one concise session title, 3 to 7 words. Return only the title. "
+                "Create one concise session title, 3 to 7 words, based on the "
+                "actual content of the uploaded documents, not the file name. "
+                "Return only the title. "
                 "Do not include secrets, credentials, personal data, or quotation marks."
             ),
         },
-        {"role": "user", "content": session.goal[:2000]},
+        {"role": "user", "content": user_content},
     ]
     generated, _ = await llm.complete_json(prompt, max_tokens=32, temperature=0.2)
     title = generated or session.goal

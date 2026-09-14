@@ -1177,7 +1177,8 @@ artifactBtns.forEach(btn=>{
         }
         show_link_toast(ids.length);
         if(sessionId){
-          sessionStorage.setItem('sage_pending_message', 'I just uploaded these files. What would you like me to help with?');
+          const names = (records.map(f => f && f.display_name).filter(Boolean).slice(0, 3).join(', ') || 'uploaded files');
+          sessionStorage.setItem('sage_pending_message', `Study these files: ${names}`);
           window.location.assign(`sage-workspace.html?session=${encodeURIComponent(sessionId)}`);
         }
       }catch(e){
