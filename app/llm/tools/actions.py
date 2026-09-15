@@ -40,6 +40,36 @@ def _web_entry(result: dict) -> dict:
     return {"title": str(result.get("title") or ""), "url": url, "snippet": snippet}
 
 
+def _resolve_question_id(ctx, raw_id: str) -> str:
+    # small models sometimes truncate or ordinal-number question ids when
+    # grading; resolve to the real id so the grade still lands
+    if not raw_id:
+        return raw_id
+    row = ctx.conn.execute(
+        "SELECT id FROM quiz_questions WHERE id = ? AND session_id = ?",
+        (raw_id, ctx.session_id),
+    ).fetchone()
+    if row is not None:
+        return raw_id
+    if raw_id.isdigit():
+        rows = ctx.conn.execute(
+            "SELECT id FROM quiz_questions WHERE session_id = ? "
+            "AND status != 'skipped' ORDER BY created_at, rowid",
+            (ctx.session_id,),
+        ).fetchall()
+        index = int(raw_id) - 1
+        if 0 <= index < len(rows):
+            return rows[index]["id"]
+    elif len(raw_id) >= 4:
+        rows = ctx.conn.execute(
+            "SELECT id FROM quiz_questions WHERE session_id = ? AND id LIKE ?",
+            (ctx.session_id, f"{raw_id}%"),
+        ).fetchall()
+        if len(rows) == 1:
+            return rows[0]["id"]
+    return raw_id
+
+
 async def _run_web_search(arguments: dict, ctx) -> dict:
     from app.services.web_search import search_web
 
@@ -154,9 +184,12 @@ async def _run_grade_answer(arguments: dict, ctx) -> dict:
     from app.services.learning import LearningService
 
     service = LearningService(ctx.conn, ctx.settings)
+    question_id = _resolve_question_id(
+        ctx, str(arguments.get("question_id") or "").strip()
+    )
     result = service.answer_quiz(
         ctx.session_id,
-        str(arguments.get("question_id") or ""),
+        question_id,
         arguments.get("choice_index"),
         bool(arguments.get("idk") or False),
         confidence=arguments.get("confidence"),

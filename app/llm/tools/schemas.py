@@ -165,13 +165,33 @@ def available_tools(settings, mode: str | None = None, lightweight: bool = False
             "generate_quiz": "Generate a quiz about a topic.",
             "generate_todo": "Generate a study checklist for a topic.",
             "generate_latex": "Generate a LaTeX document on a topic.",
-            "record_step_actions": "Record follow-up teaching-step actions.",
-            "run_probe": "Start the diagnostic probe before teaching.",
+            "record_step_actions": (
+                "Record follow-up teaching-step actions, for example a single "
+                "'continue' button after explaining a step. Call at most once "
+                "per reply."
+            ),
+            "run_probe": (
+                "Start the diagnostic probe. Call it only in the setup or "
+                "probe phase, before real teaching begins."
+            ),
             "start_review": "Start spaced-repetition review of due cards.",
-            "grade_answer": "Grade an answer to a probe or final-quiz question.",
-            "build_plan": "Build and persist the lesson plan.",
-            "advance_lesson": "Advance to the next plan node.",
-            "run_final_quiz": "Generate the comprehensive final quiz.",
+            "grade_answer": (
+                "Grade one answer to an open question. Copy the question id "
+                "from the pending list exactly and pass the learner's 0-based "
+                "option index (A=0, B=1, C=2)."
+            ),
+            "build_plan": (
+                "Build and save the lesson plan. Call it once, right after "
+                "the probe answers are graded."
+            ),
+            "advance_lesson": (
+                "Advance to the next lesson node. Call it only when the "
+                "learner asks to continue."
+            ),
+            "run_final_quiz": (
+                "Generate the comprehensive closing quiz over the whole plan. "
+                "Call it once the plan is covered."
+            ),
         }.get(fn["name"], fn["description"])
         slim_fn = dict(fn)
         slim_fn["description"] = short_desc

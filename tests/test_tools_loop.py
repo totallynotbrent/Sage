@@ -611,6 +611,48 @@ def test_execute_tool_grade_answer_unknown_question_surfaces_not_found(conn, set
     assert missing == {"error": "not_found"}
 
 
+def test_execute_tool_grade_answer_resolves_ordinal_and_prefix(conn, settings):
+    fake_llm = FakeLLM()
+    fake_llm.complete_json_responses.append(_PROBE_JSON)
+    session, ctx = _learning_ctx(conn, settings, fake_llm)
+    probe = asyncio.run(execute_tool("run_probe", {}, ctx))
+    first_id = probe["questions"][0]["id"]
+
+    # ordinal "1" resolves to the first presented question (grade lands)
+    graded = asyncio.run(
+        execute_tool(
+            "grade_answer", {"question_id": "1", "choice_index": 0}, ctx
+        )
+    )
+    assert graded["outcome"] == "correct"
+    assert graded["question_id"] == first_id
+
+    # an unambiguous prefix also resolves
+    prefixed = asyncio.run(
+        execute_tool(
+            "grade_answer",
+            {"question_id": first_id[:8], "choice_index": 0},
+            ctx,
+        )
+    )
+    assert prefixed["outcome"] == "correct"
+    assert prefixed["question_id"] == first_id
+
+
+def test_slim_tool_schemas_are_valid(settings):
+    tools = available_tools(settings, lightweight=True)
+    assert tools
+    for tool in tools:
+        fn = tool["function"]
+        assert tool["type"] == "function"
+        assert fn["name"].strip() and fn["description"].strip()
+        props = fn["parameters"]["properties"]
+        assert isinstance(props, dict)  # arg-less tools have empty props by design
+        assert "status" not in props
+        for req in fn["parameters"].get("required", []):
+            assert req in props, f"{fn['name']} requires missing prop {req}"
+
+
 def test_execute_tool_build_plan_returns_stripped_nodes(conn, settings):
     fake_llm = FakeLLM()
     fake_llm.complete_json_responses.append(_PLAN_JSON)
