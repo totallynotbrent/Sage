@@ -416,6 +416,29 @@ class TurnMixin:
                             }
                     except Exception:
                         pass
+                # Deterministic Continue: the model sometimes explains a node
+                # without calling record_step_actions, leaving no advance
+                # button. Every learning-arc turn that produced prose ends with
+                # a continue action so the lesson never dead-ends on a wall of
+                # text.
+                phase_row = self.conn.execute(
+                    "SELECT phase FROM sessions WHERE id = ?", (session_id,)
+                ).fetchone()
+                current_phase = (
+                    phase_row[0] if phase_row is not None else session.phase
+                )
+                if (
+                    current_phase in ("plan", "teach", "remediate")
+                    and not step_actions_recorded
+                    and full_text.strip()
+                ):
+                    stashed_actions = [
+                        {
+                            "id": "continue",
+                            "label": "Continue",
+                            "prompt": "advance to the next idea",
+                        }
+                    ]
                 # If the model ran tools but never produced a closing reply (a
                 # tool-only turn. gemma sometimes stops right after the last
                 # tool_result), force one no-tools completion so the learner

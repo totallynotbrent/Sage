@@ -831,3 +831,83 @@ def test_tool_only_turn_gets_fallback_prose(conn, settings, monkeypatch):
     ).fetchone()
     check.close()
     assert persisted is not None and "Recursion is when a function calls itself." in persisted["content"]
+
+
+def test_teach_turn_without_actions_gets_default_continue(conn, settings):
+    tool_settings = _tool_settings(settings)
+    tool_settings = tool_settings.model_copy(update={"streaming": False})
+    service = SessionService(conn, tool_settings)
+    session = service.create(
+        goal="learn how erasers work", file_ids=[], grounding_mode="grounded"
+    )
+    service.set_phase(session.id, "teach")
+    fake_llm = FakeLLM()
+    # The model explains the node in prose and stops, never calling the
+    # record_step_actions tool (the reported "no continue button" case).
+    fake_llm.script("adhesion", "Adhesion lets an eraser lift graphite off paper.")
+
+    events = asyncio.run(
+        _collect(
+            service.turn(
+                session.id,
+                "explain adhesion",
+                client_msg_id="c1",
+                llm=fake_llm,
+                is_disconnected=_never_disconnected,
+            )
+        )
+    )
+    done = events[-1]
+    assert done["type"] == "done"
+    actions = done.get("actions") or []
+    assert len(actions) == 1
+    assert actions[0]["id"] == "continue"
+    assert actions[0]["label"] == "Continue"
+    assert actions[0]["prompt"] == "advance to the next idea"
+
+
+def test_teach_turn_model_actions_not_overridden(conn, settings):
+    tool_settings = _tool_settings(settings)
+    tool_settings = tool_settings.model_copy(update={"streaming": False})
+    service = SessionService(conn, tool_settings)
+    session = service.create(
+        goal="learn how erasers work", file_ids=[], grounding_mode="grounded"
+    )
+    service.set_phase(session.id, "teach")
+    fake_llm = FakeLLM()
+    # Same turn shape as the existing tool+text tests: the model records its
+    # own action, then writes a closing reply.
+    fake_llm.script_tool_events(
+        [
+            {
+                "type": "tool_call",
+                "name": "record_step_actions",
+                "arguments": {
+                    "actions": [
+                        {"id": "next_topic", "label": "Next", "prompt": "go on"}
+                    ],
+                    "status": "teaching",
+                },
+                "id": "call_sa",
+            }
+        ]
+    )
+    fake_llm.script("go on", "Next, friction lifts the debris.")
+
+    events = asyncio.run(
+        _collect(
+            service.turn(
+                session.id,
+                "go on",
+                client_msg_id="c2",
+                llm=fake_llm,
+                is_disconnected=_never_disconnected,
+            )
+        )
+    )
+    done = events[-1]
+    assert done["type"] == "done"
+    actions = done.get("actions") or []
+    assert len(actions) == 1
+    assert actions[0]["id"] == "next_topic"
+    assert actions[0]["label"] == "Next"
