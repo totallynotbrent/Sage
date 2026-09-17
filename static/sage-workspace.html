@@ -718,7 +718,8 @@ function addMessage(role, content, options = {}) {
    d.innerHTML = html;
   if (options._raw) d.querySelector('.msg__bubble').dataset.rawContent = options._raw;
   box.appendChild(d);
-  if (role === 'assistant') { render_math(true); renderChatMermaid(d); const bubble=d.querySelector('.msg__bubble'); if(bubble) wrapWords(bubble); }
+  if (role === 'assistant' && !options.no_word_anim) { render_math(true); renderChatMermaid(d); const bubble=d.querySelector('.msg__bubble'); if(bubble) wrapWords(bubble); }
+  else if (role === 'assistant') { render_math(true); renderChatMermaid(d); }
   box.scrollTop = box.scrollHeight;
   return d;
 }
@@ -1263,6 +1264,9 @@ function append_action_chips(message_el, actions) {
     const action_id = String(action.id || '').toLowerCase();
     btn.onclick = () => {
       if (action_id.includes('ask_question')) { input.focus(); return; }
+      // hidden continue: the server advances the plan and tells the model what
+      // to teach next; no visible user bubble, no typed prompt
+      if (action_id === 'continue') { input.value = '[continue-lesson]'; sendMessage(); return; }
       if (action.prompt) { input.value = action.prompt; sendMessage(); }
     };
     row.appendChild(btn);
@@ -1424,9 +1428,11 @@ function start_probe_batch(items, kind_label) {
       if (sel === '') return;
       parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))}`);
       if (entry.question_id && sessionId) {
-        fetch(`${API}/sessions/${sessionId}/check-question/${entry.question_id}/answer`, {
+        // checks grade through the same pipeline as probe/final questions so
+        // mastery is recorded and a wrong answer drops the session to remediate
+        fetch(`${API}/sessions/${sessionId}/quiz/${entry.question_id}/answer`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ choice_index: Number(sel) }),
+          body: JSON.stringify({ choice_index: Number(sel), idk: /don'?t know/i.test(String((entry.item && entry.item.options || [])[Number(sel)] || '') }),
         }).catch(() => {});
       }
     });
@@ -1646,7 +1652,10 @@ async function sendMessage() {
   }
 
   const first_turn = !box.querySelector('.msg');
-  addMessage('user', text);
+  // hidden continue: no visible user bubble for the server-orchestrated
+  // advance; the button click is a UI action, not a learner message
+  const hidden_continue = text === '[continue-lesson]';
+  if (!hidden_continue) addMessage('user', text);
   addTypingIndicator();
   let fullText = '';
   let bubble = null;
@@ -1799,12 +1808,13 @@ async function sendMessage() {
     sp.replaceWith(txt);
   });
   let assistant_msg = null;
+  const already_rendered = !!fullText && (bubble_started || (document.getElementById('streaming-msg') !== null));
   if (fullText) {
     // Drop any check/probe question the model restated in prose. the card
     // below renders it once. Also covers the streaming path (where deltas are
     // appended raw), not just buffered_text.
     fullText = dedupeQuestionText(fullText);
-    assistant_msg = addMessage('assistant', fullText);
+    assistant_msg = addMessage('assistant', fullText, { no_word_anim: already_rendered });
   } else if (was_aborted) {
   } else if (done_error_message) {
     assistant_msg = addMessage('assistant', esc(`Error: ${done_error_message}`));
@@ -1832,15 +1842,9 @@ async function sendMessage() {
   if (pendingCards.length) {
     const batches = pendingCards;
     pendingCards = [];
-    // Reading -> Continue -> question (issue #6): when the assistant produced
-    // narration, hold the questions behind an explicit Continue button so the
-    // learner reads first and the per-question timer starts only once the card
-    // is revealed. Tool-only turns (no prose) render the questions directly.
-    if (fullText) {
-      showContinueGate(() => batches.forEach(({ items, kind }) => start_probe_batch(items, kind)));
-    } else {
-      batches.forEach(({ items, kind }) => start_probe_batch(items, kind));
-    }
+    // Cards are the lesson's rhythm: after prose, the interactive questions
+    // render immediately below the reply. no extra Continue gate in between.
+    batches.forEach(({ items, kind }) => start_probe_batch(items, kind));
   }
   if (pending_probe_reply) {
     const reply = pending_probe_reply;
@@ -1891,21 +1895,8 @@ function startReviewFromCards(cards) {
 }
 
 
-// Reading -> Continue -> question (issue #6): shows a single Continue button
-// after the narration; the question cards render only once it is pressed, so
-// the learner reads first and the per-question latency timer starts at reveal.
-function showContinueGate(on_continue) {
-  const wrap = document.createElement('div');
-  wrap.className = 'probe-wrap continue-gate';
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'probe-send continue-gate__btn';
-  btn.textContent = 'Continue';
-  btn.onclick = () => { wrap.remove(); on_continue(); };
-  wrap.appendChild(btn);
-  box.appendChild(wrap);
-  box.scrollTop = box.scrollHeight;
-}
+// (removed) showContinueGate: mid-lesson cards render directly after prose; the
+// only Continue control is the record_step_actions chip under the reply.
 
 function startReviewBatch(items, marker) {
   if (!Array.isArray(items) || !items.length) return;

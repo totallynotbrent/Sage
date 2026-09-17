@@ -16,6 +16,10 @@ from app.services.sessions import SessionService, question_dict
 from app.services.teach import TeachService
 from app.util import new_id, utc_now
 
+# hard pass bar for the closing quiz: below it the session drops to remediate
+# instead of being declared a success (2/7 is not mastery)
+FINAL_QUIZ_PASS_FRACTION = 0.7
+
 IDK_OPTION = "I don't know"
 
 
@@ -480,6 +484,11 @@ class LearningService:
                 return self._answer_response(session_id, question, outcome)
             self.sessions.set_phase(session_id, "teach")
             advanced = self.teach.advance(session_id, reset_check=True)
+            if advanced["node"] is None:
+                # last node done: the closing quiz fires next instead of a
+                # bare complete, so the lesson always gets its summative check
+                self.sessions.set_phase(session_id, "final_quiz")
+                advanced["session"] = self.sessions.get(session_id).model_dump()
             return self._answer_response(
                 session_id,
                 question,
@@ -505,18 +514,59 @@ class LearningService:
             "WHERE session_id = ? AND kind = 'probe' AND status = 'pending'",
             (session_id,),
         ).fetchone()["n"]
+        result = {
+            "question_id": question["id"],
+            "outcome": outcome,
+            "correct_index": question["correct_index"],
+            "explanation": question["explanation"],
+            "probe_complete": pending == 0,
+            "retry_allowed": outcome in ("incorrect", "idk"),
+            "next_node": next_node,
+            "check_due": check_due,
+        }
+        # final-quiz verdict: computed server-side when the last final answer
+        # lands, so the model can't call a failed quiz a success (2/7 is not
+        # mastery). pass bar is a hard fraction, weak topics are the failed
+        # stems; a fail drops the session into remediate.
+        if question["kind"] == "final":
+            finals = [
+                dict(r)
+                for r in self.conn.execute(
+                    "SELECT topic, outcome FROM quiz_questions "
+                    "WHERE session_id = ? AND kind = 'final' AND status = 'answered'",
+                    (session_id,),
+                ).fetchall()
+            ]
+            pending_finals = self.conn.execute(
+                "SELECT COUNT(*) AS n FROM quiz_questions "
+                "WHERE session_id = ? AND kind = 'final' AND status = 'pending'",
+                (session_id,),
+            ).fetchone()["n"]
+            if finals and pending_finals == 0:
+                correct = sum(1 for r in finals if r["outcome"] == "correct")
+                fraction = correct / len(finals)
+                passed = fraction >= FINAL_QUIZ_PASS_FRACTION
+                weak = sorted(
+                    {
+                        r["topic"]
+                        for r in finals
+                        if r["outcome"] in ("incorrect", "idk")
+                    }
+                )
+                result["quiz_verdict"] = {
+                    "passed": passed,
+                    "correct": correct,
+                    "total": len(finals),
+                    "fraction": round(fraction, 2),
+                    "weak_topics": weak,
+                }
+                if not passed:
+                    self.sessions.set_phase(session_id, "remediate")
+                else:
+                    self.sessions.set_phase(session_id, "complete")
         return {
             "session": session_dict or self.sessions.get(session_id).model_dump(),
-            "result": {
-                "question_id": question["id"],
-                "outcome": outcome,
-                "correct_index": question["correct_index"],
-                "explanation": question["explanation"],
-                "probe_complete": pending == 0,
-                "retry_allowed": outcome in ("incorrect", "idk"),
-                "next_node": next_node,
-                "check_due": check_due,
-            },
+            "result": result,
         }
 
     def _pending_questions(self, session_id: str, kind: str) -> list[dict]:

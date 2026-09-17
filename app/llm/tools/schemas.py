@@ -58,7 +58,6 @@ _LEARNING_TOOLS = frozenset(
         "run_probe",
         "grade_answer",
         "build_plan",
-        "advance_lesson",
         "run_final_quiz",
         "start_review",
     }
@@ -126,14 +125,6 @@ TOOL_SCHEMAS = [
         [],
     ),
     _fn(
-        "advance_lesson",
-        "Advance to the next plan node after the current node is fully "
-        "explained and the learner is following along. There are no "
-        "intermediate check cards; just move on.",
-        {},
-        [],
-    ),
-    _fn(
         "run_final_quiz",
         "Generate the comprehensive final quiz once the lesson is "
         "essentially taught. It re-asks the diagnostic probe questions and "
@@ -178,15 +169,12 @@ def available_tools(settings, mode: str | None = None, lightweight: bool = False
             "grade_answer": (
                 "Grade one answer to an open question. Copy the question id "
                 "from the pending list exactly and pass the learner's 0-based "
-                "option index (A=0, B=1, C=2)."
+                "option index (A=0, B=1, C=2, D=3, E=4; pass idk true when "
+                "the learner chose E or said they don't know)."
             ),
             "build_plan": (
                 "Build and save the lesson plan. Call it once, right after "
                 "the probe answers are graded."
-            ),
-            "advance_lesson": (
-                "Advance to the next lesson node. Call it only when the "
-                "learner asks to continue."
             ),
             "run_final_quiz": (
                 "Generate the comprehensive closing quiz over the whole plan. "

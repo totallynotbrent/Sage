@@ -325,4 +325,5 @@ def test_full_learning_flow(client, conn, override_llm):
     assert retry_payload["result"]["outcome"] == "correct"
     assert retry_payload["result"]["next_node"] is None
     assert retry_payload["result"]["check_due"] is False
-    assert retry_payload["session"]["phase"] == "complete"
+    # last node's check routes to the closing quiz, not a bare complete
+    assert retry_payload["session"]["phase"] == "final_quiz"

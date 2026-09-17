@@ -283,6 +283,10 @@ class SessionService(TurnMixin):
         return row_to_dict(row), True
 
     def persist_user_message(self, session_id: str, content: str) -> Message:
+        # hidden continue markers never persist as visible history; the model
+        # sees the advancement server-side and the UI hides the bubble
+        if content.strip() == "[continue-lesson]":
+            content = "(continue)"
         now = utc_now()
         self.conn.execute(
             """

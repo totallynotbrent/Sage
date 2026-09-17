@@ -34,7 +34,6 @@ _LEARNING_TOOL_NAMES = {
     "run_probe",
     "grade_answer",
     "build_plan",
-    "advance_lesson",
     "run_final_quiz",
     "start_review",
 }
@@ -152,7 +151,7 @@ def test_available_tools_gates_web_search_on_searxng():
     assert _LEARNING_TOOL_NAMES <= names_without
     assert "generate_mermaid" not in names_without
     assert "web_search" not in names_without
-    assert len(names_without) == 10
+    assert len(names_without) == 9
 
 
 def test_available_tools_strict_drops_web_search_keeps_teaching():
@@ -161,7 +160,7 @@ def test_available_tools_strict_drops_web_search_keeps_teaching():
     grounded = {t["function"]["name"] for t in available_tools(settings, mode="grounded")}
     assert "web_search" in grounded
     assert "web_search" not in strict
-    assert {"run_probe", "build_plan", "advance_lesson", "run_final_quiz", "grade_answer"} <= strict
+    assert {"run_probe", "build_plan", "run_final_quiz", "grade_answer"} <= strict
 
 
 def test_strict_prompt_is_pdf_first_and_no_web():
@@ -527,7 +526,7 @@ def test_execute_tool_learning_tools_require_conn():
         llm=FakeLLM(),
     )
 
-    for name in ("run_probe", "grade_answer", "build_plan", "advance_lesson"):
+    for name in ("run_probe", "grade_answer", "build_plan", "run_final_quiz"):
         result = asyncio.run(execute_tool(name, {}, ctx))
         assert result == {"error": "unavailable_in_context"}
 
@@ -637,6 +636,21 @@ def test_execute_tool_grade_answer_resolves_ordinal_and_prefix(conn, settings):
     )
     assert prefixed["outcome"] == "correct"
     assert prefixed["question_id"] == first_id
+
+    # grading an E/"i don't know" answer (index 4 + idk) must accept it
+    fake_llm.complete_json_responses.append(_PROBE_JSON)
+    session2, ctx2 = _learning_ctx(conn, settings, fake_llm)
+    probe2 = asyncio.run(execute_tool("run_probe", {}, ctx2))
+    idk_id = probe2["questions"][1]["id"]
+    idk_result = asyncio.run(
+        execute_tool(
+            "grade_answer",
+            {"question_id": idk_id, "choice_index": 4, "idk": True},
+            ctx2,
+        )
+    )
+    assert idk_result["outcome"] == "idk"
+    assert idk_result["question_id"] == idk_id
 
 
 def test_slim_tool_schemas_are_valid(settings):
@@ -905,7 +919,7 @@ def test_teach_turn_without_actions_gets_default_continue(conn, settings):
     assert len(actions) == 1
     assert actions[0]["id"] == "continue"
     assert actions[0]["label"] == "Continue"
-    assert actions[0]["prompt"] == "advance to the next idea"
+    assert actions[0]["prompt"] == "[continue-lesson]"
 
 
 def test_teach_turn_model_actions_not_overridden(conn, settings):

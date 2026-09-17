@@ -31,6 +31,14 @@ SUFFICIENCY_NOTICE = (
     "explain based on general knowledge."
 )
 
+# server-orchestrated hidden continue: clicking Continue must NOT surface as a
+# visible user message. the UI sends the plain prompt with this marker so the
+# turn pipeline can advance the plan before the model teaches the next node.
+HIDDEN_CONTINUE_PROMPT = "[continue-lesson]"
+# server-side pass bar for the final quiz: below this the session drops into
+# remediate and the verdict is not success. simple majority is not mastery.
+FINAL_QUIZ_PASS_FRACTION = 0.7
+
 _MAX_TOOL_ITERATIONS = 6
 
 
@@ -114,6 +122,50 @@ class TurnMixin:
                 chunks = self._select_chunks(session, user_text)
                 mode = session.grounding_mode
                 strict_mode = mode == "strict" and not chunks
+
+                # server-orchestrated continue: clicking Continue fires the
+                # mid-lesson check on the node just taught, as a card, with NO
+                # model call. the check's grade drives progression: correct ->
+                # answer_quiz advances to the next node (which the model then
+                # teaches in the answer turn's prose); wrong -> remediate and
+                # the model re-teaches. the server, never the model, owns
+                # advancement, so advance_lesson is not even a tool anymore.
+                hidden_continue = user_text.strip() == HIDDEN_CONTINUE_PROMPT
+                if hidden_continue and session.phase in ("teach", "plan", "remediate"):
+                    from app.services.learning import LearningService
+                    from app.services.plans import PlansService
+
+                    if session.phase == "plan":
+                        # first continue after the plan: the plan-turn prose
+                        # already taught node 1, so make it current
+                        try:
+                            PlansService(self.conn, self.settings).approve(session_id)
+                            session = self.get(session_id)
+                        except Exception:
+                            pass
+                    learning = LearningService(self.conn, self.settings)
+                    check = await learning.generate_check(session_id, llm)
+                    check_questions = check.get("questions") or []
+                    self.persist_user_message(session_id, "(continue)")
+                    self.save_partial_marker(session_id, client_msg_id)
+                    if check_questions:
+                        yield {
+                            "type": "tool_result",
+                            "name": "check",
+                            "summary": "check question ready",
+                            "questions": check_questions,
+                        }
+                    yield {
+                        "type": "done",
+                        "message_id": None,
+                        "client_msg_id": client_msg_id,
+                        "replayed": False,
+                        "actions": [],
+                        "web_sources": [],
+                    }
+                    return
+                if hidden_continue:
+                    user_text = "continue"
 
                 meta_chunks = [
                     {
@@ -416,6 +468,41 @@ class TurnMixin:
                             }
                     except Exception:
                         pass
+                # Deterministic final quiz: when the session lands in the
+                # final_quiz phase with no questions pending (last check
+                # graded correct or the model simply finished teaching),
+                # generate the closing quiz ourselves so the lesson always
+                # ends with a summative round, never a bare "complete".
+                if (
+                    not ran_tool
+                    and not any(
+                        q["kind"] == "final"
+                        for q in lesson_state.get("pending_questions", [])
+                    )
+                ):
+                    phase_row = self.conn.execute(
+                        "SELECT phase FROM sessions WHERE id = ?", (session_id,)
+                    ).fetchone()
+                    if phase_row is not None and phase_row[0] == "final_quiz":
+                        try:
+                            from app.services.learning import LearningService
+
+                            learning = LearningService(self.conn, self.settings)
+                            final_result = await learning.generate_final_quiz(
+                                session_id, llm
+                            )
+                            final_questions = final_result.get("questions") or []
+                            if final_questions:
+                                yield {
+                                    "type": "tool_result",
+                                    "name": "run_final_quiz",
+                                    "summary": _tool_result_summary(
+                                        "run_final_quiz", {"kind": "final"}
+                                    ),
+                                    "questions": final_questions,
+                                }
+                        except Exception:
+                            pass
                 # Deterministic Continue: the model sometimes explains a node
                 # without calling record_step_actions, leaving no advance
                 # button. Every learning-arc turn that produced prose ends with
@@ -436,7 +523,7 @@ class TurnMixin:
                         {
                             "id": "continue",
                             "label": "Continue",
-                            "prompt": "advance to the next idea",
+                            "prompt": "[continue-lesson]",
                         }
                     ]
                 # If the model ran tools but never produced a closing reply (a
@@ -483,10 +570,13 @@ class TurnMixin:
             except ProviderError as exc:
                 yield _error_event(exc)
             except Exception as exc:  # noqa: BLE001 - never crash the SSE stream
+                logging.getLogger(__name__).exception(
+                    "turn pipeline failed for session %s", session_id
+                )
                 yield _error_event(
                     ProviderError(
                         "upstream",
-                        f"Unexpected error during generation: {type(exc).__name__}",
+                        f"Unexpected error during generation: {type(exc).__name__}: {exc}",
                     )
                 )
             finally:

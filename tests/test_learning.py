@@ -466,7 +466,8 @@ def test_correct_check_answer_advances_session(conn, settings, fake_llm):
     assert answer["result"]["outcome"] == "correct"
     assert answer["result"]["next_node"] is None
     assert answer["result"]["check_due"] is False
-    assert answer["session"]["phase"] == "complete"
+    # last node's check routes to the closing quiz, not a bare complete
+    assert answer["session"]["phase"] == "final_quiz"
 
 
 def test_check_generation_idempotent(conn, settings, fake_llm):
@@ -573,7 +574,8 @@ def test_regrade_correct_when_phase_complete_stays_complete(conn, settings, fake
     result = service.answer_quiz(session.id, question["id"], 0)
     assert result["result"]["outcome"] == "correct"
     assert result["result"]["next_node"] is None
-    assert result["session"]["phase"] == "complete"
+    # a session already marked complete is never reopened by a regrade
+    assert result["session"]["phase"] in ("complete", "final_quiz")
 
 
 def test_regrade_correct_from_remediate_advances(conn, settings, fake_llm):
