@@ -58,5 +58,6 @@ async def health(
         model_configured=model_configured,
         endpoint_reachable=endpoint_reachable,
         dependency_errors=dependency_errors,
+        problems=problems,
         checked_at=utc_now(),
     )

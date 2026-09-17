@@ -54,9 +54,18 @@ def test_good_config_has_no_problems():
     settings = Settings(
         api_key="some-key",
         api_url="http://127.0.0.1:8877/v1",
+        model="some-model",
         _env_file=None,
     )
     assert validation_problems(settings) == []
+
+
+def test_empty_model_is_a_problem():
+    # an unset MODEL must be caught at startup: it would otherwise surface as
+    # a pydantic ChatRequest ValidationError on every chat turn
+    settings = Settings(api_key="some-key", api_url="http://127.0.0.1:8877/v1", _env_file=None)
+    problems = validation_problems(settings)
+    assert any("MODEL is empty" in p for p in problems)
 
 
 def test_env_overrides(monkeypatch):

@@ -67,6 +67,9 @@ class HealthReport(BaseModel):
     model_configured: bool
     endpoint_reachable: bool | None = None
     dependency_errors: list[str] = Field(default_factory=list)
+    # startup problems surfaced verbatim so a misconfigured deployment is
+    # diagnosable from the health endpoint instead of a cryptic chat error
+    problems: list[str] = Field(default_factory=list)
     checked_at: str
 
 

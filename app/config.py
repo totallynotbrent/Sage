@@ -135,4 +135,9 @@ def validation_problems(settings: Settings) -> list[str]:
     elif parsed.scheme not in ("http", "https") or not parsed.netloc:
         problems.append(f"API_URL is not a valid http(s) URL: {url!r}")
 
+    # an empty MODEL reaches the ollama client as model="", which its pydantic
+    # ChatRequest rejects with an inscrutable ValidationError on every chat
+    if not (getattr(settings, "model", "") or "").strip():
+        problems.append("MODEL is empty. Set it in .env (e.g. MODEL=llama3.1:8b).")
+
     return problems

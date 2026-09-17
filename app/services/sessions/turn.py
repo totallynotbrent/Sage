@@ -678,6 +678,10 @@ def _error_event(exc: Exception) -> dict:
     message = getattr(exc, "message", str(exc))
     detail = getattr(exc, "detail", None)
     retryable = getattr(exc, "retryable", False)
+    # config problems carry their specifics in detail; surface it directly so
+    # a misconfigured deployment tells the operator exactly what to fix
+    if code == "config_error" and detail:
+        message = f"{message} {detail}"
     return {
         "type": "error",
         "code": code,
