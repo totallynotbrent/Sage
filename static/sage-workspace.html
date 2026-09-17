@@ -1432,7 +1432,7 @@ function start_probe_batch(items, kind_label) {
         // mastery is recorded and a wrong answer drops the session to remediate
         fetch(`${API}/sessions/${sessionId}/quiz/${entry.question_id}/answer`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ choice_index: Number(sel), idk: /don'?t know/i.test(String((entry.item && entry.item.options || [])[Number(sel)] || '') }),
+          body: JSON.stringify({ choice_index: Number(sel), idk: /don'?t know/i.test(String(((entry.item && entry.item.options) || [])[Number(sel)] || '')) }),
         }).catch(() => {});
       }
     });
@@ -1720,6 +1720,9 @@ async function sendMessage() {
           if (sl) sl.remove();
           if (ev.name === 'run_probe' && Array.isArray(ev.questions) && ev.questions.length) {
             pendingCards.push({ items: ev.questions, kind: 'probe' });
+          } else if (ev.name === 'check' && Array.isArray(ev.questions) && ev.questions.length) {
+            // server-orchestrated continue fires its check through this event
+            pendingCards.push({ items: ev.questions, kind: 'check' });
           } else if (ev.name === 'start_review' && Array.isArray(ev.review_cards) && ev.review_cards.length) {
             pendingReviewCards = pendingReviewCards.concat(ev.review_cards);
           } else if (ev.name === 'advance_lesson' && (ev.check_questions || ev.check_question)) {
