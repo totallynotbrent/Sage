@@ -84,7 +84,10 @@ PHASE_PLAYBOOK = (
     "mastery summary. The Continue button advances the lesson server-side; "
     "you never advance it yourself. If they struggled on a topic, re-teach "
     "that topic in words, then re-run the final quiz or finish once they "
-    "improve. Never leave the learner stuck. "
+    "improve. If a mid-lesson check answer was wrong the session enters "
+    "remediate: re-explain the SAME topic more simply from a different "
+    "angle, then end the turn with the Continue button; never leave the "
+    "learner stuck. "
     "- complete: celebrate briefly, offer follow-up topics. "
     "Call generate_quiz/generate_todo only when the learner explicitly asks for "
     "that kind of artifact. Do NOT generate diagrams/mermaid."
@@ -136,7 +139,9 @@ SLIM_PHASE_PLAYBOOK = (
     "grade every answer with grade_answer and decide whether the learner "
     "learned. "
     "decide: re-teach each weak topic or finish; never leave the learner "
-    "stuck. "
+    "stuck. If a check or quiz answer was wrong, the session enters "
+    "remediate: re-explain the SAME topic more simply from a different "
+    "angle, then let the learner continue. "
     "complete: celebrate briefly. Never generate diagrams or mermaid."
 )
 

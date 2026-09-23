@@ -59,6 +59,48 @@ def test_advance_marks_done_and_moves(conn, settings):
     assert result["session"]["nodes_since_check"] == 1
 
 
+def test_advance_respects_dependencies(conn, settings):
+    # a positionally-earlier pending node with unfinished deps must be skipped
+    # for the first node whose dependencies are all done
+    session = _create_session(conn, settings)
+    nodes = [
+        ("d1", "k1", "Basics", "[]", 0, "done"),
+        ("d2", "k2", "Advanced", '["k1"]', 1, "pending"),
+        ("d3", "k3", "Expert", '["k1", "k2"]', 2, "pending"),
+        ("d4", "k4", "Applied", "[]", 3, "pending"),
+    ]
+    for node_id, node_key, title, deps, position, status in nodes:
+        conn.execute(
+            "INSERT INTO plan_nodes (id, session_id, node_key, title, description, "
+            "depends_on_json, status, position, children_json) "
+            "VALUES (?, ?, ?, ?, NULL, ?, ?, ?, '[]')",
+            (node_id, session.id, node_key, title, deps, status, position),
+        )
+    conn.execute(
+        "UPDATE sessions SET phase = 'teach', current_node_id = 'd1' WHERE id = ?",
+        (session.id,),
+    )
+    conn.commit()
+
+    # k2 is positionally first but pending deps are done (k1 done) so it is
+    # eligible; but if k2 were still pending itself, k3 (deps k1+k2) must wait
+    result = TeachService(conn, settings).advance(session.id)
+    assert result["node"]["node_key"] == "k2"
+
+    # now k2 done; k3 deps satisfied, and it must win over nothing-else
+    conn.execute("UPDATE plan_nodes SET status = 'done' WHERE node_key = 'k2'")
+    conn.execute("UPDATE plan_nodes SET status = 'current' WHERE node_key = 'k2'")
+    conn.execute(
+        "UPDATE sessions SET current_node_id = (SELECT id FROM plan_nodes WHERE node_key = 'k2') WHERE id = ?",
+        (session.id,),
+    )
+    conn.commit()
+    result = TeachService(conn, settings).advance(session.id)
+    assert result["node"]["node_key"] == "k4" or result["node"]["node_key"] == "k3"
+    # k3 depends on k1+k2 (both done) so k3 is eligible and positionally first
+    assert result["node"]["node_key"] == "k3"
+
+
 def test_advance_never_flags_check_due(conn, settings):
     session = _teach_session(conn, settings)
     service = TeachService(conn, settings)

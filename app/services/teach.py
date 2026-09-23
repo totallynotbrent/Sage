@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 
 from app.config import Settings
@@ -57,9 +58,26 @@ class TeachService:
             )
         next_row = self.conn.execute(
             "SELECT * FROM plan_nodes WHERE session_id = ? AND status = 'pending' "
-            "ORDER BY position, rowid LIMIT 1",
+            "ORDER BY position, rowid",
             (session_id,),
-        ).fetchone()
+        ).fetchall()
+        # dependency-aware pick: the next node is the first pending one whose
+        # dependencies are all done or deliberately skipped, so a plan's graph
+        # actually gates teaching without dead-locking on skipped nodes
+        picked = None
+        for row in next_row:
+            deps = json.loads(row["depends_on_json"] or "[]")
+            if all(
+                self.conn.execute(
+                    "SELECT status FROM plan_nodes WHERE session_id = ? AND node_key = ?",
+                    (session_id, dep),
+                ).fetchone()["status"]
+                in ("done", "skipped")
+                for dep in deps
+            ):
+                picked = row
+                break
+        next_row = picked
         nodes_since_check = 0 if reset_check else session.nodes_since_check + 1
         if next_row is None:
             self.conn.execute(
