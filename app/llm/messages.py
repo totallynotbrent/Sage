@@ -94,6 +94,8 @@ PHASE_PLAYBOOK = (
 )
 
 HISTORY_LIMIT = 64
+# lite mode ships a smaller window so long lessons stay cheap for small models
+LITE_HISTORY_LIMIT = 24
 
 # Compact small-model variants: a <=8B model follows a terse ordered list better
 # than a wall of prose, and the shorter prompt fits a small context window.
@@ -376,9 +378,10 @@ def format_location(chunk: dict[str, Any]) -> str:
     return _format_location(chunk)
 
 
-def _history_messages(session: dict[str, Any]) -> list[dict]:
+def _history_messages(session: dict[str, Any], limit: int | None = None) -> list[dict]:
     history = session.get("messages") or []
-    window_start = max(len(history) - HISTORY_LIMIT, 0)
+    cap = limit if limit is not None else HISTORY_LIMIT
+    window_start = max(len(history) - cap, 0)
     window: list[dict] = []
     for msg in history[window_start:]:
         if msg.get("partial"):
@@ -406,6 +409,7 @@ def build_chat_messages(
     system_prompt = make_system_prompt(
         session, mode, mastery_summary, lesson_state=lesson_state, lightweight=lightweight
     )
+    history_limit = LITE_HISTORY_LIMIT if lightweight else HISTORY_LIMIT
 
     excerpts: list[str] = []
     for chunk in chunks:
@@ -431,7 +435,7 @@ def build_chat_messages(
     body_parts.append(user_text)
 
     messages: list[dict] = [{"role": "system", "content": system_prompt}]
-    messages.extend(_history_messages(session))
+    messages.extend(_history_messages(session, limit=history_limit))
     messages.append({"role": "user", "content": "\n\n".join(body_parts)})
     return messages
 
