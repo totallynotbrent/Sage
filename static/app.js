@@ -626,16 +626,22 @@
     });
 
     dom.viewerClose.addEventListener('click', closeViewer);
+    const scrollToViewerPage = () => {
+      const target = dom.viewerContent.querySelector(`[data-chunk-index="${state.viewerPage - 1}"]`);
+      if (target) target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
     dom.viewerPrev.addEventListener('click', () => {
       if (state.viewerPage > 1) {
         state.viewerPage--;
         dom.viewerPage.textContent = `${state.viewerPage} / ${state.viewerTotal}`;
+        scrollToViewerPage();
       }
     });
     dom.viewerNext.addEventListener('click', () => {
       if (state.viewerPage < state.viewerTotal) {
         state.viewerPage++;
         dom.viewerPage.textContent = `${state.viewerPage} / ${state.viewerTotal}`;
+        scrollToViewerPage();
       }
     });
 
