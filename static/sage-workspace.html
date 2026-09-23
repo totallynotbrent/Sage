@@ -2094,7 +2094,7 @@ function refreshChipsForPhase() {
   // "You ask the questions" entry: always available once a lesson is underway.
   const badge = document.getElementById('phase-badge');
   const phase = (badge?.dataset.phase || '').toLowerCase();
-  if (['probe', 'plan', 'teach', 'remediate', 'check_due', 'check', 'final_quiz', 'complete'].includes(phase) && sessionId) {
+  if (['probe', 'plan', 'teach', 'remediate', 'check', 'final_quiz', 'complete'].includes(phase) && sessionId) {
     setQuickChips([{ label: 'Ask your own questions', prompt: '', action: 'ask' }]);
   }
 }
