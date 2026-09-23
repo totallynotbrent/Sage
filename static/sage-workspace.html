@@ -1733,7 +1733,7 @@ async function sendMessage() {
             const nodes = ev.nodes || ev.plan_nodes;
             const el = document.getElementById('plan-nodes');
             if (el && Array.isArray(nodes)) {
-              el.innerHTML = nodes.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+              el.innerHTML = nodes.map(n => planRowHtml(n)).join('');
             } else { loadSession(sessionId).catch(()=>{}); }
           } else if (ev.artifact) {
             const a = ev.artifact;
@@ -1874,6 +1874,15 @@ const PHASE_LABELS = {
 function phaseLabel(phase) {
   return PHASE_LABELS[phase] || phase;
 }
+let lastMasteryByLabel = {};
+function planRowHtml(n) {
+  const glyph = n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;';
+  const color = n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)';
+  // learning state tint: plan rows borrow the mastery estimate of their topic
+  const m = lastMasteryByLabel[(n.title || '').toLowerCase()];
+  const tint = m != null ? ` border-left:2px solid ${m >= 0.7 ? 'var(--foam)' : m >= 0.4 ? 'var(--gold)' : 'var(--love)'};` : '';
+  return `<div class="sidebar__item"${tint}><span style="font-size:12px;width:16px;text-align:center;color:${color}">${glyph}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`;
+}
 async function refreshSessionUI() {
   if (!sessionId) return;
   try {
@@ -1885,7 +1894,7 @@ async function refreshSessionUI() {
     if (Array.isArray(data.plan) && data.plan.length) {
       const el = document.getElementById('plan-nodes');
       if (el) {
-        el.innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+        el.innerHTML = data.plan.map(n => planRowHtml(n)).join('');
       }
     }
     updateCompletionState();
@@ -2012,6 +2021,9 @@ async function renderMasteryPanel() {
     if (!topics.length) { panel.hidden = true; body.innerHTML = ''; return; }
     panel.hidden = false;
     body.innerHTML = '';
+    // plan rows tint by their topic's mastery estimate
+    lastMasteryByLabel = {};
+    topics.forEach(t => { lastMasteryByLabel[(t.label || t.topic || '').toLowerCase()] = t.confidence; });
     topics.forEach(t => {
       const pct = Math.max(0, Math.min(100, Math.round((t.confidence || 0) * 100)));
       const row = document.createElement('div');
@@ -2211,7 +2223,7 @@ async function loadSession(id) {
       // click away in the rail instead of taking over the screen
       renderFileTab();
     } else { currentSessionFiles = []; }
-    if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+    if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => planRowHtml(n)).join('');
     // Persist pending questions across a page refresh (issue #7): the server
     // keeps unanswered probe/check questions in the DB; re-render them so a
     // reload shows the SAME questions instead of regenerating them.
