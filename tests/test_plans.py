@@ -300,11 +300,32 @@ def test_regenerate_resets_state(conn, settings, fake_llm):
 
 def test_select_node_sets_current(conn, settings, fake_llm):
     session, plan = _planned_session(conn, settings, fake_llm)
-    result = PlansService(conn, settings).select_node(session.id, "k2")
+    service = PlansService(conn, settings)
+    # k2 depends on k1: jumping to k2 before k1 is done is refused
+    with pytest.raises(ValueError, match="finish these topics first: k1"):
+        service.select_node(session.id, "k2")
+    # completing the prerequisite unlocks the jump
+    conn.execute("UPDATE plan_nodes SET status = 'done' WHERE node_key = 'k1'")
+    conn.commit()
+    result = service.select_node(session.id, "k2")
     assert result["session"]["phase"] == "teach"
     k2 = next(n for n in result["plan"] if n["node_key"] == "k2")
     assert result["session"]["current_node_id"] == k2["id"]
     assert k2["status"] == "current"
+
+
+def test_select_node_allows_review_of_done_nodes(conn, settings, fake_llm):
+    session, plan = _planned_session(conn, settings, fake_llm)
+    service = PlansService(conn, settings)
+    conn.execute(
+        "UPDATE plan_nodes SET status = 'done' WHERE node_key IN ('k1', 'k2')"
+    )
+    conn.commit()
+    # re-selecting a finished node (review) is always allowed
+    result = service.select_node(session.id, "k1")
+    assert result["session"]["current_node_id"] == next(
+        n["id"] for n in result["plan"] if n["node_key"] == "k1"
+    )
 
 
 def test_select_node_without_plan_raises(conn, settings):
