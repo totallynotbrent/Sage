@@ -1450,8 +1450,9 @@ function start_probe_batch(items, kind_label) {
         entry.card.dataset.answered_at = String(Math.round(performance.now()));
       }
     });
+    // the learner commits deliberately with the button; selecting the last
+    // answer only arms it, never auto-fires
     send_btn.disabled = answered.length === 0;
-    if (open.length > 0 && answered.length === open.length) submit();
   };
   const wrap = document.createElement('div');
   wrap.className = 'probe-wrap';
@@ -1941,8 +1942,8 @@ function startReviewBatch(items, marker) {
     if (!send_btn) return;
     const open = entries.filter(e => !e.card.classList.contains('sent'));
     const answered = open.filter(e => e.card.dataset.selected !== '');
+    // deliberate commit only: selecting the last card arms the button
     send_btn.disabled = answered.length === 0;
-    if (open.length > 0 && answered.length === open.length) submit();
   };
   const wrap = document.createElement('div');
   wrap.className = 'probe-wrap';
@@ -2206,15 +2207,9 @@ async function loadSession(id) {
     if (data.selected_files) {
       currentSessionFiles = data.selected_files;
       document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
-      // open the file-viewer rail and show the first file so a fresh upload is visible
-      if (currentSessionFiles.length) {
-        selectedFileId = currentSessionFiles[0].id;
-        renderFileTab();
-        loadFileContent(currentSessionFiles[0]);
-        openArtifactsRail();
-      } else {
-        renderFileTab();
-      }
+      // session loads center on the lesson (chat + plan); sources stay a
+      // click away in the rail instead of taking over the screen
+      renderFileTab();
     } else { currentSessionFiles = []; }
     if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
     // Persist pending questions across a page refresh (issue #7): the server
