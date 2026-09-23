@@ -285,7 +285,7 @@
       </div>
 
       <section class="mastery-panel" id="mastery-panel" hidden>
-        <div class="mastery-panel__title">Mastery</div>
+        <div class="mastery-panel__title" title="A model-derived estimate from the checks you've answered, not a grade.">Estimated mastery</div>
         <div class="mastery-panel__body" id="masteryBody"></div>
       </section>
 
@@ -1818,6 +1818,9 @@ async function sendMessage() {
   } else if (was_aborted) {
   } else if (done_error_message) {
     assistant_msg = addMessage('assistant', esc(`Error: ${done_error_message}`));
+  } else if (pendingCards.length || pendingReviewCards.length || (Array.isArray(done_actions) && done_actions.length) || (Array.isArray(done_web_sources) && done_web_sources.length)) {
+    // server-only turns (hidden continue, tool-only probe rounds) legitimately
+    // carry no prose: the cards/actions below ARE the turn, no dead-end bubble
   } else {
     assistant_msg = addMessage('assistant', 'Sage could not produce a response. Please try again.');
   }

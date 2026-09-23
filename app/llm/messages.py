@@ -179,9 +179,12 @@ def build_lesson_state_block(state: dict[str, Any]) -> str:
         lines.append(arc)
     pending = state.get("pending_questions") or []
     if pending:
+        kinds = {str(item.get("kind")) for item in pending}
         lines.append(
             "The learner still owes answers to these. Grade each reply against "
-            "these EXACT ids (copy id character-for-character):"
+            "these EXACT ids (copy id character-for-character)"
+            + (" (checks grade just like probe answers)" if "check" in kinds else "")
+            + ":"
         )
         for item in pending:
             lines.append(
