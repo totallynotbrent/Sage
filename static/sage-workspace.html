@@ -1470,7 +1470,7 @@ function start_probe_batch(items, kind_label) {
             ? `FINAL QUIZ · ${String(qi + 1).padStart(2, '0')}`
             : `PROBE · ${String(qi + 1).padStart(2, '0')}`;
     const card = build_probe_card(question, qi + 1, marker_text, update_state);
-    entries.push({ card, question_id: question && question.question_id });
+    entries.push({ card, question_id: question && (question.question_id || question.id) });
     wrap.appendChild(card);
   });
   const actions = document.createElement('div');
