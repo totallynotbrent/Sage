@@ -10,7 +10,6 @@ from app.db import get_conn
 from app.llm.client import LLMClient, get_llm_client
 from app.models import (
     CheckBody,
-    CheckQuestionBody,
     LearnerQuestionsBody,
     NotesQuizBody,
     ProbeBody,
@@ -43,38 +42,6 @@ async def generate_check(
 ) -> dict:
     require_configured(settings)
     return await LearningService(conn, settings).generate_check(session_id, llm)
-
-
-@router.post("/api/sessions/{session_id}/check-question")
-async def persist_check_question(
-    session_id: str,
-    body: CheckQuestionBody,
-    conn: sqlite3.Connection = Depends(get_conn),
-    settings: Settings = Depends(get_app_settings),
-) -> dict:
-    question_id = LearningService(conn, settings).persist_check_question(
-        session_id, body.question, body.options
-    )
-    return {"id": question_id}
-
-
-@router.post("/api/sessions/{session_id}/check-question/{question_id}/answer")
-async def answer_check_question(
-    session_id: str,
-    question_id: str,
-    body: QuizAnswerBody,
-    conn: sqlite3.Connection = Depends(get_conn),
-    settings: Settings = Depends(get_app_settings),
-) -> dict:
-    if body.choice_index is None:
-        raise handle_value_error(ValueError("choice_index is required"))
-    try:
-        LearningService(conn, settings).answer_check_question(
-            session_id, question_id, body.choice_index
-        )
-    except ValueError as exc:
-        raise handle_value_error(exc)
-    return {"ok": True}
 
 
 @router.post("/api/sessions/{session_id}/notes-quiz")

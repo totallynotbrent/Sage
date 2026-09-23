@@ -154,11 +154,6 @@ class CheckBody(BaseModel):
     pass
 
 
-class CheckQuestionBody(BaseModel):
-    question: str = Field(min_length=1)
-    options: list[str] = Field(min_length=2)
-
-
 class NotesQuizBody(BaseModel):
     count: int = 3
     subject: str | None = None

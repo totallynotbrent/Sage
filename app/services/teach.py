@@ -10,9 +10,9 @@ from app.llm.structured import provider_error_from_text
 from app.services.sessions import SessionService, plan_node_dict, question_dict
 from app.util import new_id, utc_now
 
-# Checks were removed from the teaching loop (2026-09-02, user direction): the
-# only formal question rounds are the opening probe and a closing final quiz, so
-# advancing through nodes never flags an intermediate check_due anymore.
+# Checks are the mid-lesson loop: the server fires a check card after each
+# taught node (see turn.py), and a correct grade advances the plan while a
+# wrong one drops the session to remediate.
 
 
 # Escalating reveal ladder: each rung reveals more, keeping a stuck learner in
