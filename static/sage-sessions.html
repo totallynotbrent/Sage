@@ -27,6 +27,8 @@
 .session_card_phase[data-phase="plan"]{color:var(--gold)}
 .session_card_phase[data-phase="teach"]{color:var(--accent)}
 .session_card_phase[data-phase="check"]{color:var(--rose)}
+.session_card_phase[data-phase="remediate"]{color:var(--rose)}
+.session_card_phase[data-phase="final_quiz"]{color:var(--love)}
 .session_card_phase[data-phase="complete"]{color:var(--foam)}
 .session_card_desc{color:var(--muted);font-size:13px;margin-bottom:var(--space-2)}
 .session_card_meta{display:flex;align-items:center;gap:var(--space-3);color:var(--meta);font-size:12px;font-family:var(--font-mono)}
@@ -178,7 +180,7 @@ async function loadSessions(){
         <div class="session_card_head">
           <input type="checkbox" class="session_checkbox" data-id="${esc(s.id)}" onclick="event.stopPropagation()">
           <div class="session_card_title">${esc(s.title||s.goal||'Untitled')}</div>
-          <span class="session_card_phase" data-phase="${esc(s.phase)}">${esc(s.phase)}</span>
+          <span class="session_card_phase" data-phase="${esc(s.phase)}">${esc(PHASE_LABELS[s.phase]||s.phase)}</span>
         </div>
         <div class="session_card_desc">${s.grounding_mode==='strict'?'Strict grounding: only your files':'Grounded: sources and general knowledge'}</div>
         <div class="session_card_meta">
@@ -251,6 +253,7 @@ document.getElementById('keep-recent')?.addEventListener('click',()=>{
 
 function fmtTime(ts){if(!ts)return'';const d=new Date(ts);if(isNaN(d))return'';const diff=new Date()-d;if(diff<60000)return'just now';if(diff<3600000)return Math.floor(diff/60000)+'m ago';if(diff<86400000)return Math.floor(diff/3600000)+'h ago';return Math.floor(diff/86400000)+'d ago'}
 function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+const PHASE_LABELS={setup:'Getting started',probe:'Diagnostic',plan:'Planning',teach:'Teaching',check:'Quick check',remediate:'Reviewing',final_quiz:'Final quiz',complete:'Complete'};
 loadSessions();
 </script>
 </body>

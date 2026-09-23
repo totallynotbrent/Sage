@@ -1,5 +1,16 @@
 // sage client app
 
+const PHASE_LABELS = {
+  setup: 'Getting started',
+  probe: 'Diagnostic',
+  plan: 'Planning',
+  teach: 'Teaching',
+  check: 'Quick check',
+  remediate: 'Reviewing',
+  final_quiz: 'Final quiz',
+  complete: 'Complete',
+};
+
 (function () {
   'use strict';
 
@@ -221,7 +232,7 @@
       const phase = s.phase || 'setup';
       const time = s.updated_at ? timeAgo(s.updated_at) : '';
       return `<div class="sidebar__item${active}" data-session-id="${s.id}">
-        <span class="sidebar__item-badge" data-phase="${phase}">${phase}</span>
+        <span class="sidebar__item-badge" data-phase="${phase}">${PHASE_LABELS[phase] || phase}</span>
         <span class="sidebar__item-text">${esc(s.goal || 'Untitled')}</span>
         <span class="sidebar__item-meta">${time}</span>
       </div>`;

@@ -328,6 +328,8 @@ function client_msg_id(){
 
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
+const PHASE_LABELS={setup:'Getting started',probe:'Diagnostic',plan:'Planning',teach:'Teaching',check:'Quick check',remediate:'Reviewing',final_quiz:'Final quiz',complete:'Complete'};
+
 const box = document.getElementById('messages');
 const input = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
@@ -701,7 +703,7 @@ async function loadSessionsList(){
   try{
     const res=await fetch(`${API}/sessions`);
     const sessions=await res.json();
-    document.getElementById('sessions-list').innerHTML=sessions.slice(0,10).map(s=>`<div class="sidebar__item${s.id===sessionId?' active':''}" onclick="window.location.href='sage-workspace.html?session=${encodeURIComponent(s.id)}'" role="link" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='sage-workspace.html?session=${encodeURIComponent(s.id)}'}"><span class="sidebar__item-badge" data-phase="${esc(s.phase)}">${esc(s.phase)}</span><span class="sidebar__item-text">${esc(s.title||s.goal||'Untitled')}</span></div>`).join('');
+    document.getElementById('sessions-list').innerHTML=sessions.slice(0,10).map(s=>`<div class="sidebar__item${s.id===sessionId?' active':''}" onclick="window.location.href='sage-workspace.html?session=${encodeURIComponent(s.id)}'" role="link" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location.href='sage-workspace.html?session=${encodeURIComponent(s.id)}'}"><span class="sidebar__item-badge" data-phase="${esc(s.phase)}">${esc(PHASE_LABELS[s.phase]||s.phase)}</span><span class="sidebar__item-text">${esc(s.title||s.goal||'Untitled')}</span></div>`).join('');
   }catch(e){}
 }
 

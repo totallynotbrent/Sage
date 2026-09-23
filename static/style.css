@@ -273,6 +273,8 @@ a:hover { text-decoration: underline; }
 }
 .sidebar__item-badge[data-phase="teach"]   { color: var(--accent); }
 .sidebar__item-badge[data-phase="check"]   { color: var(--rose); }
+.sidebar__item-badge[data-phase="remediate"]{ color: var(--rose); }
+.sidebar__item-badge[data-phase="final_quiz"]{ color: var(--love); }
 .sidebar__item-badge[data-phase="complete"]{ color: var(--foam); }
 
 .sidebar__action {
