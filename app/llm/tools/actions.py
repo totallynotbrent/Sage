@@ -245,49 +245,6 @@ async def _run_build_plan(arguments: dict, ctx) -> dict:
     return {"phase": "plan", "nodes": nodes}
 
 
-async def _run_advance_lesson(arguments: dict, ctx) -> dict:
-    guard = _learning_guard(ctx)
-    if guard:
-        return guard
-    from app.services.plans import PlansService
-    from app.services.teach import TeachService
-
-    service = TeachService(ctx.conn, ctx.settings)
-    current_phase = service.sessions.get(ctx.session_id).phase
-    if current_phase == "final_quiz":
-        # Final quiz graded and the learner did well. resume advancing so the
-        # remaining node(s) finish and the lesson reaches 'complete'.
-        service.sessions.set_phase(ctx.session_id, "teach")
-    if current_phase == "plan":
-        approved = PlansService(ctx.conn, ctx.settings).approve(ctx.session_id)
-        current = next(
-            (node for node in approved["plan"] if node["status"] == "current"),
-            None,
-        )
-        return {
-            "advanced": True,
-            "node": {
-                "node_key": (current or {}).get("node_key"),
-                "title": (current or {}).get("title"),
-            },
-            "check_due": False,
-            "session_phase": approved["session"]["phase"],
-        }
-    result = service.advance(ctx.session_id)
-    session = result["session"]
-    if result.get("node") is None or session["phase"] == "complete":
-        return {"lesson_complete": True}
-    return {
-        "advanced": True,
-        "node": {
-            "node_key": result["node"].get("node_key"),
-            "title": result["node"].get("title"),
-        },
-        "check_due": False,
-        "session_phase": session["phase"],
-    }
-
-
 async def _run_final_quiz(arguments: dict, ctx) -> dict:
     guard = _learning_guard(ctx)
     if guard:

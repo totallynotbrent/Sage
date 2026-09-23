@@ -691,68 +691,6 @@ def test_execute_tool_build_plan_returns_stripped_nodes(conn, settings):
     assert SessionService(conn, settings).get(session.id).phase == "plan"
 
 
-def test_execute_tool_advance_lesson_enters_first_node_from_plan(conn, settings):
-    fake_llm = FakeLLM()
-    fake_llm.complete_json_responses.append(_PLAN_JSON)
-    session, ctx = _learning_ctx(conn, settings, fake_llm)
-    asyncio.run(execute_tool("build_plan", {}, ctx))
-
-    entered = asyncio.run(execute_tool("advance_lesson", {"passed_check": True}, ctx))
-
-    assert entered["advanced"] is True
-    assert entered["node"]["node_key"] == "n1"
-    assert entered["check_due"] is False
-    assert entered["session_phase"] == "teach"
-    refreshed = SessionService(conn, settings).get(session.id)
-    assert refreshed.phase == "teach"
-    assert refreshed.nodes_since_check == 0
-
-
-def test_execute_tool_advance_lesson_advances_without_checks(conn, settings):
-    fake_llm = FakeLLM()
-    fake_llm.complete_json_responses.append(_PLAN_JSON)
-    session, ctx = _learning_ctx(conn, settings, fake_llm)
-    asyncio.run(execute_tool("build_plan", {}, ctx))
-    PlansService(conn, settings).approve(session.id)
-
-    result = asyncio.run(execute_tool("advance_lesson", {}, ctx))
-
-    assert result["advanced"] is True
-    assert result["node"]["node_key"] == "n2"
-    assert result["check_due"] is False
-    assert "check_questions" not in result
-    assert "check_question" not in result
-    assert result["session_phase"] == "teach"
-    refreshed = SessionService(conn, settings).get(session.id)
-    assert refreshed.phase == "teach"
-
-
-def test_execute_tool_advance_lesson_never_emits_check_questions(conn, settings):
-    fake_llm = FakeLLM()
-    fake_llm.complete_json_responses.append(_PLAN_JSON)
-    session, ctx = _learning_ctx(conn, settings, fake_llm)
-    asyncio.run(execute_tool("build_plan", {}, ctx))
-    PlansService(conn, settings).approve(session.id)
-
-    first = asyncio.run(execute_tool("advance_lesson", {}, ctx))
-    assert first["advanced"] is True
-    assert first["node"]["node_key"] == "n2"
-    assert first["check_due"] is False
-    assert "check_question" not in first
-
-    fake_llm.complete_json_responses.append(_CHECK_JSON)
-    second = asyncio.run(execute_tool("advance_lesson", {}, ctx))
-
-    assert second["advanced"] is True
-    assert second["node"]["node_key"] == "n3"
-    # No intermediate check is ever emitted regardless of node count.
-    assert second["check_due"] is False
-    assert "check_question" not in second
-    assert "check_questions" not in second
-    assert second["session_phase"] == "teach"
-    assert SessionService(conn, settings).get(session.id).phase == "teach"
-
-
 class _scripted_stream:
     def __init__(self, chunks):
         self._chunks = list(chunks)

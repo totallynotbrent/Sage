@@ -403,16 +403,6 @@ class TurnMixin:
                                 tool_event["questions"] = result.get("questions", [])
                             if name == "start_review":
                                 tool_event["review_cards"] = result.get("cards", [])
-                            if name == "advance_lesson" and (
-                                result.get("check_question")
-                                or result.get("check_questions")
-                            ):
-                                tool_event["check_question"] = result.get(
-                                    "check_question"
-                                )
-                                tool_event["check_questions"] = result.get(
-                                    "check_questions"
-                                )
                             if name == "build_plan" and result.get("plan_diagram"):
                                 tool_event["plan_diagram"] = result["plan_diagram"]
                             yield tool_event

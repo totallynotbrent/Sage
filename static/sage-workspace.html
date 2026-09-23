@@ -1725,9 +1725,6 @@ async function sendMessage() {
             pendingCards.push({ items: ev.questions, kind: 'check' });
           } else if (ev.name === 'start_review' && Array.isArray(ev.review_cards) && ev.review_cards.length) {
             pendingReviewCards = pendingReviewCards.concat(ev.review_cards);
-          } else if (ev.name === 'advance_lesson' && (ev.check_questions || ev.check_question)) {
-            const checks = Array.isArray(ev.check_questions) && ev.check_questions.length ? ev.check_questions : (ev.check_question ? [ev.check_question] : []);
-            if (checks.length) pendingCards.push({ items: checks, kind: 'check' });
           } else if (ev.name === 'run_final_quiz' && Array.isArray(ev.questions) && ev.questions.length) {
             pendingCards.push({ items: ev.questions, kind: 'final' });
           } else if (ev.name === 'build_plan') {
@@ -1860,6 +1857,19 @@ async function sendMessage() {
 }
 
 /* Pull latest session state and sync phase badge, plan checklist and completion UI */
+const PHASE_LABELS = {
+  setup: 'Getting started',
+  probe: 'Diagnostic',
+  plan: 'Planning',
+  teach: 'Teaching',
+  check: 'Quick check',
+  remediate: 'Reviewing',
+  final_quiz: 'Final quiz',
+  complete: 'Complete',
+};
+function phaseLabel(phase) {
+  return PHASE_LABELS[phase] || phase;
+}
 async function refreshSessionUI() {
   if (!sessionId) return;
   try {
@@ -1867,7 +1877,7 @@ async function refreshSessionUI() {
     const data = await res.json();
     const sess = data.session || data;
     const badge = document.getElementById('phase-badge');
-    if (badge && sess.phase) { badge.textContent = sess.phase; badge.dataset.phase = sess.phase; }
+    if (badge && sess.phase) { badge.textContent = phaseLabel(sess.phase); badge.dataset.phase = sess.phase; }
     if (Array.isArray(data.plan) && data.plan.length) {
       const el = document.getElementById('plan-nodes');
       if (el) {
@@ -2066,7 +2076,8 @@ function refreshChipsForPhase() {
   // until the model emits new record_step_actions.
   setQuickChips([]);
   // "You ask the questions" entry: always available once a lesson is underway.
-  const phase = (document.getElementById('phase-badge')?.textContent || '').toLowerCase();
+  const badge = document.getElementById('phase-badge');
+  const phase = (badge?.dataset.phase || '').toLowerCase();
   if (['probe', 'plan', 'teach', 'remediate', 'check_due', 'check', 'final_quiz', 'complete'].includes(phase) && sessionId) {
     setQuickChips([{ label: 'Ask your own questions', prompt: '', action: 'ask' }]);
   }
@@ -2075,7 +2086,7 @@ function refreshChipsForPhase() {
 /* Completion state: swap composer for a call-to-action hub */
 let completionDismissed = false;
 function updateCompletionState() {
-  const phase = (document.getElementById('phase-badge')?.textContent || '').toLowerCase();
+  const phase = (document.getElementById('phase-badge')?.dataset.phase || '').toLowerCase();
   const cta = document.getElementById('completion-cta');
   const inputBar = document.querySelector('.input-bar');
   if (!cta) return;
@@ -2174,7 +2185,7 @@ async function loadSession(id) {
     sessionGoal = sess.goal || '';
      document.getElementById('session-title').textContent = ` - ${session_title}`;
      document.title = `Sage - ${session_title}`;
-    document.getElementById('phase-badge').textContent = sess.phase;
+    document.getElementById('phase-badge').textContent = phaseLabel(sess.phase);
     document.getElementById('phase-badge').dataset.phase = sess.phase;
     const loaded_mode = sess.grounding_mode || 'grounded';
     current_grounding = loaded_mode;
