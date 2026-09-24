@@ -6,6 +6,8 @@ from typing import Iterator
 
 from fastapi import Request
 
+from app.config import Settings
+
 SCHEMA_VERSION = 5
 
 # fmt: off
@@ -214,7 +216,39 @@ def _ensure_column(conn: sqlite3.Connection, table: str, name: str, ddl: str) ->
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
 
 
-def init_db(db_path: Path) -> None:
+def init_db(db_path: Path, settings: Settings | None = None) -> None:
+    _create_and_migrate(db_path)
+    if settings is not None:
+        _hydrate_settings_from_preferences(settings, db_path)
+
+
+def _hydrate_settings_from_preferences(settings: Settings, db_path: Path) -> None:
+    # the settings page persists model/ctx/lite/thinking in the preferences
+    # table; load them into the live Settings so a container restart keeps
+    # the web-ui model instead of crashing on the empty env MODEL
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            "SELECT model, num_ctx, lightweight, thinking FROM preferences WHERE id = 1"
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return
+    finally:
+        conn.close()
+    if row is None:
+        return
+    if row["model"]:
+        settings.model = str(row["model"])
+    if row["num_ctx"]:
+        settings.ollama_num_ctx = int(row["num_ctx"])
+    if row["lightweight"] is not None:
+        settings.lightweight = bool(row["lightweight"])
+    if row["thinking"] is not None:
+        settings.ollama_thinking = bool(row["thinking"])
+
+
+def _create_and_migrate(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     try:

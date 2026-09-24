@@ -12,6 +12,7 @@ from app.db import get_conn
 from app.llm.client import LLMClient, get_llm_client
 from app.models import GroundingMode, Session, SessionCreate
 from app.services.sessions import SessionService
+from app.api.deps import require_configured
 
 router = APIRouter()
 
@@ -140,6 +141,7 @@ async def generate_session_title(
     conn: sqlite3.Connection = Depends(get_conn),
     settings: Settings = Depends(get_app_settings),
 ) -> Session:
+    require_configured(settings)
     service = SessionService(conn, settings)
     session = service.get(session_id)
     excerpt = _title_excerpt(service.files.get_chunks_for_files(session.file_ids))
