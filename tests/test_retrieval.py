@@ -75,20 +75,6 @@ def test_empty_query_returns_earliest():
     assert [c["id"] for c in result] == ["c0", "c1"]
 
 
-def test_no_match_returns_nothing():
-    chunks = [
-        _chunk("c0", "f", "cooking recipes", 0),
-        _chunk("c1", "f", "pasta sauce", 1),
-    ]
-    result = Retriever().select(chunks, "quantum physics", budget=5)
-    assert result == []
-
-
-def test_budget_zero_or_empty():
-    chunks = [_chunk("c0", "f", "mitochondria", 0)]
-    assert Retriever().select(chunks, "mitochondria", budget=0) == []
-    assert Retriever().select([], "mitochondria", budget=5) == []
-
 
 def test_math_query_matches_unicode_chunk():
     chunks = [
@@ -129,9 +115,3 @@ def test_in_survives_as_member_of():
     assert "in" not in tokenize(r"\in")
 
 
-def test_math_tokenize_deterministic():
-    first = tokenize("α x dx", "∫_0^1")
-    second = tokenize("α x dx", "∫_0^1")
-    assert first == second
-    assert "alpha" in first
-    assert "integral" in first

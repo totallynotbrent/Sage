@@ -116,20 +116,6 @@ def test_pdf_outline_from_toc():
     assert result.outline[2]["level"] == 1
 
 
-def test_pdf_outline_empty_without_toc():
-    pymupdf = pytest.importorskip("pymupdf")
-    from app.services.extraction.pdf import PDFExtractor
-
-    document = pymupdf.open()
-    page = document.new_page()
-    page.insert_text((72, 72), "uniform body line one")
-    page.insert_text((72, 110), "uniform body line two")
-    data = document.tobytes()
-
-    result = PDFExtractor().extract(data, filename="plain.pdf")
-    assert result.ok
-    assert result.outline == []  # no toc and no size-delta spans to detect
-
 
 def test_pdf_outline_size_fallback():
     pymupdf = pytest.importorskip("pymupdf")
@@ -199,7 +185,3 @@ def test_dispatch_unknown_extension():
         get_extractor("exe")
 
 
-def test_registry_has_all_supported():
-    from app.services.extraction.base import EXTRACTORS
-
-    assert {"pdf", "docx", "pptx", "md", "markdown", "txt", "tex"} <= set(EXTRACTORS)

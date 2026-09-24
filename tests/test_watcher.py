@@ -4,7 +4,6 @@ import asyncio
 import os
 import shutil
 import sqlite3
-import threading
 import time
 
 import pytest
@@ -257,97 +256,52 @@ def test_watch_api_rejects_no_watch_dirs(client, tmp_path):
     assert "SAGE_WATCH_DIRS" in response.json()["error"]["message"]
 
 
-def test_watch_api_rejects_missing_directory(tmp_path):
+
+def _rejection_app(tmp_path, watch_root):
     from fastapi.testclient import TestClient
 
     from app.main import create_app
 
-    root = tmp_path / "watched"
-    root.mkdir()
     app_settings = Settings(
         data_dir=tmp_path / "data",
         api_key="test-key",
         api_url="http://127.0.0.1:9/v1",
-        watch_dirs=[str(root)],
+        watch_dirs=[str(watch_root)],
         watch_scan_seconds=3600,
     )
     app = create_app(app_settings)
-    with TestClient(app) as client:
-        response = client.post(
-            "/api/watch", json={"path": str(root / "does-not-exist")}
-        )
-        assert response.status_code == 400
-        assert "not an existing directory" in response.json()["error"]["message"]
+    return TestClient(app)
 
 
-def test_watch_api_rejects_file_path(tmp_path):
-    from fastapi.testclient import TestClient
-
-    from app.main import create_app
-
-    root = tmp_path / "watched"
-    root.mkdir()
-    target = root / "not-a-dir.txt"
-    target.write_text("x", encoding="utf-8")
-    app_settings = Settings(
-        data_dir=tmp_path / "data",
-        api_key="test-key",
-        api_url="http://127.0.0.1:9/v1",
-        watch_dirs=[str(root)],
-        watch_scan_seconds=3600,
-    )
-    app = create_app(app_settings)
-    with TestClient(app) as client:
-        response = client.post("/api/watch", json={"path": str(target)})
-        assert response.status_code == 400
-        assert "not an existing directory" in response.json()["error"]["message"]
-
-
-def test_watch_api_rejects_outside_scope(tmp_path):
-    from fastapi.testclient import TestClient
-
-    from app.main import create_app
-
+@pytest.mark.parametrize(
+    "case, expected_fragment",
+    [
+        ("missing_directory", "not an existing directory"),
+        ("file_path", "not an existing directory"),
+        ("outside_scope", "outside the configured watch directories"),
+        ("filesystem_root", "filesystem root"),
+    ],
+)
+def test_watch_api_rejects_bad_paths(tmp_path, case, expected_fragment):
     base = tmp_path / "base"
     base.mkdir()
-    outside = tmp_path / "outside"
-    outside.mkdir()
-    app_settings = Settings(
-        data_dir=tmp_path / "data",
-        api_key="test-key",
-        api_url="http://127.0.0.1:9/v1",
-        watch_dirs=[str(base)],
-        watch_scan_seconds=3600,
-    )
-    app = create_app(app_settings)
-    with TestClient(app) as client:
-        response = client.post("/api/watch", json={"path": str(outside)})
+    target = None
+    if case == "missing_directory":
+        target = base / "does-not-exist"
+    elif case == "file_path":
+        target = base / "not-a-dir.txt"
+        target.write_text("x", encoding="utf-8")
+    elif case == "outside_scope":
+        target = tmp_path / "outside"
+        target.mkdir()
+    elif case == "filesystem_root":
+        target = None
+
+    with _rejection_app(tmp_path, base) as client:
+        payload = {"path": "/" if case == "filesystem_root" else str(target)}
+        response = client.post("/api/watch", json=payload)
         assert response.status_code == 400
-        assert (
-            "outside the configured watch directories"
-            in response.json()["error"]["message"]
-        )
-
-
-def test_watch_api_rejects_filesystem_root(tmp_path):
-    from fastapi.testclient import TestClient
-
-    from app.main import create_app
-
-    root = tmp_path / "watched"
-    root.mkdir()
-    app_settings = Settings(
-        data_dir=tmp_path / "data",
-        api_key="test-key",
-        api_url="http://127.0.0.1:9/v1",
-        watch_dirs=[str(root)],
-        watch_scan_seconds=3600,
-    )
-    app = create_app(app_settings)
-    with TestClient(app) as client:
-        response = client.post("/api/watch", json={"path": "/"})
-        assert response.status_code == 400
-        assert "filesystem root" in response.json()["error"]["message"]
+        assert expected_fragment in response.json()["error"]["message"]
 
 
 def test_watch_api_aliased_paths_collapse(tmp_path):

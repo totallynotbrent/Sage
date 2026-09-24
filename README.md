@@ -83,7 +83,7 @@ sage/
 │   ├── check_wheels.py              # ARM64 wheel preflight check
 │   ├── smoke_chat.py                # live endpoint smoke test
 │   └── validate_mermaid.mjs         # Node Mermaid syntax validator (mermaid.parse)
-├── tests/                           # offline pytest suite (faked LLM)
+├── tests/                           # pytest suite: E2E-first via the API layer (faked LLM)
 │   ├── conftest.py
 │   ├── fakes/fake_llm.py
 │   └── test_*.py                    # API, chunking, retrieval, plans, teach, mastery,

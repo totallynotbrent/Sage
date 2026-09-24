@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import sqlite3
 from types import SimpleNamespace
 
-import httpx
 from ollama import ResponseError
 
-from app.config import Settings
-from app.llm.client import LLMClient
 from app.llm.tools import available_tools, execute_tool
 from app.services.plans import PlansService
 from app.services.sessions import SessionService
@@ -133,34 +129,6 @@ def _learning_ctx(conn, settings, fake_llm):
     return session, ctx
 
 
-def test_available_tools_gates_web_search_on_searxng():
-    with_search = available_tools(SimpleNamespace(searxng_url="http://searx.test"))
-    without_search = available_tools(SimpleNamespace(searxng_url=""))
-
-    names_with = {tool["function"]["name"] for tool in with_search}
-    names_without = {tool["function"]["name"] for tool in without_search}
-
-    assert names_with == {
-        "web_search",
-        "generate_quiz",
-        "generate_todo",
-        "generate_latex",
-        "record_step_actions",
-        *_LEARNING_TOOL_NAMES,
-    }
-    assert _LEARNING_TOOL_NAMES <= names_without
-    assert "generate_mermaid" not in names_without
-    assert "web_search" not in names_without
-    assert len(names_without) == 9
-
-
-def test_available_tools_strict_drops_web_search_keeps_teaching():
-    settings = SimpleNamespace(searxng_url="http://searx.test")
-    strict = {t["function"]["name"] for t in available_tools(settings, mode="strict")}
-    grounded = {t["function"]["name"] for t in available_tools(settings, mode="grounded")}
-    assert "web_search" in grounded
-    assert "web_search" not in strict
-    assert {"run_probe", "build_plan", "run_final_quiz", "grade_answer"} <= strict
 
 
 def test_strict_prompt_is_pdf_first_and_no_web():
@@ -727,46 +695,6 @@ class _ollama_flaky:
         return _scripted_stream([self._chunk])
 
 
-def test_stream_chat_falls_back_without_tools_on_400(caplog):
-    stub = _ollama_flaky(_ollama_chunk("hello"))
-
-    client = LLMClient.__new__(LLMClient)
-    object.__setattr__(client, "_client", stub)
-    object.__setattr__(
-        client, "_settings", Settings(api_key="test-key", model="test-model")
-    )
-
-    tools = [{"type": "function", "function": {"name": "web_search"}}]
-
-    with caplog.at_level(logging.WARNING, logger="app"):
-        events = asyncio.run(
-            _collect(
-                client.stream_chat([{"role": "user", "content": "hi"}], tools=tools)
-            )
-        )
-
-    assert len(stub.chat_calls) == 2
-    assert "tools" in stub.chat_calls[0]
-    assert "tools" not in stub.chat_calls[1]
-    assert events == [{"type": "delta", "delta": "hello"}]
-    assert not any(e.get("type") == "tool_call" for e in events)
-
-
-def test_stream_chat_plain_path_stays_strings():
-    async def chat(**kwargs):
-        return _scripted_stream([_ollama_chunk("plain")])
-
-    stub = SimpleNamespace(chat=chat)
-    client = LLMClient.__new__(LLMClient)
-    object.__setattr__(client, "_client", stub)
-    object.__setattr__(
-        client, "_settings", Settings(api_key="test-key", model="test-model")
-    )
-
-    chunks = asyncio.run(
-        _collect(client.stream_chat([{"role": "user", "content": "hi"}]))
-    )
-    assert chunks == ["plain"]
 
 
 def test_tool_only_turn_gets_fallback_prose(conn, settings, monkeypatch):

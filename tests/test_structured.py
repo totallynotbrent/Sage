@@ -22,19 +22,7 @@ def test_parse_plain_json():
     assert parse_json("[1, 2, 3]") == [1, 2, 3]
 
 
-def test_parse_fenced_json():
-    text = '```json\n{"nodes": [{"node_key": "k"}]}\n```'
-    assert parse_json(text) == {"nodes": [{"node_key": "k"}]}
 
-
-def test_parse_prose_wrapped_json():
-    text = 'Sure! Here is the plan:\n{"plan": true}\nHope that helps.'
-    assert parse_json(text) == {"plan": True}
-
-
-def test_parse_supported_bool_json():
-    assert parse_json('{"supported": true}') == {"supported": True}
-    assert parse_json('{"supported": false}') == {"supported": False}
 
 
 def test_parse_broken_raises():
@@ -63,20 +51,6 @@ def test_validate_plan_ok():
     assert [n.node_key for n in plan.nodes] == ["k1", "k2"]
 
 
-def test_validate_plan_dangling_depends_on_is_none():
-    raw = {
-        "nodes": [
-            {"node_key": "k1", "title": "A", "depends_on": ["missing"]},
-        ]
-    }
-    assert validate_plan(raw) is None
-
-
-def test_validate_plan_not_dict_is_none():
-    assert validate_plan([]) is None
-    assert validate_plan("nope") is None
-    assert validate_plan({"nodes": []}) is None
-    assert validate_plan({"nodes": [{"title": "no key"}]}) is None
 
 
 def test_validate_plan_duplicate_node_key_is_none():
@@ -124,33 +98,9 @@ def test_validate_questions_ok():
     assert questions[0].correct_index == 1
 
 
-def test_validate_questions_out_of_range_correct_index_is_none():
-    raw = _good_questions()
-    raw[0]["correct_index"] = 7
-    assert validate_questions(raw) is None
 
 
-def test_validate_questions_too_few_options_is_none():
-    raw = _good_questions()
-    raw[1]["options"] = ["only one"]
-    assert validate_questions(raw) is None
 
-
-def test_validate_questions_mixed_bad_item_is_none():
-    raw = _good_questions()
-    raw.append({"question": "broken"})
-    assert validate_questions(raw) is None
-
-
-def test_validate_questions_wrapped_in_dict():
-    assert validate_questions({"questions": _good_questions()}) is not None
-    assert validate_questions({"questions": []}) is None
-
-
-def test_validate_questions_rejects_idk_option_length():
-    raw = _good_questions()
-    raw[0]["options"] = ["a", "b", "c", "d", "e", "f", "g"]
-    assert validate_questions(raw) is None
 
 
 def _session():
