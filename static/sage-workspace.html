@@ -285,7 +285,7 @@
       </div>
 
       <section class="mastery-panel" id="mastery-panel" hidden>
-        <div class="mastery-panel__title">Mastery</div>
+        <div class="mastery-panel__title" title="A model-derived estimate from the checks you've answered, not a grade.">Estimated mastery</div>
         <div class="mastery-panel__body" id="masteryBody"></div>
       </section>
 
@@ -1450,8 +1450,9 @@ function start_probe_batch(items, kind_label) {
         entry.card.dataset.answered_at = String(Math.round(performance.now()));
       }
     });
+    // the learner commits deliberately with the button; selecting the last
+    // answer only arms it, never auto-fires
     send_btn.disabled = answered.length === 0;
-    if (open.length > 0 && answered.length === open.length) submit();
   };
   const wrap = document.createElement('div');
   wrap.className = 'probe-wrap';
@@ -1469,7 +1470,7 @@ function start_probe_batch(items, kind_label) {
             ? `FINAL QUIZ · ${String(qi + 1).padStart(2, '0')}`
             : `PROBE · ${String(qi + 1).padStart(2, '0')}`;
     const card = build_probe_card(question, qi + 1, marker_text, update_state);
-    entries.push({ card, question_id: question && question.question_id });
+    entries.push({ card, question_id: question && (question.question_id || question.id) });
     wrap.appendChild(card);
   });
   const actions = document.createElement('div');
@@ -1725,9 +1726,6 @@ async function sendMessage() {
             pendingCards.push({ items: ev.questions, kind: 'check' });
           } else if (ev.name === 'start_review' && Array.isArray(ev.review_cards) && ev.review_cards.length) {
             pendingReviewCards = pendingReviewCards.concat(ev.review_cards);
-          } else if (ev.name === 'advance_lesson' && (ev.check_questions || ev.check_question)) {
-            const checks = Array.isArray(ev.check_questions) && ev.check_questions.length ? ev.check_questions : (ev.check_question ? [ev.check_question] : []);
-            if (checks.length) pendingCards.push({ items: checks, kind: 'check' });
           } else if (ev.name === 'run_final_quiz' && Array.isArray(ev.questions) && ev.questions.length) {
             pendingCards.push({ items: ev.questions, kind: 'final' });
           } else if (ev.name === 'build_plan') {
@@ -1735,7 +1733,7 @@ async function sendMessage() {
             const nodes = ev.nodes || ev.plan_nodes;
             const el = document.getElementById('plan-nodes');
             if (el && Array.isArray(nodes)) {
-              el.innerHTML = nodes.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+              el.innerHTML = nodes.map(n => planRowHtml(n)).join('');
             } else { loadSession(sessionId).catch(()=>{}); }
           } else if (ev.artifact) {
             const a = ev.artifact;
@@ -1821,6 +1819,9 @@ async function sendMessage() {
   } else if (was_aborted) {
   } else if (done_error_message) {
     assistant_msg = addMessage('assistant', esc(`Error: ${done_error_message}`));
+  } else if (pendingCards.length || pendingReviewCards.length || (Array.isArray(done_actions) && done_actions.length) || (Array.isArray(done_web_sources) && done_web_sources.length)) {
+    // server-only turns (hidden continue, tool-only probe rounds) legitimately
+    // carry no prose: the cards/actions below ARE the turn, no dead-end bubble
   } else {
     assistant_msg = addMessage('assistant', 'Sage could not produce a response. Please try again.');
   }
@@ -1860,6 +1861,28 @@ async function sendMessage() {
 }
 
 /* Pull latest session state and sync phase badge, plan checklist and completion UI */
+const PHASE_LABELS = {
+  setup: 'Getting started',
+  probe: 'Diagnostic',
+  plan: 'Planning',
+  teach: 'Teaching',
+  check: 'Quick check',
+  remediate: 'Reviewing',
+  final_quiz: 'Final quiz',
+  complete: 'Complete',
+};
+function phaseLabel(phase) {
+  return PHASE_LABELS[phase] || phase;
+}
+let lastMasteryByLabel = {};
+function planRowHtml(n) {
+  const glyph = n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;';
+  const color = n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)';
+  // learning state tint: plan rows borrow the mastery estimate of their topic
+  const m = lastMasteryByLabel[(n.title || '').toLowerCase()];
+  const tint = m != null ? ` border-left:2px solid ${m >= 0.7 ? 'var(--foam)' : m >= 0.4 ? 'var(--gold)' : 'var(--love)'};` : '';
+  return `<div class="sidebar__item"${tint}><span style="font-size:12px;width:16px;text-align:center;color:${color}">${glyph}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`;
+}
 async function refreshSessionUI() {
   if (!sessionId) return;
   try {
@@ -1867,11 +1890,11 @@ async function refreshSessionUI() {
     const data = await res.json();
     const sess = data.session || data;
     const badge = document.getElementById('phase-badge');
-    if (badge && sess.phase) { badge.textContent = sess.phase; badge.dataset.phase = sess.phase; }
+    if (badge && sess.phase) { badge.textContent = phaseLabel(sess.phase); badge.dataset.phase = sess.phase; }
     if (Array.isArray(data.plan) && data.plan.length) {
       const el = document.getElementById('plan-nodes');
       if (el) {
-        el.innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+        el.innerHTML = data.plan.map(n => planRowHtml(n)).join('');
       }
     }
     updateCompletionState();
@@ -1928,8 +1951,8 @@ function startReviewBatch(items, marker) {
     if (!send_btn) return;
     const open = entries.filter(e => !e.card.classList.contains('sent'));
     const answered = open.filter(e => e.card.dataset.selected !== '');
+    // deliberate commit only: selecting the last card arms the button
     send_btn.disabled = answered.length === 0;
-    if (open.length > 0 && answered.length === open.length) submit();
   };
   const wrap = document.createElement('div');
   wrap.className = 'probe-wrap';
@@ -1998,6 +2021,9 @@ async function renderMasteryPanel() {
     if (!topics.length) { panel.hidden = true; body.innerHTML = ''; return; }
     panel.hidden = false;
     body.innerHTML = '';
+    // plan rows tint by their topic's mastery estimate
+    lastMasteryByLabel = {};
+    topics.forEach(t => { lastMasteryByLabel[(t.label || t.topic || '').toLowerCase()] = t.confidence; });
     topics.forEach(t => {
       const pct = Math.max(0, Math.min(100, Math.round((t.confidence || 0) * 100)));
       const row = document.createElement('div');
@@ -2066,8 +2092,9 @@ function refreshChipsForPhase() {
   // until the model emits new record_step_actions.
   setQuickChips([]);
   // "You ask the questions" entry: always available once a lesson is underway.
-  const phase = (document.getElementById('phase-badge')?.textContent || '').toLowerCase();
-  if (['probe', 'plan', 'teach', 'remediate', 'check_due', 'check', 'final_quiz', 'complete'].includes(phase) && sessionId) {
+  const badge = document.getElementById('phase-badge');
+  const phase = (badge?.dataset.phase || '').toLowerCase();
+  if (['probe', 'plan', 'teach', 'remediate', 'check', 'final_quiz', 'complete'].includes(phase) && sessionId) {
     setQuickChips([{ label: 'Ask your own questions', prompt: '', action: 'ask' }]);
   }
 }
@@ -2075,7 +2102,7 @@ function refreshChipsForPhase() {
 /* Completion state: swap composer for a call-to-action hub */
 let completionDismissed = false;
 function updateCompletionState() {
-  const phase = (document.getElementById('phase-badge')?.textContent || '').toLowerCase();
+  const phase = (document.getElementById('phase-badge')?.dataset.phase || '').toLowerCase();
   const cta = document.getElementById('completion-cta');
   const inputBar = document.querySelector('.input-bar');
   if (!cta) return;
@@ -2174,7 +2201,7 @@ async function loadSession(id) {
     sessionGoal = sess.goal || '';
      document.getElementById('session-title').textContent = ` - ${session_title}`;
      document.title = `Sage - ${session_title}`;
-    document.getElementById('phase-badge').textContent = sess.phase;
+    document.getElementById('phase-badge').textContent = phaseLabel(sess.phase);
     document.getElementById('phase-badge').dataset.phase = sess.phase;
     const loaded_mode = sess.grounding_mode || 'grounded';
     current_grounding = loaded_mode;
@@ -2192,17 +2219,11 @@ async function loadSession(id) {
     if (data.selected_files) {
       currentSessionFiles = data.selected_files;
       document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
-      // open the file-viewer rail and show the first file so a fresh upload is visible
-      if (currentSessionFiles.length) {
-        selectedFileId = currentSessionFiles[0].id;
-        renderFileTab();
-        loadFileContent(currentSessionFiles[0]);
-        openArtifactsRail();
-      } else {
-        renderFileTab();
-      }
+      // session loads center on the lesson (chat + plan); sources stay a
+      // click away in the rail instead of taking over the screen
+      renderFileTab();
     } else { currentSessionFiles = []; }
-    if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => `<div class="sidebar__item"><span style="font-size:12px;width:16px;text-align:center;color:${n.status === 'done' ? 'var(--foam)' : n.status === 'current' ? 'var(--accent)' : 'var(--meta)'}">${n.status === 'done' ? '&#10003;' : n.status === 'current' ? '&#9654;' : '&#9675;'}</span><span class="sidebar__item-text">${esc(n.title)}</span></div>`).join('');
+    if (data.plan) document.getElementById('plan-nodes').innerHTML = data.plan.map(n => planRowHtml(n)).join('');
     // Persist pending questions across a page refresh (issue #7): the server
     // keeps unanswered probe/check questions in the DB; re-render them so a
     // reload shows the SAME questions instead of regenerating them.

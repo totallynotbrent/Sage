@@ -242,13 +242,20 @@ def test_select_plan_node_endpoint(client, override_llm):
     session = _create_session(client)
     override_llm.complete_json_responses = [json.dumps(_good_plan())]
     plan = _plan(client, session["id"])
-    response = client.post(
+    # k2 depends on k1: the jump is refused until the prerequisite is done
+    refused = client.post(
         f"/api/sessions/{session['id']}/plan/select", json={"node_key": "k2"}
     )
-    assert response.status_code == 200
-    payload = response.json()
+    assert refused.status_code == 400
+    assert "finish these topics first" in str(refused.json()["error"]["message"])
+    # selecting k1 (no dependencies) still succeeds
+    first = client.post(
+        f"/api/sessions/{session['id']}/plan/select", json={"node_key": "k1"}
+    )
+    assert first.status_code == 200
+    payload = first.json()
     assert payload["session"]["phase"] == "teach"
-    assert payload["session"]["current_node_id"] == plan["plan"][1]["id"]
+    assert payload["session"]["current_node_id"] == plan["plan"][0]["id"]
 
 
 def test_full_learning_flow(client, conn, override_llm):

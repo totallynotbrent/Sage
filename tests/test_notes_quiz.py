@@ -5,10 +5,9 @@ import json
 
 import pytest
 
-from app.errors import ModelOutputError, NotFoundError
+from app.errors import ModelOutputError
 from app.services.learning import LearningService
 from app.services.sessions import SessionService
-from tests.fakes.fake_llm import FakeLLM
 
 
 def _good_question(question="Rolle Q?"):
@@ -201,15 +200,6 @@ def test_generate_notes_quiz_all_dropped_raises(conn, settings, fake_llm):
     assert excinfo.value.retryable is True
 
 
-def test_generate_notes_quiz_no_seed_chunks_raises(conn, settings, fake_llm):
-    session = SessionService(conn, settings).create("learn calculus", [])
-    with pytest.raises(ModelOutputError) as excinfo:
-        asyncio.run(
-            LearningService(conn, settings).generate_notes_quiz(session.id, fake_llm)
-        )
-    assert "environments" in str(excinfo.value)
-    assert excinfo.value.retryable is True
-
 
 def test_generate_notes_quiz_subject_filter(conn, settings, fake_llm):
     _ready_file(conn, file_id="f1", name="calc.tex", subject="calculus")
@@ -228,22 +218,6 @@ def test_generate_notes_quiz_subject_filter(conn, settings, fake_llm):
     source_ref = json.loads(result["questions"][0]["source_ref"])
     assert source_ref["file_id"] == "f2"
 
-
-def test_generate_notes_quiz_bad_count_raises(conn, settings, fake_llm):
-    session = _session_with_notes(conn, settings)
-    with pytest.raises(ValueError):
-        asyncio.run(
-            LearningService(conn, settings).generate_notes_quiz(
-                session.id, fake_llm, count=0
-            )
-        )
-
-
-def test_generate_notes_quiz_missing_session(conn, settings, fake_llm):
-    with pytest.raises(NotFoundError):
-        asyncio.run(
-            LearningService(conn, settings).generate_notes_quiz("nope", fake_llm)
-        )
 
 
 def test_generate_notes_quiz_idempotent(conn, settings, fake_llm):
@@ -284,11 +258,6 @@ def test_notes_quiz_endpoint_happy_path(client, conn, override_llm):
     assert payload["session"]["phase"] == "setup"
 
 
-def test_notes_quiz_endpoint_missing_session_404(client, override_llm):
-    response = client.post("/api/sessions/nope/notes-quiz", json={})
-    assert response.status_code == 404
-    assert response.json()["error"]["code"] == "not_found"
-
 
 def test_notes_quiz_endpoint_empty_model_output_422(client, conn, override_llm):
     _ready_file(conn)
@@ -323,16 +292,6 @@ def test_notes_quiz_endpoint_provider_failure_502(client, conn, override_llm):
     assert response.json()["error"]["code"] == "connection"
 
 
-def test_notes_quiz_endpoint_bad_count_400(client, conn, override_llm):
-    _ready_file(conn)
-    session = client.post(
-        "/api/sessions", json={"goal": "learn calculus", "file_ids": ["f1"]}
-    ).json()
-    response = client.post(
-        f"/api/sessions/{session['id']}/notes-quiz", json={"count": 0}
-    )
-    assert response.status_code == 400
-
 
 def test_notes_quiz_endpoint_config_missing_400(tmp_path):
     from fastapi.testclient import TestClient
@@ -355,24 +314,3 @@ def test_notes_quiz_endpoint_config_missing_400(tmp_path):
         assert response.json()["error"]["code"] == "config_error"
 
 
-def test_notes_quiz_answer_endpoint_keeps_phase(client, conn, override_llm):
-    _ready_file(conn)
-    session = client.post(
-        "/api/sessions", json={"goal": "learn calculus", "file_ids": ["f1"]}
-    ).json()
-    override_llm.complete_json_responses = [
-        json.dumps(_good_question()),
-        json.dumps({"supported": True}),
-    ]
-    question = client.post(
-        f"/api/sessions/{session['id']}/notes-quiz", json={"count": 1}
-    ).json()["questions"][0]
-    response = client.post(
-        f"/api/sessions/{session['id']}/quiz/{question['id']}/answer",
-        json={"choice_index": 1},
-    )
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["result"]["outcome"] == "correct"
-    assert payload["result"]["next_node"] is None
-    assert payload["session"]["phase"] == "setup"

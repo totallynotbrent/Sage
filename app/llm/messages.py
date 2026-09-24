@@ -50,8 +50,10 @@ PHASE_PLAYBOOK = (
         "reply arrives (e.g. '1: B'), grade each item with grade_answer using "
         "exact ids; never reveal answers before grading. After "
         "probe_complete, briefly summarize the learner's edge of understanding. "
-    "The probe is the ONLY automatic question round at the start. mid-lesson "
-    "the learner mostly receives explanations, not question cards. "
+    "The probe opens the lesson; you never write question cards yourself. "
+    "Mid-lesson a check card fires automatically after each taught node: when "
+    "the learner answers it (e.g. '1: B'), grade it with grade_answer exactly "
+    "like a probe answer. "
     "- After ALL probe answers are graded, you MUST write a short summary: how "
     "the learner did, then call build_plan, then walk through the plan nodes in "
     "plain text. Never end a turn with only tool calls. always add teaching "
@@ -79,16 +81,21 @@ PHASE_PLAYBOOK = (
     "(exact ids). "
     "- decide: after all final-quiz answers are graded, judge whether the "
     "learner genuinely learned from the correct/incorrect pattern and the "
-    "mastery summary. If they clearly learned, keep advancing to finish ("
-    "advance_lesson until the lesson is complete). If they struggled on a "
-    "topic, re-teach that topic in words, then re-run the final quiz or advance "
-    "toward completion once they improve. Never leave the learner stuck. "
+    "mastery summary. The Continue button advances the lesson server-side; "
+    "you never advance it yourself. If they struggled on a topic, re-teach "
+    "that topic in words, then re-run the final quiz or finish once they "
+    "improve. If a mid-lesson check answer was wrong the session enters "
+    "remediate: re-explain the SAME topic more simply from a different "
+    "angle, then end the turn with the Continue button; never leave the "
+    "learner stuck. "
     "- complete: celebrate briefly, offer follow-up topics. "
     "Call generate_quiz/generate_todo only when the learner explicitly asks for "
     "that kind of artifact. Do NOT generate diagrams/mermaid."
 )
 
 HISTORY_LIMIT = 64
+# lite mode ships a smaller window so long lessons stay cheap for small models
+LITE_HISTORY_LIMIT = 24
 
 # Compact small-model variants: a <=8B model follows a terse ordered list better
 # than a wall of prose, and the shorter prompt fits a small context window.
@@ -118,6 +125,9 @@ SLIM_PHASE_PLAYBOOK = (
     "answer the learner already gave. After all answers are graded, summarize "
     "and call build_plan once. "
     "plan: once the plan exists, start teaching the first node. "
+    "checks: after each taught node a check card fires automatically. When "
+    "the learner answers it (e.g. '1: B'), grade it with grade_answer exactly "
+    "like a probe answer. "
     "teach: explain ONE idea per turn in words. End the turn with "
     "record_step_actions carrying one 'continue' action (id 'continue', "
     "label 'Continue', prompt 'Continue') so the learner gets a button. The "
@@ -126,12 +136,16 @@ SLIM_PHASE_PLAYBOOK = (
     "your visible text: questions arrive as interactive cards from tool "
     "calls only. When a quiz_verdict appears in a grade result, report it "
     "honestly: passed is passed, failed is failed with the weak topics to "
-    "re-learn. "
+    "re-learn. Do NOT ask \"do you have any questions?\" or \"any questions "
+    "so far?\" - the learner already has a chat box; end with the Continue "
+    "button instead. "
     "final quiz: when the whole plan is covered, call run_final_quiz, then "
     "grade every answer with grade_answer and decide whether the learner "
     "learned. "
     "decide: re-teach each weak topic or finish; never leave the learner "
-    "stuck. "
+    "stuck. If a check or quiz answer was wrong, the session enters "
+    "remediate: re-explain the SAME topic more simply from a different "
+    "angle, then let the learner continue. "
     "complete: celebrate briefly. Never generate diagrams or mermaid."
 )
 
@@ -174,9 +188,12 @@ def build_lesson_state_block(state: dict[str, Any]) -> str:
         lines.append(arc)
     pending = state.get("pending_questions") or []
     if pending:
+        kinds = {str(item.get("kind")) for item in pending}
         lines.append(
             "The learner still owes answers to these. Grade each reply against "
-            "these EXACT ids (copy id character-for-character):"
+            "these EXACT ids (copy id character-for-character)"
+            + (" (checks grade just like probe answers)" if "check" in kinds else "")
+            + ":"
         )
         for item in pending:
             lines.append(
@@ -361,9 +378,10 @@ def format_location(chunk: dict[str, Any]) -> str:
     return _format_location(chunk)
 
 
-def _history_messages(session: dict[str, Any]) -> list[dict]:
+def _history_messages(session: dict[str, Any], limit: int | None = None) -> list[dict]:
     history = session.get("messages") or []
-    window_start = max(len(history) - HISTORY_LIMIT, 0)
+    cap = limit if limit is not None else HISTORY_LIMIT
+    window_start = max(len(history) - cap, 0)
     window: list[dict] = []
     for msg in history[window_start:]:
         if msg.get("partial"):
@@ -391,6 +409,7 @@ def build_chat_messages(
     system_prompt = make_system_prompt(
         session, mode, mastery_summary, lesson_state=lesson_state, lightweight=lightweight
     )
+    history_limit = LITE_HISTORY_LIMIT if lightweight else HISTORY_LIMIT
 
     excerpts: list[str] = []
     for chunk in chunks:
@@ -416,7 +435,7 @@ def build_chat_messages(
     body_parts.append(user_text)
 
     messages: list[dict] = [{"role": "system", "content": system_prompt}]
-    messages.extend(_history_messages(session))
+    messages.extend(_history_messages(session, limit=history_limit))
     messages.append({"role": "user", "content": "\n\n".join(body_parts)})
     return messages
 

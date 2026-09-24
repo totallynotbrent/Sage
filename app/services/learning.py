@@ -228,45 +228,6 @@ class LearningService:
             "questions": self._pending_questions(session_id, "check"),
         }
 
-    async def generate_pretest(self, session_id: str, llm) -> dict:
-        """Fire one diagnostic question on the current node before teaching it.
-
-        A wrong guess primes encoding of the explanation that follows
-        (pretesting effect). The session phase is left untouched so the
-        teach/check flow proceeds normally around the pending card.
-        """
-        session = self.sessions.get(session_id)
-        existing = self._pending_questions(session_id, "pretest")
-        if existing:
-            return {"session": session.model_dump(), "questions": existing}
-        self._delete_pending_questions(session_id, "pretest")
-        topic = self._current_node_title(session) or session.goal
-        chunks = self.sessions._select_chunks(session, "pretest question")
-        questions = await request_questions(
-            llm,
-            session=session.model_dump(),
-            chunks=chunks,
-            mastery_summary=self.sessions._mastery_summary(session_id),
-            mode=session.grounding_mode,
-            count=1,
-            focus=topic,
-            lightweight=self.settings.lightweight,
-        )
-        if not questions:
-            error = ModelOutputError("The model returned no usable pretest question.")
-            error.retryable = True
-            raise error
-        # A pretest is defined as exactly one diagnostic question; never let a
-        # verbose model dump extras into the pending queue.
-        questions = questions[:1]
-        for question in questions:
-            question.topic = topic
-            self._insert_question(session_id, "pretest", question)
-        return {
-            "session": self.sessions.get(session_id).model_dump(),
-            "questions": self._pending_questions(session_id, "pretest"),
-        }
-
     async def review_learner_questions(
         self, session_id: str, llm, questions: list[str]
     ) -> dict:
@@ -642,40 +603,6 @@ class LearningService:
         )
         self.conn.commit()
         return question_id
-
-    def persist_check_question(self, session_id: str, question: str, options: list[str]) -> str:
-        session = self.sessions.get(session_id)
-        self._delete_pending_questions(session_id, "check")
-        question_id = new_id()
-        self.conn.execute(
-            "INSERT INTO quiz_questions (id, session_id, kind, topic, difficulty, question, options_json, correct_index, status, created_at) VALUES (?, ?, 'check', ?, ?, ?, ?, -1, 'pending', ?)",
-            (
-                question_id,
-                session_id,
-                self._current_node_title(session) or session.goal,
-                None,
-                question,
-                json.dumps(options),
-                utc_now(),
-            ),
-        )
-        self.conn.commit()
-        return question_id
-
-    def answer_check_question(
-        self, session_id: str, question_id: str, choice_index: int
-    ) -> None:
-        row = self.conn.execute(
-            "SELECT * FROM quiz_questions WHERE id = ? AND session_id = ?",
-            (question_id, session_id),
-        ).fetchone()
-        if row is None:
-            raise NotFoundError("question", question_id)
-        self.conn.execute(
-            "UPDATE quiz_questions SET status = 'answered', user_choice = ?, answered_at = ? WHERE id = ? AND session_id = ?",
-            (choice_index, utc_now(), question_id, session_id),
-        )
-        self.conn.commit()
 
     def _current_node_title(self, session: Session) -> str | None:
         node_id = session.current_node_id

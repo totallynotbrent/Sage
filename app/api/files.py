@@ -86,6 +86,38 @@ async def get_excerpts(
     chunk: str | None = None,
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> dict:
+    if chunk is None:
+        # no chunk id given: list every chunk of the file in order so the
+        # home viewer can page through the whole document
+        rows = conn.execute(
+            """
+            SELECT c.*, f.display_name AS file_name
+            FROM chunks c JOIN files f ON f.id = c.file_id
+            WHERE c.file_id = ?
+            ORDER BY c.chunk_index
+            """,
+            (file_id,),
+        ).fetchall()
+        if not rows:
+            file_row = conn.execute(
+                "SELECT id FROM files WHERE id = ?", (file_id,)
+            ).fetchone()
+            if file_row is None:
+                raise NotFoundError("file", file_id)
+            return {"excerpts": [], "file_id": file_id}
+        chunks = [dict(row) for row in rows]
+        return {
+            "file_id": file_id,
+            "excerpts": [
+                {
+                    "chunk_id": chunk["id"],
+                    "chunk_index": chunk["chunk_index"],
+                    "location": format_location(chunk),
+                    "text": chunk["text"],
+                }
+                for chunk in chunks
+            ],
+        }
     row = conn.execute(
         """
         SELECT c.*, f.display_name AS file_name

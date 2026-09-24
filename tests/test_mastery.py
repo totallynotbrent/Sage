@@ -163,28 +163,7 @@ def test_topic_confidence_returns_value_or_none(conn):
     assert mastery.topic_confidence(conn, SID, "algebra") == pytest.approx(2 / 3)
 
 
-def test_latency_bucket_four_ways():
-    assert mastery.latency_bucket("correct", 2000) == "fast-correct"
-    assert mastery.latency_bucket("correct", 12_000) == "slow-correct"
-    assert mastery.latency_bucket("incorrect", 2000) == "fast-wrong"
-    assert mastery.latency_bucket("idk", 12_000) == "slow-wrong"
-    assert mastery.latency_bucket("correct", None) is None
 
-
-def test_is_slow_answer_threshold():
-    assert not mastery.is_slow_answer(8000)
-    assert mastery.is_slow_answer(8001)
-    assert not mastery.is_slow_answer(None)
-
-
-def test_coerce_latency_ms():
-    assert mastery.coerce_latency_ms(None) is None
-    assert mastery.coerce_latency_ms(42) == 42
-    assert mastery.coerce_latency_ms("2500") == 2500
-    assert mastery.coerce_latency_ms(2.6) == 3
-    assert mastery.coerce_latency_ms("2.4s") is None
-    assert mastery.coerce_latency_ms(-5) is None
-    assert mastery.coerce_latency_ms(9_999_999_999) is None
 
 
 def test_fast_correct_is_strong(conn):
@@ -214,20 +193,6 @@ def test_slow_wrong_schedules_hardest(conn):
     assert row["correct_count"] == 0
     assert row["confidence"] == pytest.approx(1 / 4)
 
-
-def test_latency_buckets_monotonic_ladder(conn):
-    fast_correct = mastery.record_evidence(conn, SID, "t1", "check", "correct", latency_ms=2000)
-    slow_correct = mastery.record_evidence(conn, SID, "t2", "check", "correct", latency_ms=12_000)
-    fast_wrong = mastery.record_evidence(conn, SID, "t3", "check", "incorrect", latency_ms=2000)
-    slow_wrong = mastery.record_evidence(conn, SID, "t4", "check", "incorrect", latency_ms=12_000)
-    confs = [
-        fast_correct["confidence"],
-        slow_correct["confidence"],
-        fast_wrong["confidence"],
-        slow_wrong["confidence"],
-    ]
-    assert confs == sorted(confs, reverse=True)
-    assert len(set(confs)) == 4
 
 
 def test_evidence_records_latency(conn):

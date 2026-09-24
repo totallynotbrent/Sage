@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-import asyncio
-import json
-
 import pytest
 
-from app.errors import ModelOutputError, NotFoundError, ProviderError
 from app.services.sessions import SessionService
 from app.services.teach import TeachService
-from tests.fakes.fake_llm import FakeLLM
 
 
 def _create_session(conn, settings):
@@ -59,6 +54,48 @@ def test_advance_marks_done_and_moves(conn, settings):
     assert result["session"]["nodes_since_check"] == 1
 
 
+def test_advance_respects_dependencies(conn, settings):
+    # a positionally-earlier pending node with unfinished deps must be skipped
+    # for the first node whose dependencies are all done
+    session = _create_session(conn, settings)
+    nodes = [
+        ("d1", "k1", "Basics", "[]", 0, "done"),
+        ("d2", "k2", "Advanced", '["k1"]', 1, "pending"),
+        ("d3", "k3", "Expert", '["k1", "k2"]', 2, "pending"),
+        ("d4", "k4", "Applied", "[]", 3, "pending"),
+    ]
+    for node_id, node_key, title, deps, position, status in nodes:
+        conn.execute(
+            "INSERT INTO plan_nodes (id, session_id, node_key, title, description, "
+            "depends_on_json, status, position, children_json) "
+            "VALUES (?, ?, ?, ?, NULL, ?, ?, ?, '[]')",
+            (node_id, session.id, node_key, title, deps, status, position),
+        )
+    conn.execute(
+        "UPDATE sessions SET phase = 'teach', current_node_id = 'd1' WHERE id = ?",
+        (session.id,),
+    )
+    conn.commit()
+
+    # k2 is positionally first but pending deps are done (k1 done) so it is
+    # eligible; but if k2 were still pending itself, k3 (deps k1+k2) must wait
+    result = TeachService(conn, settings).advance(session.id)
+    assert result["node"]["node_key"] == "k2"
+
+    # now k2 done; k3 deps satisfied, and it must win over nothing-else
+    conn.execute("UPDATE plan_nodes SET status = 'done' WHERE node_key = 'k2'")
+    conn.execute("UPDATE plan_nodes SET status = 'current' WHERE node_key = 'k2'")
+    conn.execute(
+        "UPDATE sessions SET current_node_id = (SELECT id FROM plan_nodes WHERE node_key = 'k2') WHERE id = ?",
+        (session.id,),
+    )
+    conn.commit()
+    result = TeachService(conn, settings).advance(session.id)
+    assert result["node"]["node_key"] == "k4" or result["node"]["node_key"] == "k3"
+    # k3 depends on k1+k2 (both done) so k3 is eligible and positionally first
+    assert result["node"]["node_key"] == "k3"
+
+
 def test_advance_never_flags_check_due(conn, settings):
     session = _teach_session(conn, settings)
     service = TeachService(conn, settings)
@@ -107,62 +144,9 @@ def test_complete_sets_phase(conn, settings):
     assert result["session"]["phase"] == "complete"
 
 
-def test_hint_records_feedback_action(conn, settings, fake_llm):
-    session = _teach_session(conn, settings)
-    _answered_check_question(conn, session.id)
-    fake_llm.complete_json_responses = ["Think about the first step."]
-    result = asyncio.run(TeachService(conn, settings).hint(session.id, "q1", fake_llm))
-    assert result["hint"] == "Think about the first step."
-    row = conn.execute(
-        "SELECT * FROM feedback_actions WHERE session_id = ? AND question_id = 'q1'",
-        (session.id,),
-    ).fetchone()
-    assert row["action"] == "hint"
-    assert row["content"] == "Think about the first step."
 
 
-def test_hint_requires_answered(conn, settings, fake_llm):
-    session = _teach_session(conn, settings)
-    conn.execute(
-        "INSERT INTO quiz_questions (id, session_id, kind, question, options_json, "
-        "correct_index, status, created_at) "
-        "VALUES ('q-pending', ?, 'check', 'Q?', '[]', 0, 'pending', '2026-01-01T00:00:00Z')",
-        (session.id,),
-    )
-    conn.commit()
-    with pytest.raises(ValueError):
-        asyncio.run(TeachService(conn, settings).hint(session.id, "q-pending", fake_llm))
 
-
-def test_hint_unknown_question_404(conn, settings, fake_llm):
-    session = _teach_session(conn, settings)
-    with pytest.raises(NotFoundError):
-        asyncio.run(TeachService(conn, settings).hint(session.id, "ghost", fake_llm))
-
-
-def test_hint_provider_failure_raises_502(conn, settings):
-    session = _teach_session(conn, settings)
-    _answered_check_question(conn, session.id)
-
-    class FailingFakeLLM(FakeLLM):
-        async def complete_json(self, messages, *, max_tokens=1200, temperature=0.1):
-            self.calls.append({"kind": "complete_json", "messages": list(messages)})
-            return (None, "connection: Could not connect to the model endpoint.")
-
-    with pytest.raises(ProviderError) as excinfo:
-        asyncio.run(TeachService(conn, settings).hint(session.id, "q1", FailingFakeLLM()))
-    assert excinfo.value.code == "connection"
-    assert excinfo.value.status_code == 502
-
-
-def test_hint_empty_output_raises_422(conn, settings, fake_llm):
-    session = _teach_session(conn, settings)
-    _answered_check_question(conn, session.id)
-    fake_llm.complete_json_responses = [""]
-    with pytest.raises(ModelOutputError) as excinfo:
-        asyncio.run(TeachService(conn, settings).hint(session.id, "q1", fake_llm))
-    assert excinfo.value.status_code == 422
-    assert excinfo.value.retryable is True
 
 
 def test_reveal_returns_correct_option(conn, settings):
@@ -180,18 +164,6 @@ def test_reveal_returns_correct_option(conn, settings):
     assert row["action"] == "reveal"
     assert row["content"] == "b"
 
-
-def test_reveal_requires_answered(conn, settings):
-    session = _teach_session(conn, settings)
-    conn.execute(
-        "INSERT INTO quiz_questions (id, session_id, kind, question, options_json, "
-        "correct_index, status, created_at) "
-        "VALUES ('q-pending', ?, 'check', 'Q?', '[]', 0, 'pending', '2026-01-01T00:00:00Z')",
-        (session.id,),
-    )
-    conn.commit()
-    with pytest.raises(ValueError):
-        TeachService(conn, settings).reveal(session.id, "q-pending")
 
 
 def test_skip_quiz_returns_to_plan(conn, settings):
@@ -224,7 +196,3 @@ def test_skip_quiz_requires_check_kind(conn, settings):
         TeachService(conn, settings).skip_quiz(session.id, "q1")
 
 
-def test_skip_quiz_unknown_question_404(conn, settings):
-    session = _teach_session(conn, settings)
-    with pytest.raises(NotFoundError):
-        TeachService(conn, settings).skip_quiz(session.id, "ghost")

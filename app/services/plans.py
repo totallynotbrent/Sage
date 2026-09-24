@@ -207,6 +207,22 @@ class PlansService:
         if row is None:
             raise NotFoundError("plan node", node_key)
         node = dict(row)
+        deps = json.loads(node.get("depends_on_json") or "[]")
+        unmet = [
+            dep
+            for dep in deps
+            if self.conn.execute(
+                "SELECT status FROM plan_nodes WHERE session_id = ? AND node_key = ?",
+                (session_id, dep),
+            ).fetchone()["status"]
+            not in ("done", "skipped")
+        ]
+        if unmet and node.get("status") == "pending":
+            # jumping ahead of the learning sequence is refused: the plan's
+            # dependency graph gates teaching, same as advance()
+            raise ValueError(
+                "finish these topics first: " + ", ".join(unmet)
+            )
         now = utc_now()
         self.conn.execute(
             "UPDATE plan_nodes SET status = 'pending' WHERE session_id = ? AND status = 'current'",

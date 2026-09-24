@@ -143,6 +143,32 @@ def test_excerpts_unknown_chunk_404(client, settings):
     assert response.status_code == 404
 
 
+def test_excerpts_list_mode_without_chunk(client, settings):
+    # the home viewer requests excerpts with no chunk id; the endpoint lists
+    # every chunk in order instead of 404ing
+    text = (
+        "# Heading\n\nFirst section body text with enough words to chunk. "
+        "Second section body text with more words so a second chunk exists "
+        "and the listing has multiple entries to page through."
+    )
+    record = upload_txt(client, "multi.md", text, "text/markdown")
+    response = client.get(f"/api/files/{record['id']}/excerpts")
+    assert response.status_code == 200
+    body = response.json()
+    excerpts = body["excerpts"]
+    assert excerpts, "expected at least one chunk"
+    indices = [e["chunk_index"] for e in excerpts]
+    assert indices == sorted(indices)
+    for e in excerpts:
+        assert e["chunk_id"]
+        assert e["location"]
+        assert e["text"]
+
+
+def test_excerpts_list_mode_unknown_file_404(client):
+    assert client.get("/api/files/nope/excerpts").status_code == 404
+
+
 def test_failed_file_has_no_chunks_and_not_retrievable(client, settings):
     record = upload_txt(client, "empty.txt", "")
     assert record["status"] == "failed"

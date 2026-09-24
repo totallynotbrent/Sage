@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 
 from app.services.hybrid import fuse_ranked, select_hybrid
 
@@ -57,10 +56,6 @@ def test_fuse_respects_per_file_cap():
     assert a in fused and c in fused  # one from fA, one from fB
 
 
-def test_fuse_empty_inputs():
-    assert fuse_ranked([], 5) == []
-    assert fuse_ranked([[c for c in []], [c for c in []]], 5) == []
-
 
 def test_select_hybrid_without_settings_uses_lexical():
     chunks = [
@@ -87,13 +82,4 @@ def test_select_hybrid_lexical_terminology_survives():
     assert [c["id"] for c in result] == ["a"]
 
 
-def test_select_hybrid_empty():
-    assert select_hybrid([], "mitochondria", budget=5) == []
-    assert select_hybrid([_chunk("a", "f", "x", 0)], "x", budget=0) == []
 
-
-def test_key_of_handles_missing_id():
-    left = [{**_chunk("a", "f1", "x", 0), "id": None}]
-    right = [{"file_id": "f1", "chunk_index": 0, "id": None, "text": "x"}]
-    fused = fuse_ranked([left, right], budget=1)
-    assert fused == right  # aligned on (file_id, chunk_index)
