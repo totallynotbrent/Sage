@@ -56,7 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
-    init_db(settings.db_path)
+    init_db(settings.db_path, settings)
     for problem in validation_problems(settings):
         logger.warning("Configuration problem: %s", problem)
     logger.info(
