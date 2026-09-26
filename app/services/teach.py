@@ -77,6 +77,10 @@ class TeachService:
             ):
                 picked = row
                 break
+        if picked is None and next_row:
+            # defense in depth: a legacy or malformed cyclic plan must not
+            # silently complete the lesson - fall back to positional order
+            picked = next_row[0]
         next_row = picked
         nodes_since_check = 0 if reset_check else session.nodes_since_check + 1
         if next_row is None:
@@ -118,7 +122,15 @@ class TeachService:
         return self.advance(session_id, reset_check=True)
 
     def complete(self, session_id: str) -> dict:
-        self.sessions.get(session_id)
+        session = self.sessions.get(session_id)
+        # completing a lesson that never had a plan is a silent lie; require
+        # at least one taught (done) node so complete means something
+        done = self.conn.execute(
+            "SELECT COUNT(*) FROM plan_nodes WHERE session_id = ? AND status = 'done'",
+            (session_id,),
+        ).fetchone()[0]
+        if done == 0:
+            raise ValueError("cannot complete a lesson with no completed topics")
         self.sessions.set_phase(session_id, "complete")
         return {"session": self.sessions.get(session_id).model_dump()}
 
