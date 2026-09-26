@@ -438,7 +438,10 @@ class LearningService:
         if question["kind"] == "check":
             phase = self.sessions.get(session_id).phase
             if outcome in ("incorrect", "idk"):
-                if phase == "check":
+                # a wrong answer to a pending check always drops the session
+                # to remediate, even if the phase already rolled back to
+                # teach: the card is the lesson's own progress gate
+                if phase != "remediate":
                     self.sessions.set_phase(session_id, "remediate")
                 return self._answer_response(session_id, question, outcome)
             if phase not in ("check", "remediate"):
