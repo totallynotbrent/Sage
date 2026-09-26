@@ -178,6 +178,9 @@ def _questions_from_fragments(raw: Any) -> list[QuizQuestionInput]:
 
 
 def _plan_from_fragments(raw: Any) -> Plan | None:
+    # last-resort repair for a verbose model: keep any well-formed nodes but
+    # preserve their depends_on and still require a resolvable graph, else a
+    # cyclic or dangling plan sneaks in ungated
     if isinstance(raw, dict):
         raw = raw.get("nodes")
     if not isinstance(raw, list) or not raw:
@@ -197,7 +200,11 @@ def _plan_from_fragments(raw: Any) -> Plan | None:
             )
             if node_key in seen:
                 return None
-            seen.add(node_key)
+            depends_on = item.get("depends_on") or []
+            if not isinstance(depends_on, list) or not all(
+                isinstance(d, str) and d for d in depends_on
+            ):
+                depends_on = []
             nodes.append(
                 PlanNode(
                     node_key=node_key,
@@ -205,11 +212,15 @@ def _plan_from_fragments(raw: Any) -> Plan | None:
                     description=item.get("description")
                     if isinstance(item.get("description"), str)
                     else None,
-                    depends_on=[],
+                    depends_on=depends_on,
                     position=index,
                 )
             )
-    return Plan(nodes=nodes) if nodes else None
+            seen.add(node_key)
+    if not nodes:
+        return None
+    plan = Plan(nodes=nodes)
+    return plan if plan.validate_dependencies() else None
 
 
 def _context_block(chunks: list[dict[str, Any]]) -> str:

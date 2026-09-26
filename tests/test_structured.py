@@ -147,15 +147,17 @@ def test_request_plan_degrades_to_outline():
         json.dumps(
             {"nodes": [{"node_key": "a", "title": "First", "depends_on": ["ghost"]}]}
         ),
-        "still broken",
+        json.dumps({"nodes": [{"node_key": "a", "title": "First", "depends_on": []}]}),
     ]
     plan = asyncio.run(
         request_plan(
             llm, session=_session(), chunks=[], mastery_summary="", mode="grounded"
         )
     )
+    # the dangling dep is rejected and the corrective retry's clean plan wins
     assert plan is not None
     assert [n.title for n in plan.nodes] == ["First"]
+    assert plan.nodes[0].depends_on == []
 
 
 def test_request_plan_nothing_usable_returns_none():

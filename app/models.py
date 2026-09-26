@@ -119,8 +119,26 @@ class Plan(BaseModel):
     nodes: list[PlanNode]
 
     def validate_dependencies(self) -> bool:
+        # deps must exist and the graph must be acyclic, else the dependency
+        # gate in advance() can deadlock a lesson into a silent early complete
         keys = {n.node_key for n in self.nodes}
-        return all(dep in keys for n in self.nodes for dep in n.depends_on)
+        for node in self.nodes:
+            for dep in node.depends_on:
+                if dep not in keys:
+                    return False
+                if dep == node.node_key:
+                    return False
+        # kahn check: peel nodes whose deps are all resolved; leftovers = cycle
+        remaining = {n.node_key: set(n.depends_on) for n in self.nodes}
+        resolved: set[str] = set()
+        while True:
+            ready = [k for k, deps in remaining.items() if deps <= resolved]
+            if not ready:
+                break
+            for k in ready:
+                resolved.add(k)
+                del remaining[k]
+        return not remaining
 
 
 class MasteryTopic(BaseModel):

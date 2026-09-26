@@ -140,6 +140,11 @@ def test_continue_requires_remediate_phase(conn, settings):
 
 def test_complete_sets_phase(conn, settings):
     session = _teach_session(conn, settings)
+    # complete is honest: it refuses while no node has been taught yet
+    with pytest.raises(ValueError):
+        TeachService(conn, settings).complete(session.id)
+    conn.execute("UPDATE plan_nodes SET status = 'done' WHERE id = 'n1'")
+    conn.commit()
     result = TeachService(conn, settings).complete(session.id)
     assert result["session"]["phase"] == "complete"
 
