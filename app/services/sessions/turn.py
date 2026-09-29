@@ -288,6 +288,12 @@ class TurnMixin:
                         if isinstance(item, str):
                             item = {"type": "delta", "delta": item}
                         event_type = item.get("type")
+                        if event_type == "reset":
+                            # upstream retried after a stall; drop attempt 1's
+                            # partial text so the message doesn't duplicate
+                            buffer.clear()
+                            yield {"type": "reset"}
+                            continue
                         if event_type == "thinking":
                             # Model's private reasoning, surfaced for the UI's
                             # collapsible "thinking" section.
@@ -405,6 +411,18 @@ class TurnMixin:
                                 tool_event["review_cards"] = result.get("cards", [])
                             if name == "build_plan" and result.get("plan_diagram"):
                                 tool_event["plan_diagram"] = result["plan_diagram"]
+                            if name == "grade_answer" and not result.get("error"):
+                                # the live cards color themselves from this payload
+                                tool_event["grade"] = {
+                                    k: result.get(k)
+                                    for k in (
+                                        "question_id",
+                                        "outcome",
+                                        "correct_index",
+                                        "explanation",
+                                        "retry_allowed",
+                                    )
+                                }
                             yield tool_event
                             continue
                         delta = item.get("delta") or ""
@@ -543,6 +561,14 @@ class TurnMixin:
                     message = self.persist_message(
                         session_id, client_msg_id, full_text, citations
                     )
+                    if message is not None and stashed_actions:
+                        # persist the turn's continue/actions so a page reload
+                        # re-renders the chips; the live SSE path already sent them
+                        self.conn.execute(
+                            "UPDATE messages SET payload_json = ? WHERE id = ?",
+                            (json.dumps({"actions": stashed_actions}), message.id),
+                        )
+                        self.conn.commit()
                     for citation in citations:
                         yield {"type": "citation", "chunk_id": citation}
                 else:

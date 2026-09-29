@@ -19,6 +19,9 @@ class OllamaClientConfig:
     num_ctx: int = 16384
     num_threads: int = 5
     temperature: float = 0.67
+    top_p: float = 0.9
+    top_k: int = 64
+    repeat_penalty: float = 1.1
     keep_alive: int = -1
     thinking: bool = False
     thinking_level: str = ""
@@ -45,7 +48,10 @@ class OllamaClientConfig:
             model=(getattr(settings, "model", "") or "").strip(),
             num_ctx=int(getattr(settings, "ollama_num_ctx", 16384) or 16384),
             num_threads=5,
-            temperature=0.67,
+            temperature=float(getattr(settings, "ollama_temperature", 0.67) or 0.67),
+            top_p=float(getattr(settings, "ollama_top_p", 0.9) or 0.9),
+            top_k=int(getattr(settings, "ollama_top_k", 64) or 64),
+            repeat_penalty=float(getattr(settings, "ollama_repeat_penalty", 1.1) or 1.1),
             keep_alive=int(getattr(settings, "ollama_keep_alive", -1)),
             thinking=bool(getattr(settings, "ollama_thinking", True)),
             thinking_level="",

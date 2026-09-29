@@ -122,6 +122,7 @@ class StreamChunk:
     thinking: str = ""
     tool_calls: list[ToolCall] = field(default_factory=list)
     done: bool = False
+    reset: bool = False
     finish_reason: FinishReason | None = None
     usage: LLMUsage | None = None
     raw: dict[str, Any] | None = None

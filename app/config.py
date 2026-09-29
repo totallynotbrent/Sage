@@ -27,6 +27,16 @@ class Settings(BaseSettings):
     ollama_num_ctx: int = Field(default=16384, validation_alias="OLLAMA_NUM_CTX")
     ollama_keep_alive: int = Field(default=-1, validation_alias="OLLAMA_KEEP_ALIVE")
     ollama_thinking: bool = Field(default=True, validation_alias="OLLAMA_THINKING")
+    ollama_temperature: float = Field(
+        default=0.67, gt=0.0, le=2.0, validation_alias="OLLAMA_TEMPERATURE"
+    )
+    ollama_top_p: float = Field(
+        default=0.9, gt=0.0, le=1.0, validation_alias="OLLAMA_TOP_P"
+    )
+    ollama_top_k: int = Field(default=64, gt=0, le=512, validation_alias="OLLAMA_TOP_K")
+    ollama_repeat_penalty: float = Field(
+        default=1.1, ge=0.0, le=2.0, validation_alias="OLLAMA_REPEAT_PENALTY"
+    )
     lightweight: bool = Field(
         default=False,
         validation_alias="SAGE_LIGHTWEIGHT",

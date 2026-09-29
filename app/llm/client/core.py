@@ -244,7 +244,16 @@ class SageOllamaClient(LLMClient):
             use_logprobs=self.config.logprobs or "logprobs" in kwargs or "top_logprobs" in kwargs,
         )
         last_error: Exception | None = None
+        yielded_any_content = False
         for _ in range(self.config.max_retries):
+            if yielded_any_content:
+                # a retry after partial text means the consumer has already
+                # seen attempt 1's deltas; flag them invalid so buffers clear
+                yield StreamChunk(
+                    content="",
+                    reset=True,
+                    finish_reason=None,
+                )
             try:
                 async for chunk in self._run_attempt(
                     messages=messages,
@@ -254,6 +263,8 @@ class SageOllamaClient(LLMClient):
                     attempt=attempt,
                     extra_kwargs=kwargs,
                 ):
+                    if chunk.content or chunk.tool_calls or chunk.thinking:
+                        yielded_any_content = True
                     yield chunk
                 return
             except _FeatureUnsupportedError as exc:
@@ -262,6 +273,10 @@ class SageOllamaClient(LLMClient):
                     last_error = exc
                     continue
                 last_error = exc
+            except ProviderError as exc:
+                # a stalled/aborted stream is retryable: try the next attempt
+                last_error = exc
+                continue
             except ResponseError as exc:
                 feature = _detect_unsupported_feature(str(exc))
                 if feature is not None and feature not in attempt.disabled_features():
@@ -350,7 +365,18 @@ class SageOllamaClient(LLMClient):
             async for chunk in self._stream_chat(request_kwargs):
                 yield chunk
         else:
-            chunk = await self._single_chat(request_kwargs)
+            # non-streaming path: the request can be accepted and then hang
+            # forever upstream, so bound the whole call by the watchdog too
+            stall_seconds = getattr(self.config, "request_timeout", 120.0)
+            try:
+                chunk = await asyncio.wait_for(
+                    self._single_chat(request_kwargs), timeout=stall_seconds
+                )
+            except asyncio.TimeoutError:
+                raise ProviderError(
+                    "timeout",
+                    "The model call stalled with no response. Retrying may help.",
+                )
             yield chunk
 
     async def _hybrid_chat(self, request_kwargs: dict[str, Any]) -> AsyncIterator[StreamChunk]:
@@ -367,7 +393,20 @@ class SageOllamaClient(LLMClient):
         tool_calls: list[ToolCall] = []
         last_done = False
         usage_chunk = None
-        async for response in stream:
+        # stall watchdog: the buffered stream can hang mid-generation
+        stall_seconds = getattr(self.config, "request_timeout", 120.0)
+        aiter = stream.__aiter__()
+        while True:
+            try:
+                response = await asyncio.wait_for(asyncio.ensure_future(aiter.__anext__()),
+                                                   timeout=stall_seconds)
+            except StopAsyncIteration:
+                break
+            except asyncio.TimeoutError:
+                raise ProviderError(
+                    "timeout",
+                    "The model stream stalled mid-buffer. Retrying may help.",
+                )
             message = _get(response, "message")
             think_delta = _get(message, "thinking", "") or ""
             if think_delta:
@@ -385,7 +424,7 @@ class SageOllamaClient(LLMClient):
                 break
         final_content = "".join(content_parts)
         # Leak guard on buffered text when tools present
-        if tool_calls and final_content and "call:" in final_content.lower():
+        if tool_calls and final_content:
             final_content = _strip_leaked_calls(final_content)
         buffered_thinking = "".join(thinking_parts)
         if buffered_thinking:
@@ -407,6 +446,10 @@ class SageOllamaClient(LLMClient):
         )
 
     async def _stream_chat(self, request_kwargs: dict[str, Any]) -> AsyncIterator[StreamChunk]:
+        # stall watchdog: a cloud stream can accept the request (headers 200)
+        # then go silent forever; without this the turn hangs indefinitely.
+        # if no chunk arrives within the window, abort the read as retryable.
+        stall_seconds = getattr(self.config, "request_timeout", 120.0)
         if hasattr(self, "_client") and not hasattr(self, "_clients"):
             # old-test harness: single fake client stored as _client
             try:
@@ -424,11 +467,26 @@ class SageOllamaClient(LLMClient):
             stream = await client.chat(stream=True, **request_kwargs)
         except Exception:
             raise
-        async for response in stream:
-            chunk = self._response_to_chunk(response)
-            yield chunk
-            if chunk.done:
-                return
+        pending: asyncio.Task | None = None
+        try:
+            aiter = stream.__aiter__()
+            while True:
+                pending = asyncio.ensure_future(aiter.__anext__())
+                try:
+                    response = await asyncio.wait_for(asyncio.shield(pending), timeout=stall_seconds)
+                except asyncio.TimeoutError:
+                    pending.cancel()
+                    raise ProviderError(
+                        "timeout",
+                        "The model stream stalled with no data. Retrying may help.",
+                    )
+                chunk = self._response_to_chunk(response)
+                yield chunk
+                if chunk.done:
+                    return
+        finally:
+            if pending is not None and not pending.done():
+                pending.cancel()
 
     async def _single_chat(self, request_kwargs: dict[str, Any]) -> StreamChunk:
         request_kwargs["stream"] = False
@@ -450,6 +508,9 @@ class SageOllamaClient(LLMClient):
             "num_ctx": self.config.num_ctx,
             "num_thread": self.config.num_threads,
             "temperature": self.config.temperature,
+            "top_p": self.config.top_p,
+            "top_k": self.config.top_k,
+            "repeat_penalty": self.config.repeat_penalty,
         }
 
     def _build_messages(
@@ -492,7 +553,7 @@ class SageOllamaClient(LLMClient):
         thinking = _get(message, "thinking", "") or ""
         tool_calls = self._extract_tool_calls(message)
         # If the model leaked a text-form call alongside structured tool_calls, strip it.
-        if tool_calls and content and "call:" in content.lower():
+        if tool_calls and content:
             content = _strip_leaked_calls(content)
         done = bool(_get(response, "done", False))
         finish_reason = self._infer_finish_reason(done, tool_calls, content)
@@ -660,6 +721,10 @@ class SageOllamaClient(LLMClient):
         async for chunk in self.chat_stream(llm_messages, tool_schemas, temperature=temperature):
             if cancel_event is not None and cancel_event.is_set():
                 raise GenerationCancelled("Generation cancelled by the user or a client disconnect.")
+            if getattr(chunk, "reset", False):
+                # upstream restarted after a stall: discard attempt 1's text
+                yield {"type": "reset"}
+                continue
             # Reasoning streams live: every thinking delta forwarded as it arrives
             if chunk.thinking:
                 yield {"type": "thinking", "thinking": chunk.thinking}

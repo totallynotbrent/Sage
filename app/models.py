@@ -58,6 +58,8 @@ class Message(BaseModel):
     kind: str = "text"
     content: str
     citations: list[str] = Field(default_factory=list)
+    # turn actions (Continue etc.) rehydrated from payload_json on load
+    actions: list[dict[str, Any]] = Field(default_factory=list)
     partial: int = 0
     created_at: str
 

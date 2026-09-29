@@ -52,7 +52,7 @@
 .probe-close{position:absolute;top:0;right:0;width:26px;height:26px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--meta);font-size:16px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:2}
 .probe-close:hover{color:var(--fg);border-color:var(--accent)}
 .artifact-card__quiz-option.correct{border-color:var(--foam);background:var(--surface-warm)}
-.artifact-card__quiz-option.wrong{border-color:var(--love)}
+.artifact-card__quiz-option.wrong{border-color:var(--love);background:rgba(235,111,146,0.1)}
 .artifact-card__quiz-option:disabled{cursor:default;opacity:.85}
 .artifact-card__quiz-outcome{font-family:var(--font-mono);font-size:11px;margin-top:var(--space-2);color:var(--meta)}
 .cite{display:inline-block;font-size:11px;font-weight:500;font-family:var(--font-mono);background:var(--accent-dim);color:var(--accent);border:1px solid var(--border);border-radius:999px;padding:1px 8px;margin:0 2px;cursor:default}
@@ -182,6 +182,8 @@
 .artifact-card__quiz-qtext.typed{overflow:visible;white-space:normal;border-right-color:transparent;width:auto}
 .artifact-card__quiz-option{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--r);font-size:13px;cursor:pointer;background:var(--overlay);border:1px solid transparent;transition:all var(--dur) var(--ease);text-align:left;width:100%;font-family:inherit;color:inherit}
 .artifact-card__quiz-option.selected{border-color:var(--accent);background:var(--accent-dim)}
+.artifact-card__quiz-option.selected.wrong{border-color:var(--love);background:rgba(235,111,146,0.1)}
+.artifact-card__quiz-option.selected.incorrect{border-color:var(--love);background:rgba(235,111,146,0.1)}
 .artifact-card__quiz-option.correct{background:rgba(156,207,216,0.1);border-color:var(--foam)}
 .artifact-card__quiz-option.incorrect{background:rgba(235,111,146,0.1);border-color:var(--love)}
 .artifact-card__quiz-option.reveal-correct{background:rgba(156,207,216,0.08);border-color:var(--foam)}
@@ -571,11 +573,13 @@ function sanitize_html(html) {
   return template.innerHTML;
 }
 function render_math(force) {
-  if (!(window.MathJax && MathJax.typesetPromise)) return;
+  if (!(window.MathJax && MathJax.typesetPromise)) return Promise.resolve();
   const now = Date.now();
-  if (!force && now - last_math_typeset < 400) return;
+  if (!force && now - last_math_typeset < 400) return Promise.resolve();
   last_math_typeset = now;
-  MathJax.typesetPromise([box]).catch(() => {});
+  // typeset must complete before the word-entrance animation re-wraps the
+  // bubble, or the in-flight typeset dies and raw $...$ leaks to the screen
+  return MathJax.typesetPromise([box]).catch(() => {});
 }
 function renderChatMermaid(root) {
   const targets = (root || box).querySelectorAll('pre > code.language-mermaid');
@@ -718,7 +722,7 @@ function addMessage(role, content, options = {}) {
    d.innerHTML = html;
   if (options._raw) d.querySelector('.msg__bubble').dataset.rawContent = options._raw;
   box.appendChild(d);
-  if (role === 'assistant' && !options.no_word_anim) { render_math(true); renderChatMermaid(d); const bubble=d.querySelector('.msg__bubble'); if(bubble) wrapWords(bubble); }
+  if (role === 'assistant' && !options.no_word_anim) { renderChatMermaid(d); render_math(true).then(() => { const bubble=d.querySelector('.msg__bubble'); if(bubble) wrapWords(bubble); }); }
   else if (role === 'assistant') { render_math(true); renderChatMermaid(d); }
   box.scrollTop = box.scrollHeight;
   return d;
@@ -1429,10 +1433,13 @@ function start_probe_batch(items, kind_label) {
       parts.push(`${entry.card.dataset.ordinal}: ${String.fromCharCode(65 + Number(sel))}`);
       if (entry.question_id && sessionId) {
         // checks grade through the same pipeline as probe/final questions so
-        // mastery is recorded and a wrong answer drops the session to remediate
+        // mastery is recorded and a wrong answer drops the session to remediate;
+        // the response also colors the card live (right/wrong at submit time)
         fetch(`${API}/sessions/${sessionId}/quiz/${entry.question_id}/answer`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ choice_index: Number(sel), idk: /don'?t know/i.test(String(((entry.item && entry.item.options) || [])[Number(sel)] || '')) }),
+        }).then(r => r.ok ? r.json() : null).then(body => {
+          if (body && body.result) applyLiveGrade({ ...body.result, question_id: entry.question_id });
         }).catch(() => {});
       }
     });
@@ -1470,7 +1477,9 @@ function start_probe_batch(items, kind_label) {
             ? `FINAL QUIZ · ${String(qi + 1).padStart(2, '0')}`
             : `PROBE · ${String(qi + 1).padStart(2, '0')}`;
     const card = build_probe_card(question, qi + 1, marker_text, update_state);
-    entries.push({ card, question_id: question && (question.question_id || question.id) });
+    const qid = question && (question.question_id || question.id);
+    if (qid) card.dataset.question_id = String(qid);
+    entries.push({ card, question_id: qid });
     wrap.appendChild(card);
   });
   const actions = document.createElement('div');
@@ -1701,9 +1710,19 @@ async function sendMessage() {
             const sl = bubble.querySelector('.tool-status-line'); if (sl) sl.remove();
           }
           fullText += ev.delta || '';
-          bubble.innerHTML = sanitize_html(renderMd(fullText));
+          // convert inline [cit:...] markers to chips live, not only on the final
+          // message, so raw citation tags never flash during streaming
+          const cit_live = render_inline_citations(fullText);
+          let live_md = renderMd(cit_live.out);
+          cit_live.chips.forEach((chip, i) => { live_md = live_md.split(`@@CIT${i}@@`).join(chip); });
+          bubble.innerHTML = sanitize_html(live_md);
           render_math(false);
           box.scrollTop = box.scrollHeight;
+        } else if (ev.type === 'reset') {
+          // upstream retried after a stall; drop the partial text so the
+          // regenerated answer doesn't get concatenated onto attempt 1
+          fullText = '';
+          if (bubble_started) { bubble.innerHTML = ''; }
         } else if (ev.type === 'meta') {
           meta_chunks = Array.isArray(ev.chunks) ? ev.chunks : [];
           if (bubble) bubble.dataset.sources = String(meta_chunks.length);
@@ -1719,6 +1738,7 @@ async function sendMessage() {
           setComposerStatus('');
           const sl = bubble && bubble.querySelector('.tool-status-line');
           if (sl) sl.remove();
+          if (ev.grade) applyLiveGrade(ev.grade);
           if (ev.name === 'run_probe' && Array.isArray(ev.questions) && ev.questions.length) {
             pendingCards.push({ items: ev.questions, kind: 'probe' });
           } else if (ev.name === 'check' && Array.isArray(ev.questions) && ev.questions.length) {
@@ -2215,7 +2235,12 @@ async function loadSession(id) {
     document.getElementById('plan-artifacts')?.querySelectorAll('.artifact-card').forEach(el => el.remove());
     diagramBody.querySelectorAll('.artifact-card').forEach(el => el.remove());
     updateArtifactsCount();
-    if (data.messages) data.messages.forEach(m => addMessage(m.role, m.role === 'assistant' ? stripAllQuestions(m.content, data.quiz) : m.content));
+    if (data.messages) data.messages.forEach(m => {
+      const el = addMessage(m.role, m.role === 'assistant' ? stripAllQuestions(m.content, data.quiz) : m.content, m.role === 'assistant' ? {no_word_anim: true} : undefined);
+      // re-attach the turn's action chips from the persisted payload so a
+      // reload keeps the Continue buttons instead of losing them
+      if (m.role === 'assistant' && Array.isArray(m.actions) && m.actions.length) append_action_chips(el, m.actions);
+    });
     if (data.selected_files) {
       currentSessionFiles = data.selected_files;
       document.getElementById('files-list').innerHTML = data.selected_files.map(f => `<div class="sidebar__item"><span class="sidebar__item-dot ready"></span><span class="sidebar__item-text">${esc(f.display_name)}</span><span class="sidebar__item-meta">${f.num_chunks}</span></div>`).join('');
@@ -2244,7 +2269,48 @@ async function loadSession(id) {
   } catch (e) { console.error('Failed to load session:', e); }
 }
 
-// render previously answered/skipped questions as interactive cards with the
+// Color a live probe/check card the moment grade_answer returns, so the
+// learner sees right/wrong immediately instead of only after a reload.
+function applyLiveGrade(grade) {
+  const qid = grade.question_id;
+  if (!qid) return;
+  const cards = [...document.querySelectorAll('.artifact-card[data-kind="quiz"]')];
+  let card = cards.find(c => c.dataset.question_id === qid);
+  if (!card) {
+    // cards built by start_probe_batch don't carry the id; fall back to the
+    // nth card for the nth graded question this turn
+    const graded = document.querySelectorAll('.artifact-card[data-kind="quiz"].graded');
+    const ungraded = cards.filter(c => !c.classList.contains('graded'));
+    if (ungraded.length === 1) card = ungraded[0];
+    else return;
+  }
+  card.dataset.question_id = qid;
+  card.classList.add('graded');
+  const correct = Number(grade.correct_index);
+  const chosen = Number(card.dataset.selected);
+  const opts = [...card.querySelectorAll('.artifact-card__quiz-option')];
+  const hasCorrect = Number.isFinite(correct) && correct >= 0;
+  opts.forEach((btn, oi) => {
+    btn.disabled = true;
+    if (hasCorrect && oi === correct) btn.classList.add(chosen === correct ? 'correct' : 'reveal-correct');
+    else if (oi === chosen && chosen !== correct) btn.classList.add('incorrect');
+  });
+  card.classList.add('revealed');
+  const label = document.createElement('div');
+  label.className = 'artifact-card__quiz-outcome';
+  label.textContent = grade.outcome === 'correct' ? '\u2713 correct'
+    : grade.outcome === 'incorrect' ? '\u2717 incorrect'
+    : (grade.outcome || 'answered');
+  if (grade.outcome === 'incorrect' && grade.explanation) {
+    const explain = document.createElement('div');
+    explain.className = 'artifact-card__quiz-explain';
+    explain.textContent = `Not quite. ${grade.explanation}`;
+    card.querySelector('.artifact-card__content').appendChild(explain);
+  }
+  card.querySelector('.artifact-card__content').appendChild(label);
+  render_math(false);
+}
+
 // chosen answer pre-selected and its outcome, so the clickable buttons a learner
 // already used survive a page refresh instead of collapsing into locked cards.
 function render_answered_questions(questions) {

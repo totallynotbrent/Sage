@@ -214,6 +214,13 @@ class SessionService(TurnMixin):
             citations = json.loads(row.get("citations_json") or "[]")
         except (json.JSONDecodeError, TypeError):
             citations = []
+        actions: list = []
+        payload = row.get("payload_json")
+        if payload:
+            try:
+                actions = json.loads(payload).get("actions") or []
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                actions = []
         return Message(
             id=row["id"],
             session_id=row["session_id"],
@@ -222,6 +229,7 @@ class SessionService(TurnMixin):
             kind=row.get("kind", "text"),
             content=row["content"],
             citations=citations,
+            actions=actions,
             partial=row.get("partial", 0),
             created_at=row["created_at"],
         )
