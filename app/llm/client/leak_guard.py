@@ -11,7 +11,7 @@ _LEAKED_BARE_RE = re.compile(
     r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t.:;,!?)(\\\"'-]))"
     r"\[?call:\w+\b/?\]?"
     r"(?:\s*status\s*=\s*[\"'][^\"']*[\"'])?"
-    r"(?:\s*\([^)\"']*\))?"
+    r"(?:\s*\((?:[^()\"']|\"[^\"]*\"|'[^']*')*\))?"
 )
 _LEAKED_OPEN_RE = re.compile(r"<call:\w+\b[^<]*$")
 # full call-signature form some models emit as prose: tool_name(args=..., ...)

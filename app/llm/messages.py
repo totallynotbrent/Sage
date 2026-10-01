@@ -212,6 +212,15 @@ def build_lesson_state_block(state: dict[str, Any]) -> str:
             "STATE' and never narrate your phase transitions.",
         ]
     )
+    due = state.get("due_review") or []
+    if due:
+        lines.append(
+            "Spaced-repetition review is DUE for these topics (the forgetting "
+            "schedule says they are fading). When a natural pause arrives, offer "
+            "a review by calling start_review; do not interrupt mid-explanation:"
+        )
+        for card in due[:5]:
+            lines.append(f"- {str(card.get('topic') or '')[:80]} (due {card.get('due', '')})")
     return "\n".join(lines)
 
 

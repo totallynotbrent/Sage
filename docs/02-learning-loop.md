@@ -41,6 +41,7 @@ flowchart TB
 - **Teach**. clear streaming prose grounded in your files; ask questions anytime.
 - **Final quiz**. the probe questions plus fresh ones spanning every topic, never repeated.
 - **Complete**. on a pass it summarizes; on a miss it re-teaches just those points and re-quizzes.
+- **Review**. spaced-repetition cards graded on the FSRS forgetting schedule; Sage offers a review when cards are due and can be prompted to run it any time.
 
 ## Modes
 

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, AsyncIterator, Awaitable, Callable
 
 from app.config import validation_problems
+from app.db import rows_to_dicts
 from app.errors import (
     ConfigError,
     ConflictError,
@@ -13,6 +14,7 @@ from app.errors import (
     NotFoundError,
     ProviderError,
 )
+from app.llm.client.leak_guard import _strip_leaked_calls
 from app.llm.messages import (
     build_chat_messages,
     extract_citation_markers,
@@ -146,8 +148,6 @@ class TurnMixin:
                     learning = LearningService(self.conn, self.settings)
                     check = await learning.generate_check(session_id, llm)
                     check_questions = check.get("questions") or []
-                    self.persist_user_message(session_id, "(continue)")
-                    self.save_partial_marker(session_id, client_msg_id)
                     if check_questions:
                         yield {
                             "type": "tool_result",
@@ -191,6 +191,18 @@ class TurnMixin:
                     return
 
                 session_dict = session.model_dump()
+                # real history for the model: session.model_dump() carries no
+                # messages key, so _history_messages has read empty forever;
+                # feed the actual conversation rows (partial + blank filtered
+                # inside _history_messages)
+                history_rows = rows_to_dicts(
+                    self.conn.execute(
+                        "SELECT role, content, partial FROM messages "
+                        "WHERE session_id = ? ORDER BY created_at DESC LIMIT 80",
+                        (session_id,),
+                    )
+                )
+                session_dict["messages"] = list(reversed(history_rows))
                 assistant_row = self.conn.execute(
                     "SELECT COUNT(*) AS n FROM messages WHERE session_id = ? "
                     "AND role = 'assistant' AND partial = 0",
@@ -243,6 +255,16 @@ class TurnMixin:
                     }
                     for row in pending_rows
                 ]
+                # spaced repetition: surface due FSRS cards so the model can
+                # offer a review at a natural pause (the layer was invisible)
+                try:
+                    from app.services import review as review_service
+
+                    lesson_state["due_review"] = review_service.due_cards(
+                        self.conn, session_id
+                    )[:5]
+                except Exception:
+                    lesson_state["due_review"] = []
                 messages = build_chat_messages(
                     session_dict,
                     user_text,
@@ -435,17 +457,9 @@ class TurnMixin:
                         break
 
 
-                # Defense in depth: strip any leaked call: fragments that slipped through (e.g. gemma's "call:run_probe/")
-                # Bread's native /api/chat never hits this path, but Sage's model does. ensure storage is clean even if
-                # the guard in app/llm/client.py regresses. Also keeps history used for next-turn context leak-free.
-                import re as _re
-                full_text = "".join(buffer)
-                full_text = _re.sub(r"<call:\w+\b[^>]*>?", "", full_text)
-                full_text = _re.sub(r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t.:;,!?)(\\\"'-]))\[?call:\w+\b/?\]?(?:\s*status\s*=\s*[\"'][^\"']*[\"'])?(?:\s*\([^)\"']*\))?", "", full_text)
-                full_text = _re.sub(r"<call:\w+\b[^<]*$", "", full_text)
-                # strip raw json tool payloads the model leaks as prose instead of
-                # calling the tool (e.g. a record_step_actions block rendered as text).
-                full_text = _re.sub(r"\{\s*\"actions\"\s*:\s*\[.*?\](?:\s*,\s*\"[^\"]+\"\s*:.*?)*\s*\}", "", full_text, flags=_re.S)
+                # leak guard: one source of truth, name-gated, carries the paren
+                # and brace signature forms (see app/llm/client/leak_guard.py)
+                full_text = _strip_leaked_calls("".join(buffer))
                 # Deterministic opening probe: the model sometimes greets ("let me
                 # check what you know") and stops without firing run_probe, leaving
                 # no questions behind. On a first turn where it ran no tool at all,
@@ -487,41 +501,33 @@ class TurnMixin:
                         q["kind"] == "final"
                         for q in lesson_state.get("pending_questions", [])
                     )
+                    and self._current_phase(session_id, session) == "final_quiz"
                 ):
-                    phase_row = self.conn.execute(
-                        "SELECT phase FROM sessions WHERE id = ?", (session_id,)
-                    ).fetchone()
-                    if phase_row is not None and phase_row[0] == "final_quiz":
-                        try:
-                            from app.services.learning import LearningService
+                    try:
+                        from app.services.learning import LearningService
 
-                            learning = LearningService(self.conn, self.settings)
-                            final_result = await learning.generate_final_quiz(
-                                session_id, llm
-                            )
-                            final_questions = final_result.get("questions") or []
-                            if final_questions:
-                                yield {
-                                    "type": "tool_result",
-                                    "name": "run_final_quiz",
-                                    "summary": _tool_result_summary(
-                                        "run_final_quiz", {"kind": "final"}
-                                    ),
-                                    "questions": final_questions,
-                                }
-                        except Exception:
-                            pass
+                        learning = LearningService(self.conn, self.settings)
+                        final_result = await learning.generate_final_quiz(
+                            session_id, llm
+                        )
+                        final_questions = final_result.get("questions") or []
+                        if final_questions:
+                            yield {
+                                "type": "tool_result",
+                                "name": "run_final_quiz",
+                                "summary": _tool_result_summary(
+                                    "run_final_quiz", {"kind": "final"}
+                                ),
+                                "questions": final_questions,
+                            }
+                    except Exception:
+                        pass
                 # Deterministic Continue: the model sometimes explains a node
                 # without calling record_step_actions, leaving no advance
                 # button. Every learning-arc turn that produced prose ends with
                 # a continue action so the lesson never dead-ends on a wall of
                 # text.
-                phase_row = self.conn.execute(
-                    "SELECT phase FROM sessions WHERE id = ?", (session_id,)
-                ).fetchone()
-                current_phase = (
-                    phase_row[0] if phase_row is not None else session.phase
-                )
+                current_phase = self._current_phase(session_id, session)
                 if (
                     current_phase in ("plan", "teach", "remediate")
                     and not step_actions_recorded
@@ -600,6 +606,14 @@ class TurnMixin:
                 llm.end_inflight(session_id)
         finally:
             self.conn.close()
+
+    def _current_phase(self, session_id: str, session: Session) -> str:
+        # tools may have flipped the phase mid-turn; read it fresh once and
+        # fall back to the turn-start snapshot when the row is gone
+        row = self.conn.execute(
+            "SELECT phase FROM sessions WHERE id = ?", (session_id,)
+        ).fetchone()
+        return row[0] if row is not None else session.phase
 
     async def _fallback_prose_message(self, messages: list[dict], llm) -> str:
         """Force one no-tools completion when a tool-only turn left no text.
