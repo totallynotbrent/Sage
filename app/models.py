@@ -239,7 +239,7 @@ class ModelConfig(BaseModel):
 class StructuredOutputRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    output_kind: Literal["chat", "mermaid", "todo", "quiz", "teach", "latex"]
+    output_kind: Literal["chat", "mermaid", "todo", "quiz", "teach", "latex", "figure"]
     prompt: StrictStr = Field(min_length=1, max_length=8000)
     count: StrictInt = Field(default=3, ge=1, le=10)
 
@@ -313,6 +313,13 @@ class LatexOutputDraft(BaseModel):
 
     title: StrictStr = Field(min_length=1, max_length=200)
     latex: StrictStr = Field(min_length=1, max_length=12000)
+
+
+class FigureOutputDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    html: StrictStr = Field(min_length=1, max_length=20000)
 
 
 class ChatOutputContent(BaseModel):
@@ -428,12 +435,25 @@ class LatexOutputEnvelope(StructuredOutputEnvelope):
     content: LatexOutputContent
 
 
+class FigureOutputContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: StrictStr = Field(min_length=1, max_length=200)
+    html: StrictStr = Field(min_length=1, max_length=20000)
+
+
+class FigureOutputEnvelope(StructuredOutputEnvelope):
+    kind: Literal["figure"]
+    content: FigureOutputContent
+
+
 StructuredOutputResponse = Annotated[
     ChatOutputEnvelope
     | MermaidOutputEnvelope
     | TodoOutputEnvelope
     | QuizOutputEnvelope
     | TeachOutputEnvelope
-    | LatexOutputEnvelope,
+    | LatexOutputEnvelope
+    | FigureOutputEnvelope,
     Field(discriminator="kind"),
 ]

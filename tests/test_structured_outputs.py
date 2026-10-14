@@ -227,3 +227,37 @@ def test_validate_latex_valid_and_script_rejected():
     assert result.latex == "\\begin{document} hello \\end{document}"  # type: ignore[attr-defined]
     with pytest.raises(ValueError, match="script_content"):
         validate_output({"title": "t", "latex": "hello </ScRiPt> world"}, "latex")
+
+
+def test_validate_figure_normalizes_fragment_and_rejects_script():
+    frag = (
+        '```html\n<figure style="background:#141414"><svg viewBox="0 0 10 10">'
+        '<circle cx="5" cy="5" r="4" fill="#e0a458"/></svg></figure>\n```'
+    )
+    result = validate_output({"title": "  Torque vectors  ", "html": frag}, "figure")
+    assert result.title == "Torque vectors"  # type: ignore[attr-defined]
+    assert result.html.startswith("<figure")  # type: ignore[attr-defined]
+    assert result.html.endswith("</figure>")  # type: ignore[attr-defined]
+    with pytest.raises(ValueError, match="script_content"):
+        validate_output(
+            {"title": "t", "html": "<figure><script>alert(1)</script></figure>"},
+            "figure",
+        )
+    with pytest.raises(ValueError, match="figure_no_svg"):
+        validate_output({"title": "t", "html": "<figure><p>text only</p></figure>"}, "figure")
+
+
+def test_request_output_figure_roundtrip():
+    llm = FakeLLM()
+    llm.complete_json_responses = [
+        json.dumps(
+            {
+                "title": "Precession",
+                "html": '<figure><svg><path d="M0 0"/></svg></figure>',
+            }
+        )
+    ]
+    request = StructuredOutputRequest(output_kind="figure", prompt="draw it", count=1)
+    result, attempts, _ = asyncio.run(request_output(llm, [], request))
+    assert result.html == '<figure><svg><path d="M0 0"/></svg></figure>'  # type: ignore[attr-defined]
+    assert attempts == 1

@@ -415,12 +415,13 @@ class TurnMixin:
                             # Button-first: forward full artifact payloads so the UI
                             # can render quiz/todo/latex cards in the right rail
                             # without any composer buttons or hardcoded prompts.
-                            if name in ("generate_quiz", "generate_todo", "generate_latex") and not result.get("error"):
+                            if name in ("generate_quiz", "generate_todo", "generate_latex", "generate_figure") and not result.get("error"):
                                 tool_event["artifact"] = {
                                     "kind": result.get("kind"),
                                     "title": result.get("title"),
                                     "source": result.get("source"),
                                     "latex": result.get("latex"),
+                                    "html": result.get("html"),
                                     "questions": result.get("questions"),
                                     "items": result.get("items"),
                                     "diagram_type": result.get("diagram_type"),

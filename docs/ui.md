@@ -37,6 +37,7 @@ flowchart TB
 
 - Streams answers as they generate; sources cited inline when web search is on.
 - Understanding questions and the final quiz render as answer cards in the chat.
+- When the tutor draws a teaching figure (vector diagram, sketch, comparison), it renders inline in the chat below the explanation, matching the app's dark theme.
 - Uploaded files open in a collapsible side rail; PDFs render there natively.
 - The mode toggle (strict / normal) sits in the chat composer on both the home page and the workspace.
 

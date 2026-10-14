@@ -102,6 +102,24 @@ async def _run_generate(kind: str, arguments: dict, ctx) -> dict:
         f"The topic MUST stay within the current lesson thread ({topic}). "
         "Do not choose an unrelated subject."
     )
+    if kind == "figure":
+        user += (
+            " The 'html' field MUST be a single self-contained <figure> fragment: "
+            "inline CSS only (one <style> block inside the fragment), inline SVG "
+            "for all drawing, NO JavaScript, NO <html>/<head>/<body>/<script> "
+            "tags, NO external files, fonts, or CDNs (system fonts only). "
+            "It must fit a 760px wide column. Everything the learner needs to "
+            "understand it must be drawn or labeled inside the figure itself."
+            " Design tokens (mandatory): figure sits on a #141414 canvas; "
+            "panels use #191919 fill with 1px solid #2b2b2b borders; "
+            "border-radius 0 everywhere; no gradients, no shadows, no glows; "
+            "accent amber #e0a458; status trio green #4a7a5c, amber #e0a458, "
+            "red-pink #eb6f92; colors appear only on strokes, labels, arrows, "
+            "and thin 1-2px bars, never large fills; Inter for labels/captions, "
+            "JetBrains Mono for numbers and axis labels, Newsreader for the "
+            "figure title. Keep the figure simple and uncluttered: few elements, "
+            "clear labeled arrows, readable text sizes (minimum 12px)."
+        )
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},

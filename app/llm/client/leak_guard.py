@@ -19,7 +19,7 @@ _LEAKED_OPEN_RE = re.compile(r"<call:\w+\b[^<]*$")
 _SAGE_TOOL_NAMES = (
     "run_probe", "grade_answer", "build_plan", "run_final_quiz",
     "record_step_actions", "start_review", "web_search", "generate_quiz",
-    "generate_todo", "generate_latex", "ask_question",
+    "generate_todo", "generate_latex", "generate_figure", "ask_question",
 )
 _LEAKED_SIGNATURE_RE = re.compile(
     r"(?:(?<=\s)|(?<=^)|(?<=[\n\r\t]))"

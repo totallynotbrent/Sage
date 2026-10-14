@@ -21,6 +21,7 @@ flowchart LR
 - SearXNG, when configured, is queried server-side only.
 - The watch API reads only folders inside the configured `SAGE_WATCH_DIRS` bases.
 - Study files are untrusted data passed to the model inside `[DOC]` blocks; treated as data, not instructions.
+- Model-generated teaching figures are fragments from our own prompt pipeline, still sanitized before render: an SVG/HTML tag allowlist strips scripts, event handlers, and external references; fixed pixel sizing is neutralized so the figure scales to the chat column.
 
 ## See also
 - [[index|Sage]]

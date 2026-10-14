@@ -10,6 +10,8 @@ from app.llm.structured_outputs import request_output
 from app.models import (
     ChatOutputContent,
     ChatOutputEnvelope,
+    FigureOutputContent,
+    FigureOutputEnvelope,
     LatexOutputContent,
     LatexOutputEnvelope,
     MermaidOutputContent,
@@ -103,13 +105,25 @@ class StructuredOutputService:
             "quiz": '{"questions":[{"question":"...","options":["...","..."],"correct_index":0,"explanation":"...","topic":"...","difficulty":3}]}',
             "teach": '{"content":"...","latex_blocks":["$$...$$"],"actions":[{"id":"continue","label":"Continue","prompt":"..."}]}',
             "latex": '{"title":"...","latex":"..."}',
+            "figure": '{"title":"...","html":"<figure>...</figure>"}',
         }
+        tokens = (
+            " For a figure, the 'html' field MUST be a single self-contained "
+            "<figure> fragment: inline CSS only, inline SVG for all drawing, no "
+            "JavaScript, no external files/fonts/CDNs, fits a 760px column. "
+            "Design tokens: #141414 canvas, #191919 panels with 1px #2b2b2b "
+            "borders, border-radius 0, no gradients or shadows, amber #e0a458 "
+            "accent, status trio #4a7a5c/#e0a458/#eb6f92 on strokes/labels only."
+            if request.output_kind == "figure"
+            else ""
+        )
         return (
             f"Create a {request.output_kind} artifact for this learner request. "
             f"For a quiz, return exactly {request.count} questions. "
             f"Return ONLY JSON matching this shape: {schemas[request.output_kind]}. "
             "Do not include IDs, positions, citations, or metadata. "
             f"Learner request: {request.prompt}"
+            f"{tokens}"
         )
 
     async def _build_content(
@@ -158,6 +172,8 @@ class StructuredOutputService:
             )
         if output_kind == "latex":
             return LatexOutputContent(title=draft.title, latex=draft.latex), "latex"
+        if output_kind == "figure":
+            return FigureOutputContent(title=draft.title, html=draft.html), "figure"
         raise ModelOutputError("Unsupported structured output kind.")
 
     @staticmethod
@@ -178,5 +194,6 @@ class StructuredOutputService:
             "quiz": QuizOutputEnvelope,
             "teach": TeachOutputEnvelope,
             "latex": LatexOutputEnvelope,
+            "figure": FigureOutputEnvelope,
         }
         return envelope_types[kind](**common)

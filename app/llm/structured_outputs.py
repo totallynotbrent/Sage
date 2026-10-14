@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from app.errors import ModelOutputError
 from app.models import (
     ChatOutputDraft,
+    FigureOutputDraft,
     LatexOutputDraft,
     MermaidOutputDraft,
     QuizOutputDraft,
@@ -58,6 +59,19 @@ def _normalize_source(source: str) -> str:
     source = source.strip().replace("\r\n", "\n").replace("\r", "\n")
     match = re.fullmatch(r"```(?:mermaid)?\n([\s\S]*?)\n```", source, re.IGNORECASE)
     return match.group(1).strip() if match else source
+
+
+def _normalize_figure_html(html: str) -> str:
+    # unwrap a stray code fence and require a single figure fragment
+    html = html.strip().replace("\r\n", "\n").replace("\r", "\n")
+    match = re.fullmatch(r"```(?:html)?\n([\s\S]*?)\n```", html, re.IGNORECASE)
+    if match:
+        html = match.group(1).strip()
+    start = html.find("<figure")
+    end = html.rfind("</figure>")
+    if start != -1 and end != -1:
+        html = html[start : end + len("</figure>")]
+    return html.strip()
 
 
 def validate_output(raw: Any, output_kind: str):
@@ -135,6 +149,17 @@ def validate_output(raw: Any, output_kind: str):
         if "</script" in latex.lower():
             raise ValueError("script_content")
         return draft.model_copy(update={"title": title, "latex": latex})
+    if output_kind == "figure":
+        draft = FigureOutputDraft.model_validate(raw)
+        title = draft.title.strip()
+        html = _normalize_figure_html(draft.html)
+        if not title or not html:
+            raise ValueError("empty_text")
+        if "<script" in html.lower():
+            raise ValueError("script_content")
+        if "<svg" not in html.lower():
+            raise ValueError("figure_no_svg")
+        return draft.model_copy(update={"title": title, "html": html})
     raise ValueError("unsupported_output_kind")
 
 

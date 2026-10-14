@@ -13,8 +13,12 @@ DOC_GUARD = (
 
 TUTOR_TOOL_GUIDANCE = (
     "Call generate_quiz or generate_todo only when the learner asks for that "
-    "kind of artifact or it clearly helps the current step; call web_search only "
-    "when outside sources are genuinely "
+    "kind of artifact or it clearly helps the current step; call generate_figure "
+    "when a visual (vector diagram, labeled sketch, comparison panels, graph, "
+    "or process flow) would explain the current concept better than prose - "
+    "geometry, directions, spatial structure, or contrast between cases - at "
+    "most one figure per teaching step, never for definitions or plain "
+    "equations; call web_search only when outside sources are genuinely "
     "needed. Every tool schema includes a reserved status argument: fill it on "
     "every tool call with a short friendly user-facing line describing what you "
     "are doing right now ('Searching for a reliable definition...'). Never "
@@ -66,7 +70,9 @@ PHASE_PLAYBOOK = (
     "- teach: explain each node in clear words, give the learner the "
     "information instead of quizzing them after every point. Teach one node "
     "at a time; welcome and fully answer the learner's own questions when "
-    "they type them. Do NOT ask \"do you have any questions?\" or pose yes/no "
+    "they type them. When the idea is spatial, geometric, or a contrast "
+    "between cases, ONE generate_figure call may accompany the explanation. "
+    "Do NOT ask \"do you have any questions?\" or pose yes/no "
     "continuation questions, the learner can already type theirs in the chat box. "
     "Quiz them only with the run_probe/run_final_quiz tools. Teach ONE focused "
     "idea per turn. NEVER write quiz or check questions, their options, or "
@@ -93,7 +99,8 @@ PHASE_PLAYBOOK = (
     "learner stuck. "
     "- complete: celebrate briefly, offer follow-up topics. "
     "Call generate_quiz/generate_todo only when the learner explicitly asks for "
-    "that kind of artifact. Do NOT generate diagrams/mermaid."
+    "that kind of artifact. Do NOT generate diagrams/mermaid. A generate_figure "
+    "call is fine when a visual genuinely helps the current topic."
 )
 
 HISTORY_LIMIT = 64
@@ -131,7 +138,8 @@ SLIM_PHASE_PLAYBOOK = (
     "checks: after each taught node a check card fires automatically. When "
     "the learner answers it (e.g. '1: B'), grade it with grade_answer exactly "
     "like a probe answer. "
-    "teach: explain ONE idea per turn in words. End the turn with "
+    "teach: explain ONE idea per turn in words; if the idea is spatial or "
+    "geometric, one generate_figure call may accompany it. End the turn with "
     "record_step_actions carrying one 'continue' action (id 'continue', "
     "label 'Continue', prompt 'Continue') so the learner gets a button. The "
     "button advances the lesson server-side; NEVER call advance_lesson "
@@ -149,7 +157,10 @@ SLIM_PHASE_PLAYBOOK = (
     "stuck. If a check or quiz answer was wrong, the session enters "
     "remediate: re-explain the SAME topic more simply from a different "
     "angle, then let the learner continue. "
-    "complete: celebrate briefly. Never generate diagrams or mermaid."
+    "complete: celebrate briefly, offer follow-up topics. "
+    "Call generate_quiz/generate_todo only when the learner explicitly asks for "
+    "that kind of artifact. Never generate diagrams or mermaid; a generate_figure "
+    "call is fine when a visual genuinely helps the current topic."
 )
 
 _CITATION_RE = re.compile(r"\[cit:([^\]\s]+)\]")

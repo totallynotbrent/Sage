@@ -177,6 +177,14 @@ textarea{font:inherit;color:inherit}
 
 .artifact-card[data-kind="quiz"]{border-left-color:var(--gold)}
 
+.artifact-card[data-kind="figure"]{border-left-color:var(--accent)}
+
+.artifact-card__figure{padding:var(--space-2);background:#141414}
+
+.artifact-card__figure svg{max-width:100%;height:auto;display:block}
+
+.artifact-card__figure figcaption{font-family:var(--font-body);font-size:13px;color:var(--muted);padding-top:var(--space-2)}
+
 .artifact-card[data-kind="chat"]{border-left-color:var(--accent)}
 
 .artifact-card__diagram svg{max-width:100%;height:auto}

@@ -410,9 +410,9 @@
 
 <script>
 const API = '/api';
-const ARTIFACT_KIND = { DIAGRAM: 'mermaid', QUIZ: 'quiz', TODO: 'todo' };
+const ARTIFACT_KIND = { DIAGRAM: 'mermaid', QUIZ: 'quiz', TODO: 'todo', FIGURE: 'figure' };
 const ARTIFACT_LOCAL_PREFIX = 'sage_artifact_';
-const TOOL_STATUS = { web_search: 'searching the web…', generate_mermaid: 'generating mermaid…', generate_quiz: 'generating quiz…', generate_todo: 'generating todo list…', generate_study_plan: 'generating study plan…', record_step_actions: 'recording next steps…' };
+const TOOL_STATUS = { web_search: 'searching the web…', generate_mermaid: 'generating mermaid…', generate_quiz: 'generating quiz…', generate_todo: 'generating todo list…', generate_study_plan: 'generating study plan…', generate_figure: 'drawing figure…', record_step_actions: 'recording next steps…' };
 let sessionId = new URLSearchParams(window.location.search).get('session');
 let sessionGoal = '';
 let currentSessionFiles = [];
@@ -872,19 +872,6 @@ async function renderMermaidIn(container, source) {
 }
 
 function buildDiagramCard(envelope, artifact) {
-  const card = document.createElement('article');
-  card.className = 'artifact-card';
-  card.dataset.kind = 'mermaid';
-  card.setAttribute('aria-label', envelope.content.title);
-  const marker = document.createElement('span');
-  marker.className = 'artifact-card__marker';
-  marker.textContent = formatMarker(artifact.number);
-  const title = document.createElement('h3');
-  title.className = 'artifact-card__title';
-  title.textContent = envelope.content.title;
-  const badge = document.createElement('span');
-  badge.className = 'artifact-card__badge';
-  badge.textContent = envelope.validation && envelope.validation.status === 'validated' ? 'validated' : 'rendered';
   const header = document.createElement('header');
   header.className = 'artifact-card__header';
   header.appendChild(marker);
@@ -918,6 +905,91 @@ function buildDiagramCard(envelope, artifact) {
   card.appendChild(toggle);
   card.appendChild(sourceEl);
   renderMermaidIn(diagramWrap, envelope.content.source);
+  return card;
+}
+
+// model-generated figure fragments are trusted content from our own prompt pipeline,
+// but still sanitize: svg allowlist pass so a malformed generation cannot smuggle
+// scripts, event handlers, or external references into the page
+const SVG_SAFE_TAGS = new Set([
+  'svg', 'g', 'defs', 'symbol', 'title', 'desc', 'style', 'figure', 'figcaption',
+  'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'em', 'strong', 'b', 'i', 'br', 'hr',
+  'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text',
+  'tspan', 'textPath', 'marker', 'clipPath', 'linearGradient', 'radialGradient',
+  'stop', 'pattern', 'use', 'image', 'switch', 'a',
+]);
+
+function sanitizeFigureHtml(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const walker = document.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT);
+  const drop = [];
+  let node = walker.nextNode();
+  while (node) {
+    if (!SVG_SAFE_TAGS.has(node.tagName.toLowerCase())) drop.push(node);
+    node = walker.nextNode();
+  }
+  drop.forEach((el) => el.remove());
+  const all = doc.body.querySelectorAll('*');
+  all.forEach((el) => {
+    [...el.attributes].forEach((attr) => {
+      const name = attr.name.toLowerCase();
+      const value = (attr.value || '').trim().toLowerCase();
+      if (name.startsWith('on') || name === 'href' || name === 'xlink:href' || name === 'src' || name === 'srcset') {
+        el.removeAttribute(attr.name);
+      } else if (name === 'style' && /position\s*:\s*fixed/i.test(value)) {
+        el.removeAttribute(attr.name);
+      } else if (value.includes('javascript:') || value.includes('data:text/html')) {
+        el.removeAttribute(attr.name);
+  }
+    });
+  });
+  return doc.body.innerHTML;
+}
+
+function buildFigureCard(envelope, artifact) {
+  const card = document.createElement('article');
+  card.className = 'artifact-card';
+  card.dataset.kind = 'figure';
+  card.setAttribute('aria-label', envelope.content.title);
+  const marker = document.createElement('span');
+  marker.className = 'artifact-card__marker';
+  marker.textContent = formatMarker(artifact.number);
+  const title = document.createElement('h3');
+  title.className = 'artifact-card__title';
+  title.textContent = envelope.content.title;
+  const badge = document.createElement('span');
+  badge.className = 'artifact-card__badge';
+  badge.textContent = 'rendered';
+  const header = document.createElement('header');
+  header.className = 'artifact-card__header';
+  header.appendChild(marker);
+  header.appendChild(title);
+  header.appendChild(badge);
+  const content = document.createElement('div');
+  content.className = 'artifact-card__content artifact-card__figure-content';
+  const wrap = document.createElement('div');
+  wrap.className = 'artifact-card__figure';
+  const clean = sanitizeFigureHtml(envelope.content.html || '');
+  if (clean.includes('<svg')) {
+    wrap.innerHTML = clean;
+    // neutralize fixed pixel geometry: svg scales via viewBox, wrappers go auto,
+    // otherwise a div hardcoded to the svg's native height clips it when the
+    // card renders wider than the authored width
+    wrap.querySelectorAll('svg').forEach((svg) => {
+      svg.removeAttribute('width');
+      svg.removeAttribute('height');
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+    });
+    wrap.querySelectorAll('div, span, figure').forEach((el) => {
+      if (el.style.height && el.style.height.endsWith('px')) el.style.height = 'auto';
+    });
+  } else {
+    wrap.innerHTML = '<div class="artifact-card__diagram-error">The figure could not be rendered. Ask Sage to regenerate.</div>';
+  }
+  content.appendChild(wrap);
+  card.appendChild(header);
+  card.appendChild(content);
   return card;
 }
 
@@ -1115,6 +1187,8 @@ function appendArtifact(envelope) {
   let element = null;
   if (kind === ARTIFACT_KIND.DIAGRAM) {
     element = buildDiagramCard(envelope, artifact);
+  } else if (kind === ARTIFACT_KIND.FIGURE) {
+    element = buildFigureCard(envelope, artifact);
   } else if (kind === ARTIFACT_KIND.TODO) {
     element = buildTodoCard(envelope, artifact);
   } else if (kind === ARTIFACT_KIND.QUIZ) {
@@ -1587,6 +1661,9 @@ let activeTyper = null, activeTyperDone = null; // (kept: reserved for future st
 // interactive card AFTER the assistant response so the artifact follows the
 // narration instead of jumping ahead of it.
 let pendingCards = [];
+// Model-generated teaching figures ride the same ordering rule: buffered on
+// the tool_result event, rendered below the narration when the turn finalizes.
+let pendingFigures = [];
 // Model-triggered review: cards arrive on the start_review tool_result and
 // are buffered (same ordering rule as check/probe cards) until the reply prose
 // finalizes, then rendered through the review card UI.
@@ -1679,6 +1756,7 @@ async function sendMessage() {
   let citation_ids = [];
   pendingCards = [];           // fresh render queue per turn
   pendingReviewCards = [];     // fresh review-card queue per turn
+  pendingFigures = [];         // fresh figure queue per turn
   streaming = true;
   sendBtn.style.display = 'none';
   if (stopBtn) stopBtn.style.display = 'grid';
@@ -1767,6 +1845,8 @@ async function sendMessage() {
               appendArtifact({ kind: ARTIFACT_KIND.DIAGRAM, output_id: `tr-latex-${++artifactCounter}`,
                 content: { title: a.title || 'LaTeX', source: a.latex || '', diagram_type: 'latex' },
                 validation: { status: 'validated' } });
+            } else if (a.kind === 'figure' && a.html) {
+              pendingFigures.push({ title: a.title || 'Figure', html: a.html });
             }
           }
         } else if (ev.type === 'buffered_text') {
@@ -1839,7 +1919,7 @@ async function sendMessage() {
   } else if (was_aborted) {
   } else if (done_error_message) {
     assistant_msg = addMessage('assistant', esc(`Error: ${done_error_message}`));
-  } else if (pendingCards.length || pendingReviewCards.length || (Array.isArray(done_actions) && done_actions.length) || (Array.isArray(done_web_sources) && done_web_sources.length)) {
+  } else if (pendingCards.length || pendingReviewCards.length || pendingFigures.length || (Array.isArray(done_actions) && done_actions.length) || (Array.isArray(done_web_sources) && done_web_sources.length)) {
     // server-only turns (hidden continue, tool-only probe rounds) legitimately
     // carry no prose: the cards/actions below ARE the turn, no dead-end bubble
   } else {
@@ -1862,6 +1942,17 @@ async function sendMessage() {
     const rc = pendingReviewCards;
     pendingReviewCards = [];
     startReviewFromCards(rc);
+  }
+  if (pendingFigures.length) {
+    const figs = pendingFigures;
+    pendingFigures = [];
+    figs.forEach(({ title, html }) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'probe-wrap figure-wrap';
+      const card = buildFigureCard({ content: { title, html } }, { number: figs.indexOf(html) + 1 });
+      wrap.appendChild(card);
+      box.appendChild(wrap);
+    });
   }
   if (pendingCards.length) {
     const batches = pendingCards;

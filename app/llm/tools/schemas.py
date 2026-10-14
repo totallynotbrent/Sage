@@ -7,20 +7,21 @@ from app.models import TeachActionDraft
 
 _ACTION_IDS = list(get_args(TeachActionDraft.model_fields["id"].annotation))
 
-_KINDS = ("quiz", "todo", "latex")
+_KINDS = ("quiz", "todo", "latex", "figure")
 
 _SCHEMA_HINTS = {
     "chat": '{"content":"..."}',
     "todo": '{"title":"...","items":[{"text":"...","done":false}]}',
     "quiz": '{"questions":[{"question":"...","options":["...","..."],"correct_index":0,"explanation":"...","topic":"...","difficulty":3}]}',
     "latex": '{"title":"...","latex":"\\\\documentclass{article}..."}',
+    "figure": '{"title":"...","html":"<figure>...</figure>"}',
 }
 
 _KNOWN_ERROR_CODES = frozenset(
     """empty_text empty_output duplicate_options correct_index_out_of_range quiz_count
     quiz_shape unsupported_output_kind duplicate_action_ids invalid_action
-    script_content invalid_output invalid_json trailing_data auth rate_limit
-    timeout connection bad_request upstream not_found""".split()
+    script_content figure_no_svg invalid_output invalid_json trailing_data auth
+    rate_limit timeout connection bad_request upstream not_found""".split()
 )
 
 _WEB_BLOCKED_TOKENS = ("wikidiff", "redkiwiapp")
@@ -79,6 +80,18 @@ TOOL_SCHEMAS = [
     _fn("generate_quiz", "Generate a quiz.", dict(_QUIZ_PROPS), ["topic"]),
     _fn("generate_todo", "Generate a study checklist.", dict(_TOPIC), ["topic"]),
     _fn("generate_latex", "Generate a LaTeX document.", dict(_TOPIC), ["topic"]),
+    _fn(
+        "generate_figure",
+        "Draw ONE teaching figure as an HTML fragment with inline SVG "
+        "(vector diagram, labeled sketch, comparison panels, graph, timeline, "
+        "or process flow). Call it when a visual would genuinely help the "
+        "learner understand the current concept better than prose: geometry, "
+        "directions, vector relationships, structure, contrast between cases, "
+        "or anything spatial. Do NOT call it for definitions, equations alone, "
+        "or simple factual answers. At most one figure per teaching step.",
+        dict(_TOPIC),
+        ["topic"],
+    ),
     _fn(
         "record_step_actions",
         "Record follow-up teaching-step actions.",
@@ -156,6 +169,10 @@ def available_tools(settings, mode: str | None = None, lightweight: bool = False
             "generate_quiz": "Generate a quiz about a topic.",
             "generate_todo": "Generate a study checklist for a topic.",
             "generate_latex": "Generate a LaTeX document on a topic.",
+            "generate_figure": (
+                "Draw one teaching figure (diagram with inline SVG) when a "
+                "visual explains the current concept better than prose."
+            ),
             "record_step_actions": (
                 "Record follow-up teaching-step actions, for example a single "
                 "'continue' button after explaining a step. Call at most once "
