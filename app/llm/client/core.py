@@ -245,6 +245,7 @@ class SageOllamaClient(LLMClient):
         )
         last_error: Exception | None = None
         yielded_any_content = False
+        silent_empty_done = False
         for _ in range(self.config.max_retries):
             if yielded_any_content:
                 # a retry after partial text means the consumer has already
@@ -255,6 +256,7 @@ class SageOllamaClient(LLMClient):
                     finish_reason=None,
                 )
             try:
+                attempt_yielded = False
                 async for chunk in self._run_attempt(
                     messages=messages,
                     tools=tools,
@@ -265,7 +267,34 @@ class SageOllamaClient(LLMClient):
                 ):
                     if chunk.content or chunk.tool_calls or chunk.thinking:
                         yielded_any_content = True
+                        attempt_yielded = True
+                    if chunk.done and not attempt_yielded:
+                        # the model finished with zero content, thinking, or
+                        # tool calls: a silent empty. end of turn with nothing
+                        # to show wedges the learner's UI, so treat it like a
+                        # stall and burn one retry on a fresh completion
+                        silent_empty_done = True
+                        continue
+                    silent_empty_done = False
                     yield chunk
+                    if chunk.reset:
+                        attempt_yielded = True
+                if silent_empty_done and not yielded_any_content:
+                    if _ < self.config.max_retries - 1:
+                        # retry on a fresh attempt; the empty one produced
+                        # nothing visible so no reset marker is needed
+                        last_error = ProviderError(
+                            "upstream",
+                            "The model returned an empty response. Retrying.",
+                        )
+                        continue
+                    # last retry still silent: fall through to the terminal
+                    # error chunk below so the turn ends with a visible error
+                    last_error = ProviderError(
+                        "upstream",
+                        "The model returned an empty response.",
+                    )
+                    break
                 return
             except _FeatureUnsupportedError as exc:
                 if exc.feature not in attempt.disabled_features():

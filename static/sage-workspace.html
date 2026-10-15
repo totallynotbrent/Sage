@@ -1874,7 +1874,24 @@ async function sendMessage() {
       } catch (_) {}
     };
     while (!stream_done) {
-      const { done, value } = await reader.read();
+      // inactivity watchdog: heartbeats arrive every 15s, so 45s of silence
+      // means the connection died half-open (mobile network switch, tunnel
+      // drop). a bare reader.read() would hang forever and the spinner with
+      // it; abort and surface a retryable error instead.
+      const inactivity_abort = new AbortController();
+      const watchdog = setTimeout(() => inactivity_abort.abort(), 45000);
+      streamCtrl = ctrl; // keep the stop button wired to the real abort
+      let result;
+      try {
+        result = await Promise.race([
+          reader.read(),
+          new Promise((_, rej) => inactivity_abort.signal.addEventListener('abort',
+            () => rej(Object.assign(new Error('Connection stalled'), { name: 'WatchdogAbort' })))),
+        ]);
+      } finally {
+        clearTimeout(watchdog);
+      }
+      const { done, value } = result;
       if (done) { buf += dec.decode(); break; }
       buf += dec.decode(value, { stream: true });
       const lines = buf.split('\n');
@@ -1885,9 +1902,12 @@ async function sendMessage() {
   } catch (e) {
     was_aborted = e.name === 'AbortError';
     if (!was_aborted) {
+      // watchdog or network failure: kill the underlying fetch so the server
+      // sees the disconnect and cancels its generation instead of running on
       removeTypingIndicator();
+      try { ctrl.abort(); } catch (_) {}
       bubble = bubble_started ? bubble : addStreamingMessage();
-      bubble.innerHTML = `<div style="color:var(--love)">Connection error</div>`;
+      bubble.innerHTML = `<div style="color:var(--love)">${esc(e.name === 'WatchdogAbort' ? 'Connection stalled. Check your network and try again.' : 'Connection error')}</div>`;
     }
   }
 
